@@ -38,7 +38,7 @@ public final class LoadRunner implements ApplicationRunner {
     /// The sink logs each event at DEBUG until the Kafka adapter takes its place. The clock is wired here, at the
     /// edge.
     private <T> long start(Generator.Recipe<T> recipe) {
-        Consumer<T> sink = payload -> log.debug("Produced {} for {}", payload, properties.region());
+        Consumer<T> sink = payload -> log.info("Produced {} for {}", payload, properties.region());
         return new Generator<>(recipe, sink, java.time.Clock.systemUTC())
                 .start(properties.concurrent(), properties.interval(), properties.ttl());
     }

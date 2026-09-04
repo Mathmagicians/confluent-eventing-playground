@@ -31,7 +31,6 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter'
     implementation 'com.google.protobuf:protobuf-java'
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
-    developmentOnly 'org.springframework.boot:spring-boot-docker-compose'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation platform('io.cucumber:cucumber-bom:7.34.7') // not in the Boot BOM, 2026-09-03
     testImplementation 'io.cucumber:cucumber-java'

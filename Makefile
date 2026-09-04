@@ -48,9 +48,8 @@ build: proto-check     ## compile, unit tests, jar
 test:      ## unit tests
 	$(GRADLE) test
 
-# bootRun's compose support reads compose.yaml, which needs VERSION like the up targets do
 run:       ## one generator from source; properties defaults, or ARGS="--load.type=order --load.ttl=10"; credentials from .env.<ENV>.private
-	$(WITH_ENV) VERSION=$(VERSION) $(GRADLE) bootRun $(if $(ARGS),--args="$(ARGS)")
+	$(WITH_ENV) $(GRADLE) bootRun $(if $(ARGS),--args="$(ARGS)")
 
 run-tiny:   ## one generator from source, with the minimum load; credentials from .env.<ENV>.private
 	$(MAKE) run ARGS="$(MINIMUM) --logging.level.dk.mathmagicians=DEBUG"

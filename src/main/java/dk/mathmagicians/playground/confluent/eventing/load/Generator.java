@@ -42,7 +42,7 @@ public final class Generator<T> {
     public long start(int concurrent, int interval, Duration ttl) {
         var deadline = clock.instant().plus(ttl);
         log.info("Starting {} threads, each sleeping {} ms, until {}", concurrent, interval, deadline);
-        var threadFactory = Thread.ofVirtual().name("load-generator-", 0).factory();
+        var threadFactory = Thread.ofVirtual().name("generator-", 0).factory();
         try (var executor = Executors.newThreadPerTaskExecutor(threadFactory)) {
             Callable<Long> looper = () -> loop(deadline, interval);
             var loops = executor.invokeAll(

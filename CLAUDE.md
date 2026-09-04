@@ -168,8 +168,8 @@ targets.
 
 ## Repository facts, keep current
 
-- `spring-boot-docker-compose` is on the development classpath and starts every `compose.yaml` service on `bootRun`,
-  so `bootRun` needs the Docker daemon running. Whether the starter stays is the human's decision.
+- `compose.yaml` is the swarm of workers only. There is no local Kafka; every profile runs against Confluent Cloud,
+  and `bootRun` runs without Docker.
 - `HELP.md` is git-ignored Spring Initializr boilerplate. Leave it as is.
 - `.env.test.private` and `.env.prod.private` are the human's Confluent credentials, see Security settings.
 - The container image from `bootBuildImage` is the deployment unit.
