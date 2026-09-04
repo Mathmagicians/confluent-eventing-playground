@@ -1,0 +1,36 @@
+# The swarm: one generator per event type. `docker compose up` starts all three, `make up-<type>` starts one.
+# Defaults live here; override with environment variables, e.g. OFFER_CONCURRENT=50 TTL=300 docker compose up offer-generator.
+name: confluent-eventing-playground
+
+x-generator: &generator
+  image: confluent-eventing-playground:0.0.1-SNAPSHOT   # make image
+  labels:
+    org.springframework.boot.ignore: true   # bootRun's compose support skips the swarm
+
+services:
+  product-generator:
+    <<: *generator
+    command:
+      - --load.type=product
+      - --load.concurrent=${PRODUCT_CONCURRENT:-10}
+      - --load.interval=${PRODUCT_INTERVAL:-250}
+      - --load.region=${REGION:-EMEA}
+      - --load.ttl=${TTL:-60}
+
+  offer-generator:
+    <<: *generator
+    command:
+      - --load.type=offer
+      - --load.concurrent=${OFFER_CONCURRENT:-10}
+      - --load.interval=${OFFER_INTERVAL:-250}
+      - --load.region=${REGION:-EMEA}
+      - --load.ttl=${TTL:-60}
+
+  order-generator:
+    <<: *generator
+    command:
+      - --load.type=order
+      - --load.concurrent=${ORDER_CONCURRENT:-10}
+      - --load.interval=${ORDER_INTERVAL:-250}
+      - --load.region=${REGION:-EMEA}
+      - --load.ttl=${TTL:-60}

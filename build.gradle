@@ -1,0 +1,76 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '4.1.1'
+    id 'io.spring.dependency-management' version '1.1.7'
+    id 'com.google.protobuf' version '0.10.0' // not in the Boot BOM, 2026-09-03
+}
+
+group = 'dk.mathmagicians.playground'
+version = '0.0.1-SNAPSHOT'
+description = 'confluent-eventing-playground'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter'
+    implementation 'com.google.protobuf:protobuf-java'
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+    developmentOnly 'org.springframework.boot:spring-boot-docker-compose'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation platform('io.cucumber:cucumber-bom:7.34.7') // not in the Boot BOM, 2026-09-03
+    testImplementation 'io.cucumber:cucumber-java'
+    testImplementation 'io.cucumber:cucumber-junit-platform-engine'
+    testImplementation 'io.cucumber:cucumber-spring'
+    testImplementation 'org.junit.platform:junit-platform-suite'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+def cucumberRunner = '**/RunCucumberTest.class'
+
+tasks.named('test') {
+    useJUnitPlatform()
+    exclude cucumberRunner
+}
+
+tasks.register('bdd', Test) {
+    description = 'Runs the Cucumber features. -PdryRun prints snippets for undefined steps without executing.'
+    group = 'verification'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform()
+    include cucumberRunner
+    if (providers.gradleProperty('dryRun').isPresent()) {
+        systemProperty 'cucumber.execution.dry-run', 'true'
+    }
+    testLogging.showStandardStreams = true
+    outputs.upToDateWhen { false }
+}
+
+protobuf {
+    protoc {
+        // same version as protobuf-java from the Boot BOM
+        artifact = "com.google.protobuf:protoc:${dependencyManagement.importedProperties['protobuf-java.version']}"
+    }
+    generateProtoTasks {
+        all().configureEach { task ->
+            task.notCompatibleWithConfigurationCache('protobuf-gradle-plugin 0.10.0 keeps Project state in the task')
+            if (task.sourceSet.name == 'main') {
+                // generated code is committed, see README: Repository layout
+                task.outputBaseDirProperty.set(layout.projectDirectory.dir('src/generated'))
+            }
+        }
+    }
+}
+
+// generated code is committed: compile from src/generated, regenerate with make proto-gen.
+// Plain directories only, so no build depends on the generate tasks.
+sourceSets.main.java.srcDirs = ['src/main/java', 'src/generated/java']
+sourceSets.test.java.srcDirs = ['src/test/java']

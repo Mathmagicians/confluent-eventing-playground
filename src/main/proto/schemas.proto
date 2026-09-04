@@ -1,0 +1,48 @@
+syntax ="proto3";
+package dk.mathmagicians.playground.eventing;
+
+option java_package = "dk.mathmagicians.playground.eventing";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/any.proto";
+
+message Envelope {
+    string id = 1;
+    string region = 2;
+    string appid = 3;
+    google.protobuf.Timestamp timestamp = 4;
+    google.protobuf.Any payload = 5;
+}
+
+message Order {
+    string id = 1;
+    string customer_id = 2;
+    repeated string products = 3;
+    google.protobuf.Timestamp created_at = 5;
+}
+
+message Product {
+    string producer_id = 1;
+    string product_id = 2;
+    string product_name = 3;
+    string product_description = 4;
+    google.protobuf.Timestamp created_at = 5;
+}
+
+message Offer {
+    string offer_id = 1;
+    string product_id = 2;
+    double price = 3;
+    string seller_id = 4;
+    google.protobuf.Timestamp created_at = 5;
+}
+
+message Transaction {
+    string transaction_id = 1;
+    Order order_ref = 2;
+    Offer offer_ref = 3;
+    string customer_id = 4;
+    string seller_id = 5;
+    double price = 6;
+    google.protobuf.Timestamp created_at = 7;
+}
