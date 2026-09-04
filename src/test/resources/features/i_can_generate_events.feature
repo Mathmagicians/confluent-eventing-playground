@@ -1,19 +1,18 @@
-Feature: I can generate events that simulate orders of different products from different customer factories, and publish them as events
+Feature: I can publish messages
+  A generator puts a payload in an envelope and publishes it as a message to the topic.
 
-    Background:
-    Given I have the API keys to the event log
-    And I can access the schema registry
+  Background:
+    Given I have the API keys to the cluster
 
-    Scenario Outline: I can put in a request for <Entity> from my factory
-    Given I am the factory <Factory> in region <Region>
-    And I need a new <Entity> with frequency <Frequency> per second
-    When I put in a request for <Entity>
-    Then it is published as an event and I receive an event_id
-    And I can see an event with my event_id in the event log
-    And the event has a header with my factory <Factory> and region <Region>
+  Scenario Outline: I can publish a message
+    Given I am the generator <Generator> in region <Region>
+    When I publish one <Payload> in an envelope
+    Then I receive the envelope id
+    And the partition and offset the message landed on
+    And the message at that offset is in the topic
+    And its envelope names <Generator> and <Region>
 
     Examples:
-    | Factory    | Region | Entity | Frequency |
-    | Alice      | EMEA   | Order  | 1         |
-    | Wonderland | ASIA   | Order  | 4         |
-    | Cat        | EMEA   | Prices | 1000      |
+      | Generator | Region | Payload |
+      | Alice     | EMEA   | Order   |
+      | Cat       | APAC   | Offer   |

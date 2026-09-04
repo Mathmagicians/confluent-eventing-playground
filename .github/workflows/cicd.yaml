@@ -5,16 +5,25 @@ on:
     branches: [main]
   push:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: the version to release, e.g. 0.1.0. Empty is Gradle's next.
+        default: ''
 
 permissions:
   contents: read
   packages: write
 
 jobs:
-  check:
+  ci:
     runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tags.outputs.tag }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0   # the version comes from git tags
       - uses: actions/setup-java@v6
         with:
           distribution: temurin
@@ -25,15 +34,81 @@ jobs:
       - name: compile, unit tests, jar
         run: make build
       - name: container image
-        run: make image
-      - name: integration tests, Cucumber with Testcontainers
-        run: make bdd
+        run: make docker-image
+      - name: tags, every build is a candidate under its sha; a pull request adds pr-<number>, main adds latest
+        id: tags
+        run: |
+          sha=sha-${GITHUB_SHA::7}
+          echo "tag=$sha" >> "$GITHUB_OUTPUT"
+          if [ "${{ github.event_name }}" = pull_request ]; then
+            echo "tags=$sha pr-${{ github.event.number }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tags=$sha latest" >> "$GITHUB_OUTPUT"
+          fi
       - uses: docker/login-action@v4
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: publish the image to ghcr.io
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: make publish REGISTRY=ghcr.io/${{ github.repository_owner }} TAGS="0.0.1-SNAPSHOT sha-${GITHUB_SHA::7} latest"
+      - name: publish the candidate to ghcr.io
+        run: make docker-publish TAGS="${{ steps.tags.outputs.tags }}"
+
+  cd:
+    needs: ci
+    runs-on: ubuntu-latest
+    environment: confluent-test
+    permissions:
+      contents: read
+      packages: read
+    env:
+      KAFKA_BOOTSTRAP_SERVERS: ${{ secrets.KAFKA_BOOTSTRAP_SERVERS }}
+      KAFKA_API_KEY: ${{ secrets.KAFKA_API_KEY }}
+      KAFKA_API_SECRET: ${{ secrets.KAFKA_API_SECRET }}
+      SCHEMA_REGISTRY_URL: ${{ secrets.SCHEMA_REGISTRY_URL }}
+      SCHEMA_REGISTRY_API_KEY: ${{ secrets.SCHEMA_REGISTRY_API_KEY }}
+      SCHEMA_REGISTRY_API_SECRET: ${{ secrets.SCHEMA_REGISTRY_API_SECRET }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 25
+      - uses: gradle/actions/setup-gradle@v6
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: deploy to test, the BDD suite against the candidate
+        run: make bdd-published TAG=${{ needs.ci.outputs.tag }}
+
+  tag:
+    needs: [ci, cd]
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    env:
+      GIT_AUTHOR_NAME: github-actions[bot]
+      GIT_AUTHOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+      GIT_COMMITTER_NAME: github-actions[bot]
+      GIT_COMMITTER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 25
+      - uses: gradle/actions/setup-gradle@v6
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: release the tested candidate, git tag and registry tag with the version
+        run: make git-release TAG=${{ needs.ci.outputs.tag }} ${{ inputs.version && format('RELEASE={0}', inputs.version) || '' }}

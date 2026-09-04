@@ -43,6 +43,22 @@ unit tests, README prose. They drive.
 
 When unsure which bucket something is in, it is theirs. Ask in one line.
 
+## Security settings
+
+`.claude/settings.json` is the human's guard on you. Only the human edits it; the file denies you `Edit` and
+`Write` on itself, `tee` into `.claude/`, and in-place `sed` and `perl`. A rule that blocks a task is a finding to
+report.
+
+- **Git is read-only.** Allowed: `status`, `diff`, `log`, `show`, `ls-files`, listing branches. Denied: `add`,
+  `commit`, `push`, `pull`, `fetch`, `merge`, `rebase`, `reset`, `restore`, `rm`, `mv`, `checkout`, `switch`,
+  `stash`, `tag`, branch deletes and renames, `clean`, `config`, `remote`, and the rest of the write surface.
+- **GitHub through `gh`.** Allowed: viewing PRs, issues, workflows, and runs, and `workflow run`, `run watch`,
+  `run rerun`. Denied: `pr create`, `pr merge`, `release`, `repo`.
+- **Credentials.** `.env.test.private` and `.env.prod.private` hold the human's Confluent credentials. Denied:
+  `Read`, `Edit`, `Write` on `.env*`, and `cat`, `head`, `tail`, `less`, `more`, `source`, `.` on them. `make`
+  sources the file for `ENV` into the command it runs, so the values are never in your environment either.
+- **File changes** go through the `Edit` and `Write` tools, one diff at a time, for the human to approve.
+
 ## Documentation rules
 
 These apply to everything you write into the repository, this file included.
@@ -129,10 +145,8 @@ Standing checks on every review, taken from the README:
 - Docs stay consistent in the same change. Plumbing that adds or renames a variable, target, profile, image name,
   or workflow updates the README, the Makefile `##` comments, and the facts below together with the code. Every
   Makefile target carries a `##` comment, since `make help` is built from them.
-- Git writes are the human's: staging, committing, pushing, branching, resetting. `.claude/settings.json` denies
-  them. You read git: `status`, `diff`, `log`, `show`. When something needs staging or committing, say which paths
-  in one line and leave it there. On GitHub you view PRs, issues, workflows, and runs, and you trigger and watch
-  workflow runs. PRs, merges, and releases are the human's.
+- Git writes are the human's, see Security settings. When something needs staging or committing, say which paths
+  in one line and leave it there.
 - One plumbing concern per change.
 - State every new dependency, plugin, or Gradle repository in the message that adds it.
 - Write feature or domain code when the human asks for it.
@@ -157,6 +171,7 @@ targets.
 - `spring-boot-docker-compose` is on the development classpath and starts every `compose.yaml` service on `bootRun`,
   so `bootRun` needs the Docker daemon running. Whether the starter stays is the human's decision.
 - `HELP.md` is git-ignored Spring Initializr boilerplate. Leave it as is.
+- `.env.test.private` and `.env.prod.private` are the human's Confluent credentials, see Security settings.
 - The container image from `bootBuildImage` is the deployment unit.
 - Generated Protobuf code is committed under `src/generated/java` and compiled as a plain source directory. Only
   `make proto-gen` runs the generator, which is not configuration-cache compatible. Every other build keeps the cache.

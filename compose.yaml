@@ -3,7 +3,7 @@
 name: confluent-eventing-playground
 
 x-generator: &generator
-  image: confluent-eventing-playground:0.0.1-SNAPSHOT   # make image
+  image: confluent-eventing-playground:${VERSION:?set by make, the version is Gradle's}   # make docker-image
   labels:
     org.springframework.boot.ignore: true   # bootRun's compose support skips the swarm
 

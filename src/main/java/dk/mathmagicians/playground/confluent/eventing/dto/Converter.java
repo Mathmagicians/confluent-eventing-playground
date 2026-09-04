@@ -1,58 +1,90 @@
 package dk.mathmagicians.playground.confluent.eventing.dto;
 
+import com.google.protobuf.Any;
 import com.google.protobuf.Message;
+import dk.mathmagicians.playground.confluent.eventing.domain.*;
+import dk.mathmagicians.playground.eventing.Schemas;
 import java.util.List;
 
-/// The serialization boundary: one reflective mapping between a record and its generated message.
-/// Record components match proto fields by name (`createdAt` to `created_at`). The plan is built once in the
-/// constructor, which throws on any component or field without a partner.
-public final class Converter<T extends Record, P extends Message> {
+/// The serialization boundary: each record to its generated message and back, one exhaustive switch per direction.
+/// `Instant` travels as `google.protobuf.Timestamp`, a nested record as a nested message, a list as a repeated field.
+/// An `Envelope` travels as `Schemas.Envelope`, its payload packed as `google.protobuf.Any`.
+public final class Converter {
 
-    /// How one value moves between the record and the message.
-    sealed interface Kind permits Scalar, Time, Nested, Repeated, Packed {
+    /// The message types an envelope may carry, the lookup for unpacking `Any`.
+    private static final List<Class<? extends Message>> PAYLOADS =
+            List.of(Schemas.Product.class, Schemas.Offer.class, Schemas.Order.class, Schemas.Transaction.class);
+
+    private Converter() {
     }
 
-    /// A record in a type-variable component, carried as `google.protobuf.Any`. Converted by the registered
-    /// converter for its class (`to`) or for the proto full name in the type URL (`from`).
-    record Packed(List<Converter<?, ?>> payloads) implements Kind {
-    }
-
-    /// String, double, int, long, boolean: set and get as is.
-    record Scalar() implements Kind {
-    }
-
-    /// `Instant` on the record, `google.protobuf.Timestamp` on the wire.
-    record Time() implements Kind {
-    }
-
-    /// A nested record, converted by its own converter.
-    record Nested(Converter<?, ?> converter) implements Kind {
-    }
-
-    /// A `List` on the record, a repeated field on the wire, elements converted by `element`.
-    record Repeated(Kind element) implements Kind {
-    }
-
-    private final Class<T> type;
-    private final P defaultInstance;
-    private final List<Converter<?, ?>> payloads;
-
-    public Converter(Class<T> type, P defaultInstance) {
-        this(type, defaultInstance, List.of());
-    }
-
-    /// `payloads` are the converters a `Packed` component may carry, for records with an `Any` field.
-    public Converter(Class<T> type, P defaultInstance, List<Converter<?, ?>> payloads) {
-        this.type = type;
-        this.defaultInstance = defaultInstance;
-        this.payloads = List.copyOf(payloads);
-    }
-
-    public P to(T record) {
+    public static Schemas.Envelope to(Envelope envelope) {
         throw new UnsupportedOperationException("not implemented");
     }
 
-    public T from(P proto) {
+    public static Envelope from(Schemas.Envelope envelope) {
+        throw new UnsupportedOperationException("not implemented");
+    }
+
+    /// The payload type from `PAYLOADS` the type URL names, unpacked, then `from(Message)`.
+    private static Payload from(Any any) {
+        throw new UnsupportedOperationException("not implemented");
+    }
+
+    /// `Any.unpack` with its checked exception wrapped.
+    private static Message unpack(Any any, Class<? extends Message> type) {
+        throw new UnsupportedOperationException("not implemented");
+    }
+
+    public static Message to(Payload payload) {
+        return switch (payload) {
+            case Product product -> to(product);
+            case Offer offer -> to(offer);
+            case Order order -> to(order);
+            case Transaction transaction -> to(transaction);
+        };
+    }
+
+    public static Schemas.Product to(Product product) {
+        throw new UnsupportedOperationException("not implemented");
+    }
+
+    public static Schemas.Offer to(Offer offer) {
+        throw new UnsupportedOperationException("not implemented");
+    }
+
+    public static Schemas.Order to(Order order) {
+        throw new UnsupportedOperationException("not implemented");
+    }
+
+    public static Schemas.Transaction to(Transaction transaction) {
+        throw new UnsupportedOperationException("not implemented");
+    }
+
+    public static Payload from(Message message) {
+        return switch (message) {
+            case Schemas.Product product -> from(product);
+            case Schemas.Offer offer -> from(offer);
+            case Schemas.Order order -> from(order);
+            case Schemas.Transaction transaction -> from(transaction);
+            default -> throw new IllegalArgumentException(
+                    "no record for " + message.getDescriptorForType().getFullName());
+        };
+    }
+
+    public static Product from(Schemas.Product product) {
+        throw new UnsupportedOperationException("not implemented");
+    }
+
+    public static Offer from(Schemas.Offer offer) {
+        throw new UnsupportedOperationException("not implemented");
+    }
+
+    public static Order from(Schemas.Order order) {
+        throw new UnsupportedOperationException("not implemented");
+    }
+
+    public static Transaction from(Schemas.Transaction transaction) {
         throw new UnsupportedOperationException("not implemented");
     }
 }

@@ -1,17 +1,21 @@
 package dk.mathmagicians.playground.confluent.eventing.cli;
 
+import dk.mathmagicians.playground.confluent.eventing.domain.Offer;
+import dk.mathmagicians.playground.confluent.eventing.domain.Order;
+import dk.mathmagicians.playground.confluent.eventing.domain.Product;
 import dk.mathmagicians.playground.confluent.eventing.load.Generator;
 import dk.mathmagicians.playground.confluent.eventing.load.LoadProperties;
-import dk.mathmagicians.playground.confluent.eventing.load.OfferGenerator;
-import dk.mathmagicians.playground.confluent.eventing.load.OrderGenerator;
-import dk.mathmagicians.playground.confluent.eventing.load.ProductGenerator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
 
-/// Inbound adapter: the command line, bound to `LoadProperties`, picks the generator and starts it.
+/// Inbound adapter: the command line, bound to `LoadProperties`, picks the recipe and runs a generator with it.
 @Component
 public final class LoadRunner implements ApplicationRunner {
+
+    private static final Logger log = LoggerFactory.getLogger(LoadRunner.class);
 
     private final LoadProperties properties;
 
@@ -21,11 +25,17 @@ public final class LoadRunner implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        Generator<?> generator = switch (properties.type()) {
-            case PRODUCT -> new ProductGenerator();
-            case OFFER -> new OfferGenerator();
-            case ORDER -> new OrderGenerator();
+        long produced = switch (properties.type()) {
+            case PRODUCT -> start(Product::random);
+            case OFFER -> start(Offer::random);
+            case ORDER -> start(Order::random);
         };
-        generator.start(properties.concurrent(), properties.interval(), properties.region(), properties.ttl());
+        log.info("Produced {} {} events for {}", produced, properties.type(), properties.region());
+    }
+
+    /// The sink logs each event at DEBUG until the Kafka adapter takes its place. The clock is wired here, at the
+    /// edge.
+    private <T> long start(Generator.Recipe<T> recipe) {
+        throw new UnsupportedOperationException("not implemented");
     }
 }
