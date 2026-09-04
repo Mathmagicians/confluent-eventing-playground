@@ -20,7 +20,7 @@ import org.slf4j.LoggerFactory;
 /// clock.
 public final class Generator<T> {
 
-    /// A pure function from a generator and an instant to an generated payload of type T.
+    /// A pure function from a generator and an instant to a payload.
     @FunctionalInterface
     public interface Recipe<T> {
         T from(RandomGenerator random, Instant at);

@@ -16,7 +16,7 @@ Reference implementation of a Kafka **load generator** and **stream consumer** r
 
 ## Purpose
 
-- Playground for refreshing eventPayload-streaming fundamentals against a managed Confluent cluster: keys, partitions, ordering, idempotence, schemas.
+- Playground for refreshing event-streaming fundamentals against a managed Confluent cluster: keys, partitions, ordering, idempotence, schemas.
 - Generate repeatable load from GitHub Actions (hourly cron) and from a developer machine.
 - Use stream processing capabilities from Confluent to consume over several topics
 
@@ -33,7 +33,8 @@ Both are Spring Boot applications. Actuator health and metrics are the endpoints
 
 ### Domain
 
-`Order(product, quantity, price)` is the single eventPayload type.
+A payload is a `Product`, an `Offer`, an `Order`, or a `Transaction`, a sealed set. An event is an `Envelope` with a
+payload.
 
 - **Partition key is `product`.** All orders for one product land on one partition, so per-product order is preserved.
   The default partitioner (murmur2 over the serialized key) maps a key to a partition by partition count, so the
@@ -47,7 +48,7 @@ Both are Spring Boot applications. Actuator health and metrics are the endpoints
           |                                   |
           v                                   v
    load-generator (EMEA)   ...   load-generator (region N)
-          |   key = product, value = Order
+          |   key = product, value = Envelope
           v
    Confluent Cloud   topic: orders-<profile>   (N partitions, fixed)
           |
@@ -112,7 +113,7 @@ properties files. Names are `UPPER_SNAKE`, prefixed by concern.
 | `SCHEMA_REGISTRY_API_KEY` / `SCHEMA_REGISTRY_API_SECRET`  | both services    | Schema Registry basic auth                                               |
 | `PRODUCT_CONCURRENT`, `OFFER_CONCURRENT`, `ORDER_CONCURRENT` | compose       | Producers per generator, default 10                                      |
 | `PRODUCT_INTERVAL`, `OFFER_INTERVAL`, `ORDER_INTERVAL`    | compose          | Milliseconds a producer sleeps between events, default 250               |
-| `REGION`                                                  | compose          | Region stamped on every eventPayload, default EMEA                              |
+| `REGION`                                                  | compose          | Region stamped on every event, default EMEA                                     |
 | `TTL`                                                     | compose          | Seconds a generator runs, default 60, max 300                            |
 
 Secrets live in two GitHub environments, `confluent-test` and `confluent-prod`, one Confluent cluster and API key
@@ -122,7 +123,7 @@ them. Properties files, Gherkin, and test fixtures refer to them by variable nam
 
 ## Play
 
-The swarm, one generator per eventPayload type with defaults from `compose.yaml`, is the Swarm section of `make help`.
+The swarm, one generator per payload type with defaults from `compose.yaml`, is the Swarm section of `make help`.
 
 The image on its own, defaults from `application.properties`:
 
@@ -137,7 +138,7 @@ docker run --rm ghcr.io/mathmagicians/confluent-eventing-playground:latest --loa
 | `--load.type`       | `offer`, `order`, `product` | offer |
 | `--load.concurrent` | producers running the loop | 10     |
 | `--load.interval`   | milliseconds a producer sleeps between events | 250 |
-| `--load.region`     | stamped on every eventPayload    | EMEA    |
+| `--load.region`     | stamped on every event    | EMEA    |
 | `--load.ttl`        | seconds to run, max 300   | 60      |
 
 A wrong value fails startup with the reason.
@@ -173,7 +174,8 @@ A review finding cites the rule it breaks.
 
 ### Spring Boot
 
-- Configuration as `@ConfigurationProperties` records with `@Validated` constraints, injected where needed.
+- Configuration as `@ConfigurationProperties` records, validated in the compact constructor with a message that
+  carries the value, injected where needed.
 - Auto-configuration first. A `@Bean` method covers what auto-configuration cannot express and carries a one-line
   comment saying so.
 - Profiles are `local` and `prod`. Differences between them live in properties.
@@ -300,7 +302,7 @@ BDD with Cucumber:
 - [ ] workers can publish against *-local kafka topics
 - [ ] Prod docker swarm works against *-prod kafka topics
 - [ ] Cucumber wired into the build (JUnit Platform Suite, Testcontainers for workers, Confluent *-test topics)
-- [ ] BDD feature: load generator produces `Order(product, quantity, price)`
+- [ ] BDD feature: I can publish messages
 - [ ] BDD feature: same product ends up in the same partition
 - [ ] Partition key on product
 - [ ] Publish 1 000 000 messages to Confluent Cloud

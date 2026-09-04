@@ -36,7 +36,7 @@ class ConverterTest {
         assertThat(Converter.from(parsed)).isEqualTo(payload);
     }
 
-    /// Guard - Ties the fixture list to `Payload.class.getPermittedSubclasses()`, so a new record without a fixture fails here.
+    /// Ties the fixture list to the permitted records, so a new record without a fixture fails here.
     @Test
     void everyPermittedRecordHasAFixture() {
         Assertions.<Class<?>>assertThat(EventFixtures.payloads().stream().map(Payload::getClass))
