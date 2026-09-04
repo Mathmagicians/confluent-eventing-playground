@@ -14,6 +14,9 @@ public record Transaction(
 
     /// A transaction composed from `Order.random` and `Offer.random`, customer, seller, and price copied from them.
     public static Transaction random(RandomGenerator random, Instant at) {
-        throw new UnsupportedOperationException("not implemented");
+        var order = Order.random(random, at);
+        var offer = Offer.random(random, at);
+        return new Transaction(
+                Payload.id("T", random), order, offer, order.customerId(), offer.sellerId(), offer.price(), at);
     }
 }

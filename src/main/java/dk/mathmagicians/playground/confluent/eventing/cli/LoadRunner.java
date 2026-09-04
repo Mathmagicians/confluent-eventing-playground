@@ -11,6 +11,8 @@ import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
 
+import java.util.function.Consumer;
+
 /// Inbound adapter: the command line, bound to `LoadProperties`, picks the recipe and runs a generator with it.
 @Component
 public final class LoadRunner implements ApplicationRunner {
@@ -36,6 +38,8 @@ public final class LoadRunner implements ApplicationRunner {
     /// The sink logs each event at DEBUG until the Kafka adapter takes its place. The clock is wired here, at the
     /// edge.
     private <T> long start(Generator.Recipe<T> recipe) {
-        throw new UnsupportedOperationException("not implemented");
+        Consumer<T> sink = payload -> log.debug("Produced {} for {}", payload, properties.region());
+        return new Generator<>(recipe, sink, java.time.Clock.systemUTC())
+                .start(properties.concurrent(), properties.interval(), properties.ttl());
     }
 }

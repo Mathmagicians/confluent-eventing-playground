@@ -3,8 +3,13 @@ package dk.mathmagicians.playground.confluent.eventing.load;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Collections;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Future;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
 import java.util.random.RandomGenerator;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,7 +19,7 @@ import org.slf4j.LoggerFactory;
 /// clock.
 public final class Generator<T> {
 
-    /// A pure function from a generator and an instant to an event.
+    /// A pure function from a generator and an instant to an generated payload of type T.
     @FunctionalInterface
     public interface Recipe<T> {
         T from(RandomGenerator random, Instant at);
@@ -34,12 +39,37 @@ public final class Generator<T> {
 
     /// Starts the threads, waits for all of them, returns the number of events produced.
     public long start(int concurrent, int interval, Duration ttl) {
-        throw new UnsupportedOperationException("not implemented");
+        var deadline = clock.instant().plus(ttl);
+        log.info("Starting {} threads, each sleeping {} ms, until {}", concurrent, interval, deadline);
+        try (var executor = java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()) {
+            Callable<Long> loop = () -> loop(deadline, interval);
+            var loops = executor.invokeAll(
+                    Collections.nCopies(concurrent, loop));
+            return loops.stream().mapToLong(Future::resultNow).sum();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return 0;
+        }
     }
 
     /// One thread: its own `ThreadLocalRandom`, sleep, produce, until the deadline. An interrupt ends it with its
     /// count.
     private long loop(Instant deadline, int interval) {
-        throw new UnsupportedOperationException("not implemented");
+        try {
+            var random = ThreadLocalRandom.current();
+            long produced = 0;
+            while (clock.instant().isBefore(deadline)) {
+                Thread.sleep(interval);
+                var at = clock.instant();
+                var payload = recipe.from(random, at);
+                sink.accept(payload);
+                produced++;
+            }
+            return produced;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.info("Thread interrupted, produced 0 events");
+            return 0;
+        }
     }
 }

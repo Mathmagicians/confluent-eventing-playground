@@ -9,8 +9,14 @@ public record Offer(String offerId, String productId, double price, String selle
     static final double MIN_PRICE = 0.5;
     static final double MAX_PRICE = 100.0;
 
-    /// An offer for a product from the bounded id space, seller a character, price in whole cents between the bounds.
+    /// An offer for one of the things, seller a character, price in whole cents between the bounds.
     public static Offer random(RandomGenerator random, Instant at) {
-        throw new UnsupportedOperationException("not implemented");
+        var cents = random.nextLong(Math.round(MIN_PRICE * 100), Math.round(MAX_PRICE * 100) + 1);
+        return new Offer(
+                Payload.id("OF", random),
+                Product.id(Wonderland.THINGS.next(random)),
+                cents / 100.0,
+                Wonderland.CHARACTERS.next(random),
+                at);
     }
 }

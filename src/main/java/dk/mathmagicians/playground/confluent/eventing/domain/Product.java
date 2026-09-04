@@ -10,21 +10,25 @@ public record Product(
         String productDescription,
         Instant createdAt) implements Payload {
 
-    /// Size of the product id space. Product is the partition key, a small space makes keys collide.
-    static final int PRODUCTS = 12;
-
-    /// The id of product `n`, the one form every record that references a product uses.
-    static String id(int n) {
-        throw new UnsupportedOperationException("not implemented");
+    /// The id of product `n`, our products are the things, product id is 4 chars uppercase with space removed
+    static String id(String s) {
+        var base = s.replaceAll("\\s", "");
+        var last = s.substring(s.length() - 1);
+        return "P-" + (base + last.repeat(4)).substring(0, 4).toUpperCase();
     }
 
-    /// A product id drawn from the bounded space.
-    static String randomId(RandomGenerator random) {
-        throw new UnsupportedOperationException("not implemented");
-    }
 
     /// A product from the vocabulary: producer a character, name a thing, description a quote.
     public static Product random(RandomGenerator random, Instant at) {
-        throw new UnsupportedOperationException("not implemented");
+        var person = Wonderland.CHARACTERS.next(random);
+        var product = Wonderland.THINGS.next(random);
+        var place = Wonderland.PLACES.next(random);
+        var quote = Wonderland.QUOTES.next(random);
+        return new Product(
+                person.toUpperCase(),
+                id(product),
+                product,
+                Wonderland.DESCRIPTIONS.next(random).formatted(product, place, person, quote),
+                at);
     }
 }

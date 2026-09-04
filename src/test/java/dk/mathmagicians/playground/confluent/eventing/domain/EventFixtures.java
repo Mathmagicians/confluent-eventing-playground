@@ -2,8 +2,10 @@ package dk.mathmagicians.playground.confluent.eventing.domain;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.function.BiFunction;
 import java.util.random.RandomGenerator;
 import java.util.random.RandomGeneratorFactory;
+import java.util.stream.Stream;
 
 public final class EventFixtures {
 
@@ -12,26 +14,35 @@ public final class EventFixtures {
     /// Rule Forty-two, the oldest rule in the book.
     public static final long SEED = 42;
 
+    /// Draws per sample.
+    public static final int DRAWS = 7;
+
     /// A fresh generator seeded with `SEED`: the same sequence in every test.
     public static RandomGenerator dice() {
         return RandomGeneratorFactory.getDefault().create(SEED);
     }
 
+    /// `DRAWS` from one seeded generator, so the draws differ and the sample is the same in every test.
+    public static <T> Stream<T> sample(BiFunction<RandomGenerator, Instant, T> recipe) {
+        var dice = dice();
+        return Stream.generate(() -> recipe.apply(dice, AT)).limit(DRAWS);
+    }
+
 
     public static Product product() {
-        return new Product("Mad Hatter", "p-1", "Pocket Watch", "We're all mad here.", AT);
+        return Product.random(dice(), AT);
     }
 
     public static Order order() {
-        return new Order("o-1", "Alice", List.of("Pocket Watch", "Tea Set"), AT);
+        return Order.random(dice(), AT);
     }
 
     public static Offer offer() {
-        return new Offer("of-1", "p-1", 1.5, "White Rabbit", AT);
+        return Offer.random(dice(), AT);
     }
 
     public static Transaction transaction() {
-        return new Transaction("t-1", order(), offer(), "Alice", "White Rabbit", 1.5, AT);
+        return Transaction.random(dice(), AT);
     }
 
     /// One fixture per record `Payload` permits.

@@ -26,7 +26,7 @@ class ConverterTest {
 
     @ParameterizedTest
     @MethodSource("payloads")
-    void roundTripsThroughBytes(Payload payload) {
+    void roundTripsThroughBytes(Payload payload) throws Exception {
         var message = Converter.to(payload);
         var parsed = message.getParserForType().parseFrom(message.toByteArray());
         assertThat(Converter.from(parsed)).isEqualTo(payload);
