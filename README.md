@@ -16,7 +16,7 @@ Reference implementation of a Kafka **load generator** and **stream consumer** r
 
 ## Purpose
 
-- Refresh event-streaming fundamentals against a managed Confluent cluster: keys, partitions, ordering, idempotence, schemas.
+- Playground for refreshing event-streaming fundamentals against a managed Confluent cluster: keys, partitions, ordering, idempotence, schemas.
 - Generate repeatable load from GitHub Actions (hourly cron) and from a developer machine.
 
 ## Architecture
@@ -296,10 +296,12 @@ BDD with Cucumber:
 - [x] Install Java 25
 - [x] Hello world
 - [x] Gradle script builds and runs the unit test
-- [ ] Makefile with `build`, `test`, `bdd`, `run`, `check`
-- [ ] Local docker swarm works against *-local kafka topics
+- [x] Makefile with `build`, `test`, `bdd`, `run`, `check`
+- [ ] Local docker compose spins up a swarm of workers
+- [ ] workers can generate load, and convert it to protobuf
+- [ ] workers can publish against *-local kafka topics
 - [ ] Prod docker swarm works against *-prod kafka topics
-- [ ] Cucumber wired into the build (JUnit Platform Suite, Testcontainers Kafka)
+- [ ] Cucumber wired into the build (JUnit Platform Suite, Testcontainers for workers, Confluent *-test topics)
 - [ ] BDD feature: load generator produces `Order(product, quantity, price)`
 - [ ] BDD feature: same product ends up in the same partition
 - [ ] Partition key on product
