@@ -1,11 +1,15 @@
 package dk.mathmagicians.playground.confluent.eventing.dto;
 
+import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures.envelope;
 import static org.assertj.core.api.Assertions.*;
 
+import com.google.protobuf.Any;
+import com.google.protobuf.InvalidProtocolBufferException;
+import com.google.protobuf.Timestamp;
 import dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures;
-import java.util.List;
-
 import dk.mathmagicians.playground.confluent.eventing.domain.Payload;
+import dk.mathmagicians.playground.eventing.Schemas;
+import java.util.List;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -42,18 +46,28 @@ class ConverterTest {
     @ParameterizedTest
     @MethodSource("payloads")
     void envelopeRoundTripsThroughTheMessage(Payload payload) {
-        fail("not implemented");
+        var message = Converter.to(envelope(payload));
+
+        assertThat(Converter.from(message)).isEqualTo(envelope(payload));
     }
 
     @ParameterizedTest
     @MethodSource("payloads")
-    void envelopeRoundTripsThroughBytes(Payload payload) {
-        fail("not implemented");
+    void envelopeRoundTripsThroughBytes(Payload payload) throws InvalidProtocolBufferException {
+        var message = Converter.to(envelope(payload));
+
+        var parsed = Schemas.Envelope.parseFrom(message.toByteArray());
+
+        assertThat(Converter.from(parsed)).isEqualTo(envelope(payload));
     }
 
     /// An envelope whose `Any` names a type outside `PAYLOADS`.
     @Test
     void envelopeRejectsAnUnknownPayload() {
-        fail("not implemented");
+        var stranger = Schemas.Envelope.newBuilder().setPayload(Any.pack(Timestamp.getDefaultInstance())).build();
+
+        assertThatThrownBy(() -> Converter.from(stranger))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Timestamp");
     }
 }

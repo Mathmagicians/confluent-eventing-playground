@@ -5,6 +5,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.concurrent.Callable;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
@@ -41,23 +42,33 @@ public final class Generator<T> {
     public long start(int concurrent, int interval, Duration ttl) {
         var deadline = clock.instant().plus(ttl);
         log.info("Starting {} threads, each sleeping {} ms, until {}", concurrent, interval, deadline);
-        try (var executor = java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()) {
-            Callable<Long> loop = () -> loop(deadline, interval);
+        var threadFactory = Thread.ofVirtual().name("load-generator-", 0).factory();
+        try (var executor = Executors.newThreadPerTaskExecutor(threadFactory)) {
+            Callable<Long> looper = () -> loop(deadline, interval);
             var loops = executor.invokeAll(
-                    Collections.nCopies(concurrent, loop));
-            return loops.stream().mapToLong(Future::resultNow).sum();
+                    Collections.nCopies(concurrent, looper));
+            return loops.stream().mapToLong(Generator::produced).sum();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             return 0;
         }
     }
 
+    private static long produced(Future<Long> someLoop) {
+        return switch (someLoop.state()) {
+            case SUCCESS -> someLoop.resultNow();
+            case FAILED -> throw new IllegalStateException("A loop failed", someLoop.exceptionNow());
+            case CANCELLED, RUNNING -> throw new IllegalStateException("A loop is " + someLoop.state());
+        };
+    }
+
     /// One thread: its own `ThreadLocalRandom`, sleep, produce, until the deadline. An interrupt ends it with its
     /// count.
     private long loop(Instant deadline, int interval) {
+        final String FAILURE_MESSAGE = "Thread %s failed after producing %d events";
+        long produced = 0;
         try {
             var random = ThreadLocalRandom.current();
-            long produced = 0;
             while (clock.instant().isBefore(deadline)) {
                 Thread.sleep(interval);
                 var at = clock.instant();
@@ -68,8 +79,11 @@ public final class Generator<T> {
             return produced;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            log.info("Thread interrupted, produced 0 events");
-            return 0;
+            log.info("Thread interrupted, produced {} events", produced);
+            return produced;
+        } catch (RuntimeException e) {
+            log.error("Thread failed in loop after producing {} events", produced, e);
+            throw new IllegalStateException( FAILURE_MESSAGE.formatted(Thread.currentThread().getName(), produced), e);
         }
     }
 }
