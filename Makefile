@@ -31,7 +31,7 @@ ENV_FILE := .env.$(ENV).private
 WITH_ENV := test ! -f $(ENV_FILE) || { set -a; . ./$(ENV_FILE); set +a; };
 
 .DEFAULT_GOAL := build
-.PHONY: help check build test clean version next-version proto-gen proto-check docker-image docker-publish docker-image-exists docker-run docker-smoke bdd bdd-published bdd-snippets up up-product up-offer up-order down git-tag git-release gh-main-protection
+.PHONY: help check build test run clean version next-version proto-gen proto-check docker-image docker-publish docker-image-exists docker-run docker-smoke bdd bdd-published bdd-snippets up up-product up-offer up-order down git-tag git-release gh-main-protection
 
 # sections are the ##@ lines, targets are the ## comments; the tab before each description is expanded to one column
 help:      ## this list
@@ -47,6 +47,13 @@ build: proto-check     ## compile, unit tests, jar
 
 test:      ## unit tests
 	$(GRADLE) test
+
+# bootRun's compose support reads compose.yaml, which needs VERSION like the up targets do
+run:       ## one generator from source; properties defaults, or ARGS="--load.type=order --load.ttl=10"; credentials from .env.<ENV>.private
+	$(WITH_ENV) VERSION=$(VERSION) $(GRADLE) bootRun $(if $(ARGS),--args="$(ARGS)")
+
+run-tiny:   ## one generator from source, with the minimum load; credentials from .env.<ENV>.private
+	$(MAKE) run ARGS="$(MINIMUM) --logging.level.dk.mathmagicians=DEBUG"
 
 clean:     ## remove build output
 	$(GRADLE) clean
