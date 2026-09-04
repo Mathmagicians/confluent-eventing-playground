@@ -143,7 +143,7 @@ The image on its own, defaults from `application.properties`:
 ```bash
 docker run --rm confluent-eventing-playground:0.0.1-SNAPSHOT
 docker run --rm confluent-eventing-playground:0.0.1-SNAPSHOT --load.type=order --load.concurrent=20 --load.interval=100 --load.region=APAC --load.ttl=120
-docker run --rm ghcr.io/<owner>/confluent-eventing-playground:latest --load.type=product
+docker run --rm ghcr.io/mathmagicians/confluent-eventing-playground:latest --load.type=product
 ```
 
 | Argument            | Values                    | Default |
@@ -275,9 +275,11 @@ BDD with Cucumber:
 - Conventional Commits: `feat:`, `fix:`, `test:`, `chore:`, `docs:`, `ci:`, `build:`. Imperative subject under 72
   characters. The body says why.
 - Every PR has a green `cicd.yaml` and a review before a human merges.
-- `cicd.yaml` runs on push and pull request: `make check`, which is proto-check, build with unit tests, container
-  image, then Cucumber with Testcontainers against that image. On push it publishes the image to
-  `ghcr.io/<owner>/confluent-eventing-playground` tagged with the version and the short sha, plus `latest` on `main`.
+- `cicd.yaml` runs on pull requests to `main` and on pushes to `main`: `make check`, which is proto-check, build
+  with unit tests, container image, then Cucumber with Testcontainers against that image. A push to `main` also
+  publishes the image to `ghcr.io/mathmagicians/confluent-eventing-playground` tagged with the version, the short
+  sha, and `latest`.
+- `main` is protected: changes arrive by pull request with a green `check`, no force pushes, linear history.
 - `load-run.yml` runs hourly (`0 * * * *`) and on `workflow_dispatch`: builds the load generator and produces
   `LOAD_MESSAGE_COUNT` orders to Confluent Cloud using repository secrets.
 

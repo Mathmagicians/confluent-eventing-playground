@@ -1,8 +1,10 @@
 name: cicd
 
 on:
-  push:
   pull_request:
+    branches: [main]
+  push:
+    branches: [main]
 
 permissions:
   contents: read
@@ -27,11 +29,11 @@ jobs:
       - name: integration tests, Cucumber with Testcontainers
         run: make bdd
       - uses: docker/login-action@v4
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: publish the image to ghcr.io
-        if: github.event_name == 'push'
-        run: make publish REGISTRY=ghcr.io/${{ github.repository_owner }} TAGS="0.0.1-SNAPSHOT sha-${GITHUB_SHA::7}${{ github.ref == 'refs/heads/main' && ' latest' || '' }}"
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: make publish REGISTRY=ghcr.io/${{ github.repository_owner }} TAGS="0.0.1-SNAPSHOT sha-${GITHUB_SHA::7} latest"
