@@ -52,6 +52,13 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: publish the candidate to ghcr.io
         run: make docker-publish TAGS="${{ steps.tags.outputs.tags }}"
+      - name: the published image into the job summary
+        run: |
+          repo=$(make docker-repo)
+          printf '### Published\n\n| Image | Digest |\n|---|---|\n' >> "$GITHUB_STEP_SUMMARY"
+          for tag in ${{ steps.tags.outputs.tags }}; do
+            printf '| `%s:%s` | `%s` |\n' "$repo" "$tag" "$(docker inspect --format '{{index .RepoDigests 0}}' "$repo:$tag" | cut -d@ -f2)" >> "$GITHUB_STEP_SUMMARY"
+          done
 
   cd:
     needs: ci
@@ -82,7 +89,11 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: deploy to test, the BDD suite against the candidate
+        id: bdd
         run: make bdd-published TAG=${{ needs.ci.outputs.tag }}
+      - name: the result into the job summary
+        if: ${{ !cancelled() && steps.bdd.outcome != 'skipped' }}
+        run: printf '### Tested\n\n| Image | Result |\n|---|---|\n| `%s:%s` | %s |\n' "$(make docker-repo)" "${{ needs.ci.outputs.tag }}" "${{ steps.bdd.outcome }}" >> "$GITHUB_STEP_SUMMARY"
 
   tag:
     needs: [ci, cd]
@@ -110,5 +121,12 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: the release version, the workflow_dispatch input or Gradle's next
+        id: release
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: echo "version=${INPUT_VERSION:-$(make next-version)}" >> "$GITHUB_OUTPUT"
       - name: release the tested candidate, git tag and registry tag with the version
-        run: make git-release TAG=${{ needs.ci.outputs.tag }} ${{ inputs.version && format('RELEASE={0}', inputs.version) || '' }}
+        run: make git-release TAG=${{ needs.ci.outputs.tag }} RELEASE=${{ steps.release.outputs.version }}
+      - name: the release into the job summary
+        run: printf '### Released\n\n| Git tag | Image |\n|---|---|\n| `v%s` | `%s:%s` |\n' "${{ steps.release.outputs.version }}" "$(make docker-repo)" "${{ steps.release.outputs.version }}" >> "$GITHUB_STEP_SUMMARY"

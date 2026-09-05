@@ -16,15 +16,19 @@ jobs:
     runs-on: ubuntu-latest
     environment: terraform-cloud
     env:
-      TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
+      TF_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
       TF_CLOUD_ORGANIZATION: ${{ secrets.TF_CLOUD_ORGANIZATION }}
       TF_WORKSPACE: ${{ secrets.TF_WORKSPACE }}
     steps:
       - uses: actions/checkout@v7
       - uses: hashicorp/setup-terraform@v3
         with:
-          terraform_wrapper: false   # plain stdout, so make captures the plan
+          terraform_wrapper: false   # plain stdout
       - name: formatting and validation of iac/
         run: make tf-check
       - name: speculative plan in Terraform Cloud, into the job summary
-        run: make tf-plan
+        shell: bash   # pipefail, so a failed plan fails the step
+        run: |
+          make tf-plan | tee plan.txt && result=0 || result=$?
+          { printf '### Plan\n\n```\n'; cat plan.txt; printf '```\n'; } >> "$GITHUB_STEP_SUMMARY"
+          exit $result

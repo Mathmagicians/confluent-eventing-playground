@@ -31,7 +31,7 @@ ENV_FILE := .env.$(ENV).private
 WITH_ENV := test ! -f $(ENV_FILE) || { set -a; . ./$(ENV_FILE); set +a; };
 
 .DEFAULT_GOAL := build
-.PHONY: help check build test run run-tiny clean version next-version proto-gen proto-check docker-image docker-publish docker-image-exists docker-run docker-smoke bdd bdd-published bdd-snippets up up-product up-offer up-order down tf-init tf-check tf-plan git-tag git-release gh-main-protection
+.PHONY: help check build test run run-tiny clean version next-version proto-gen proto-check docker-image docker-repo docker-publish docker-image-exists docker-run docker-smoke bdd bdd-published bdd-snippets up up-product up-offer up-order down tf-init tf-check tf-plan git-tag git-release gh-main-protection
 
 # sections are the ##@ lines, targets are the ## comments; the tab before each description is expanded to one column
 help:      ## this list
@@ -74,15 +74,11 @@ proto-check: proto-gen   ## fail when src/generated is not regenerated and stage
 docker-image:   ## build the container image
 	$(GRADLE) bootBuildImage
 
-# docker-publish, bdd-published and git-release write a table to the GitHub job summary when GITHUB_STEP_SUMMARY is set
+docker-repo:   ## the registry image path, REGISTRY/IMAGE in lowercase
+	@echo $(REPO)
+
 docker-publish:   ## push the image to the registry under each tag in TAGS
 	for tag in $(TAGS); do docker tag $(IMAGE):$(VERSION) $(REPO):$$tag && docker push $(REPO):$$tag; done
-	@test -z "$$GITHUB_STEP_SUMMARY" || { \
-	  printf '### Published\n\n| Image | Digest |\n|---|---|\n'; \
-	  for tag in $(TAGS); do \
-	    printf '| `%s:%s` | `%s` |\n' "$(REPO)" "$$tag" "$$(docker inspect --format '{{index .RepoDigests 0}}' $(REPO):$$tag | cut -d@ -f2)"; \
-	  done; \
-	} >> "$$GITHUB_STEP_SUMMARY"
 
 docker-image-exists:   ## exit 0 when the registry has a latest image
 	docker manifest inspect $(REPO):latest > /dev/null
@@ -98,9 +94,7 @@ bdd:       ## against the local image, or BDD_IMAGE=<reference>; credentials fro
 	$(WITH_ENV) $(GRADLE) bdd -Pimage=$(BDD_IMAGE)
 
 bdd-published:   ## against the registry image TAG
-	$(MAKE) bdd BDD_IMAGE=$(REPO):$(TAG) && result=passed || result=failed; \
-	test -z "$$GITHUB_STEP_SUMMARY" || printf '### Tested\n\n| Image | Result |\n|---|---|\n| `%s:%s` | %s |\n' "$(REPO)" "$(TAG)" "$$result" >> "$$GITHUB_STEP_SUMMARY"; \
-	test "$$result" = passed
+	$(MAKE) bdd BDD_IMAGE=$(REPO):$(TAG)
 
 bdd-snippets:  ## step-definition snippets for undefined steps, no execution
 	$(GRADLE) bdd -PdryRun || true
@@ -123,23 +117,18 @@ down:      ## stop the swarm
 
 ##@ Infrastructure, Terraform Cloud creates the topics on the Confluent cluster from iac/, applied on main
 # the workspace: TF_CLOUD_ORGANIZATION TF_WORKSPACE; the cluster and its Kafka API key are variables of the workspace
+# the token: `terraform login` once on a developer machine, TF_TOKEN_app_terraform_io in CI
 TF := terraform -chdir=iac
-# the plan text, written to the GitHub job summary when GITHUB_STEP_SUMMARY is set
-TF_PLAN := build/tf-plan.txt
 
 tf-init:   ## download the provider and connect the workspace; settings from .env.<ENV>.private
 	$(WITH_ENV) $(TF) init -input=false
 
-tf-check:  ## formatting and validation of iac/, no cloud access; workspace names from .env.<ENV>.private once tf-init ran
+tf-check: tf-init   ## formatting and validation of iac/
 	$(TF) fmt -check -diff -recursive
-	$(WITH_ENV) $(TF) init -backend=false -input=false > /dev/null
 	$(TF) validate
 
-tf-plan: tf-init   ## what Terraform Cloud would apply, a speculative plan, also into the job summary; settings from .env.<ENV>.private
-	@mkdir -p $(dir $(TF_PLAN))
-	$(WITH_ENV) $(TF) plan -input=false -no-color > $(TF_PLAN) 2>&1 && result=0 || result=$$?; cat $(TF_PLAN); \
-	test -z "$$GITHUB_STEP_SUMMARY" || { printf '### Plan\n\n```\n'; cat $(TF_PLAN); printf '```\n'; } >> "$$GITHUB_STEP_SUMMARY"; \
-	exit $$result
+tf-plan: tf-init   ## what Terraform Cloud would apply, a speculative plan, no colour for logs; settings from .env.<ENV>.private
+	$(WITH_ENV) $(TF) plan -input=false -no-color
 
 ##@ Repository, git tags and GitHub settings
 git-tag:   ## git tag v<RELEASE> on HEAD and push it; RELEASE defaults to Gradle's next version
@@ -147,7 +136,6 @@ git-tag:   ## git tag v<RELEASE> on HEAD and push it; RELEASE defaults to Gradle
 
 git-release: git-tag   ## the tag, plus <RELEASE> on the candidate image TAG in the registry
 	docker buildx imagetools create -t $(REPO):$(RELEASE) $(REPO):$(TAG)
-	@test -z "$$GITHUB_STEP_SUMMARY" || printf '### Released\n\n| Git tag | Image |\n|---|---|\n| `v%s` | `%s:%s` |\n' "$(RELEASE)" "$(REPO)" "$(RELEASE)" >> "$$GITHUB_STEP_SUMMARY"
 
 gh-main-protection:   ## apply .github/branch-protection.json to main
 	gh api --method PUT repos/$(GITHUB_REPO)/branches/main/protection --input .github/branch-protection.json

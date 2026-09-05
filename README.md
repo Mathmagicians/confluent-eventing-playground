@@ -151,7 +151,8 @@ shell never carries them. Properties files, Gherkin, and test fixtures refer to 
 
 The Terraform Cloud workspace holds `KAFKA_ID`, `KAFKA_REST_ENDPOINT`, and the Kafka API key as workspace variables.
 Plans and applies run there, from its GitHub connection to `iac/`. A third GitHub environment, `terraform-cloud`,
-holds the Terraform Cloud token as `TF_API_TOKEN`, the organization, and the workspace name for `iac.yaml`.
+holds the Terraform Cloud token as `TF_TOKEN_app_terraform_io`, the organization, and the workspace name for
+`iac.yaml`, each secret named as the variable it becomes.
 
 ## Play
 
