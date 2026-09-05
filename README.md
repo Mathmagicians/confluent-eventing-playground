@@ -20,14 +20,35 @@ Reference implementation of a Kafka **load generator** and **stream consumer** r
 - Generate repeatable load from GitHub Actions (hourly cron) and from a developer machine.
 - Use stream processing capabilities from Confluent to consume over several topics
 
+One topic per payload type, each keyed for a different ordering guarantee. Kafka keeps the records of one partition
+in order, and the key picks the partition, so records with the same key stay in order.
+
+```
+ products   key = product     offers   key = region + product    orders   key = region
+
+ p0 | P-POCK P-POCK P-POCK    p0 | EMEA/P-POCK EMEA/P-POCK       p0 | EMEA EMEA EMEA EMEA
+ p1 | P-FANN P-FANN           p1 | APAC/P-POCK APAC/P-POCK       p1 | APAC APAC
+ p2 | P-TEAS                  p2 | EMEA/P-FANN                   p2 | AMER AMER AMER
+
+ ordered per product          ordered per product in a region    ordered per region
+
+ transactions   key = region + product + customer
+
+ p0 | EMEA/P-POCK/C-01 EMEA/P-POCK/C-01
+ p1 | APAC/P-POCK/C-07
+ p2 | EMEA/P-FANN/C-01
+
+ ordered per customer, per product in a region
+```
+
 ## Architecture
 
 ### Services
 
 | Service           | Role                                                                                                                                  | Runs where                              |
 |-------------------|---------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------|
-| `load-generator`  | Produces `Order` events to the `orders` topic. One codebase, many instances distinguished by region (`EMEA`, `AMER`, `APAC`, ...).    | Compose swarm, GitHub Actions cron      |
-| `stream-consumer` | Consumes `orders`, verifies per-product ordering, exposes counters.                                                                   | Compose swarm                           |
+| `load-generator`  | Produces one payload type to its topic. One codebase, many instances distinguished by type and region (`EMEA`, `AMER`, `APAC`, ...). | Compose swarm, GitHub Actions cron      |
+| `stream-consumer` | Consumes the topics, verifies ordering per key, exposes counters.                                                                     | Compose swarm                           |
 
 Both are Spring Boot applications. Actuator health and metrics are the endpoints they expose.
 
@@ -36,9 +57,12 @@ Both are Spring Boot applications. Actuator health and metrics are the endpoints
 A payload is a `Product`, an `Offer`, an `Order`, or a `Transaction`, a sealed set. An event is an `Envelope` with a
 payload.
 
-- **Partition key is `product`.** All orders for one product land on one partition, so per-product order is preserved.
-  The default partitioner (murmur2 over the serialized key) maps a key to a partition by partition count, so the
-  partition count of `orders` is fixed at topic creation.
+- **The key picks the partition**, one key per topic as shown under Purpose. The default partitioner (murmur2 over
+  the serialized key) maps a key to a partition by partition count, so the partition count of a topic is fixed at
+  topic creation.
+- `transactions` are keyed by region, product id, and customer id: region and product from the offer the
+  transaction settles, the customer from the transaction, so a customer's transactions for one product in one
+  region stay in order.
 - Serialization: Protobuf via Confluent Schema Registry.
 
 ### Data flow
@@ -48,9 +72,9 @@ payload.
           |                                   |
           v                                   v
    load-generator (EMEA)   ...   load-generator (region N)
-          |   key = product, value = Envelope
+          |   key per topic, value = Envelope
           v
-   Confluent Cloud   topic: orders-<profile>   (N partitions, fixed)
+   Confluent Cloud   topics: products, offers, orders, transactions, prefixed test. or prod.   (N partitions, fixed)
           |
           v
    stream-consumer   per-partition ordering checks, metrics
@@ -58,12 +82,13 @@ payload.
 
 ### Environments
 
-| Profile | Topic           | Runs from                        |
-|---------|-----------------|----------------------------------|
-| `local` | `orders-local`  | Developer machine, compose swarm |
-| `prod`  | `orders-prod`   | GitHub Actions, hourly cron      |
+| Profile | Publishes to    | Runs from                                                      |
+|---------|-----------------|----------------------------------------------------------------|
+| `local` | the log         | Developer machine, no credentials                              |
+| `test`  | `test.<topic>`  | Developer machine, the `cd` job on every pull request          |
+| `prod`  | `prod.<topic>`  | `load-run.yaml` hourly cron, developer machine with `ENV=prod` |
 
-Both run against Confluent Cloud.
+`test` and `prod` run against Confluent Cloud.
 
 ## Repository layout
 
@@ -73,7 +98,8 @@ Both run against Confluent Cloud.
 ├── Makefile                  single entry point for humans and CI
 ├── compose.yaml              the swarm: load generators per region, the consumer
 ├── build.gradle / settings.gradle
-├── .github/workflows/        cicd.yaml, load-run.yaml
+├── iac/                      Terraform: the topics on the Confluent cluster, applied by Terraform Cloud
+├── .github/workflows/        cicd.yaml, load-run.yaml, iac.yaml
 ├── common/                   Order domain, serialization, shared test fixtures
 │   ├── src/main/proto/       Protobuf schemas
 │   └── src/generated/        protoc output, committed, regenerated with make proto-gen
@@ -115,11 +141,17 @@ properties files. Names are `UPPER_SNAKE`, prefixed by concern.
 | `PRODUCT_INTERVAL`, `OFFER_INTERVAL`, `ORDER_INTERVAL`    | compose          | Milliseconds a producer sleeps between events, default 250               |
 | `REGION`                                                  | compose          | Region stamped on every event, default EMEA                                     |
 | `TTL`                                                     | compose          | Seconds a generator runs, default 60, max 300                            |
+| `TF_CLOUD_ORGANIZATION` / `TF_WORKSPACE`                  | `make tf-*`      | Terraform Cloud workspace holding the state                              |
+| `TF_TOKEN_app_terraform_io`                               | `iac.yaml`       | Terraform Cloud token; a developer machine has `terraform login` instead |
 
-Secrets live in two GitHub environments, `confluent-test` and `confluent-prod`, one Confluent cluster and API key
-each. Locally the same six variables live in `.env.test.private` and `.env.prod.private`, git-ignored. `make`
-sources the file for `ENV`, default `test`, into the command it runs and nothing else, so your shell never carries
-them. Properties files, Gherkin, and test fixtures refer to them by variable name.
+Secrets live in two GitHub environments, `confluent-test` and `confluent-prod`, the same Confluent cluster and API
+key, one topic prefix each. Locally the same six variables live in `.env.test.private` and `.env.prod.private`,
+git-ignored. `make` sources the file for `ENV`, default `test`, into the command it runs and nothing else, so your
+shell never carries them. Properties files, Gherkin, and test fixtures refer to them by variable name.
+
+The Terraform Cloud workspace holds `KAFKA_ID`, `KAFKA_REST_ENDPOINT`, and the Kafka API key as workspace variables.
+Plans and applies run there, from its GitHub connection to `iac/`. A third GitHub environment, `terraform-cloud`,
+holds the Terraform Cloud token as `TF_API_TOKEN`, the organization, and the workspace name for `iac.yaml`.
 
 ## Play
 
@@ -178,7 +210,8 @@ A review finding cites the rule it breaks.
   carries the value, injected where needed.
 - Auto-configuration first. A `@Bean` method covers what auto-configuration cannot express and carries a one-line
   comment saying so.
-- Profiles are `local` and `prod`. Differences between them live in properties.
+- Profiles are `local`, `test`, and `prod`. `local` publishes every envelope to the log at INFO and needs no
+  credentials, the other two publish to Kafka and differ in properties: the topic names.
 - `application.properties` holds defaults, `application-<profile>.properties` holds the profile. Secrets are
   `${ENV_VAR}` placeholders that fail fast when unset. Everything else has a default.
 - `@SpringBootTest` serves one wiring test per service and the BDD suite.
@@ -190,12 +223,15 @@ A review finding cites the rule it breaks.
 - Producer: `acks=all`, `enable.idempotence=true`, compression `lz4` or `zstd`, explicit `linger.ms` and `batch.size`.
   All of it through Spring properties, each tuning value with a comment.
 - Every record has a key.
-- Topics are created by infrastructure. Test containers auto-create.
+- Topics are created by Terraform Cloud from `iac/`. Test containers auto-create.
+- Topic names are `<env>.<topic>`, the environment `test` or `prod` first: `test.orders`. The dot is the only
+  separator.
 - Consumer group id is explicit and named after the service. Offset management stays on Spring defaults until a
   scenario needs otherwise.
 - Listener exceptions propagate to Spring's `DefaultErrorHandler`, which publishes to the dead-letter topic
-  `<topic>.dlt` through `DeadLetterPublishingRecoverer`.
-- One serialization class per direction owns `byte[]` and serializer configuration. Business code works with `Order`.
+  `<topic>.DLT`, Spring's default name and partition, through `DeadLetterPublishingRecoverer`.
+- One serialization class per direction owns `byte[]` and serializer configuration. Business code works with
+  `Envelope`.
 - Every message on the wire is an `Envelope`, the payload packed as `google.protobuf.Any`. The envelope schema stays
   the same when a payload type is added.
 - Schema evolution: `BACKWARD` compatibility, `TopicNameStrategy`, schemas checked in under
@@ -248,7 +284,8 @@ BDD with Cucumber:
 - SLF4J with parameterised messages: `log.info("Produced {} orders for {}", count, region)`.
 - `ERROR` means a human should look. `WARN` means degraded but running. `INFO` is lifecycle and counts. `DEBUG` is
   per-message detail, off by default.
-- Log lines carry identifiers and counts. Payloads appear at `DEBUG`, stack traces at `ERROR`.
+- Log lines carry identifiers and counts. Payloads appear at `DEBUG`, stack traces at `ERROR`. The `local` profile
+  is the exception: the log is its publisher, so every envelope appears at `INFO`.
 - Micrometer counters and timers for produced and consumed records.
 
 ### Dependencies and build
@@ -280,6 +317,9 @@ BDD with Cucumber:
 - `load-run.yaml` runs hourly (`0 * * * *`) and on `workflow_dispatch` with one input, the load arguments. It
   deploys to prod: the `latest` image, `make docker-smoke` when the arguments are empty and `make docker-run` otherwise, with the
   credentials of the `confluent-prod` environment. No `latest` image, no run.
+- `iac.yaml` runs on pull requests to `main`, on pushes to `main`, and on `workflow_dispatch`: `make tf-check`,
+  then `make tf-plan`, a speculative plan in Terraform Cloud written to the job summary, with the credentials of
+  the `terraform-cloud` environment. Terraform Cloud applies on `main` from its GitHub connection to `iac/`.
 - `main` is protected: changes arrive by pull request with a green `ci` and `cd`, no force pushes, linear history.
   `.github/branch-protection.json` is the setting, `make gh-main-protection` applies it.
 
@@ -299,12 +339,13 @@ BDD with Cucumber:
 - [x] Makefile with `build`, `test`, `bdd`, `run`, `check`
 - [ ] Local docker compose spins up a swarm of workers
 - [ ] workers can generate load, and convert it to protobuf
-- [ ] workers can publish against *-local kafka topics
-- [ ] Prod docker swarm works against *-prod kafka topics
-- [ ] Cucumber wired into the build (JUnit Platform Suite, Testcontainers for workers, Confluent *-test topics)
+- [ ] Topics and dead-letter topics created by Terraform Cloud from `iac/`
+- [ ] workers can publish against test.* kafka topics
+- [ ] Prod docker swarm works against prod.* kafka topics
+- [ ] Cucumber wired into the build (JUnit Platform Suite, Testcontainers for workers, Confluent test.* topics)
 - [ ] BDD feature: I can publish messages
-- [ ] BDD feature: same product ends up in the same partition
-- [ ] Partition key on product
+- [ ] BDD feature: same key ends up in the same partition
+- [ ] Partition key per topic
 - [ ] Publish 1 000 000 messages to Confluent Cloud
 - [ ] Stream consumer service
 - [ ] Protobuf via Schema Registry

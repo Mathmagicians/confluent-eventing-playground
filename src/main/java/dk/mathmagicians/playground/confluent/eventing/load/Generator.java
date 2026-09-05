@@ -4,6 +4,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -45,11 +46,12 @@ public final class Generator<T> {
         var threadFactory = Thread.ofVirtual().name("generator-", 0).factory();
         try (var executor = Executors.newThreadPerTaskExecutor(threadFactory)) {
             Callable<Long> looper = () -> loop(deadline, interval);
-            var loops = executor.invokeAll(
+            List<Future<Long>> loops = executor.invokeAll(
                     Collections.nCopies(concurrent, looper));
             return loops.stream().mapToLong(Generator::produced).sum();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+            log.warn("Interrupted while waiting for our loop futures to terminate, produced count unknown.");
             return 0;
         }
     }

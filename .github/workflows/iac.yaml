@@ -1,0 +1,30 @@
+name: iac
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# the apply runs in Terraform Cloud, triggered by the push to main through its GitHub connection to iac/
+jobs:
+  iac:
+    runs-on: ubuntu-latest
+    environment: terraform-cloud
+    env:
+      TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
+      TF_CLOUD_ORGANIZATION: ${{ secrets.TF_CLOUD_ORGANIZATION }}
+      TF_WORKSPACE: ${{ secrets.TF_WORKSPACE }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false   # plain stdout, so make captures the plan
+      - name: formatting and validation of iac/
+        run: make tf-check
+      - name: speculative plan in Terraform Cloud, into the job summary
+        run: make tf-plan

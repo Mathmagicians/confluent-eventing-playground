@@ -11,6 +11,10 @@ public final class EventFixtures {
 
     public static final Instant AT = Instant.parse("2026-09-04T10:15:30.123456789Z");
 
+    public static final String REGION = "EMEA";
+
+    public static final String APP = "load-generator";
+
     /// Rule Forty-two, the oldest rule in the book.
     public static final long SEED = 42;
 
@@ -56,7 +60,7 @@ public final class EventFixtures {
     }
 
     public static Envelope envelope(Payload payload) {
-        return new Envelope("e-1", "EMEA", "load-generator", AT, payload);
+        return new Envelope("E-0000000000000001", REGION, APP, AT, payload);
     }
 
     private EventFixtures() {

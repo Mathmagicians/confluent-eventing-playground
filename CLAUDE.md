@@ -79,7 +79,7 @@ Before reviewing:
 
 1. `git status` and `git diff` (or `git diff main...HEAD`) to scope what changed. Review the diff. Review the whole
    repository when asked.
-2. `./gradlew build` (or `make check` once it exists). A red build is finding number one.
+2. `make build`. A red build is finding number one.
 3. Read every changed file in full.
 
 Output format, always:
@@ -109,14 +109,8 @@ Rules of engagement:
 - Missing tests are findings. A new class without a `<Class>Test` is at least Major.
 - Check DRY across the repository. `grep` for the pattern before declaring it new.
 
-Standing checks on every review, taken from the README:
-
-- Java 25: records, sealed plus exhaustive switch, `_`, virtual threads, finalized features, SLF4J for output
-- Spring: constructor injection, `@ConfigurationProperties` records, unit tests without a context, `@MockitoBean`
-- Kafka: every record keyed, `product` as key on `orders`, idempotent producer settings in properties, topics created
-  by infrastructure, listener exceptions reaching the error handler
-- Tests: one behaviour per test, AssertJ, fixtures, Gherkin in domain language, thin step definitions
-- Configuration: environment-specific values from environment variables
+Standing checks on every review: the README Coding standards, section by section, and the README Architecture for
+keys, topics, and layering.
 
 ## Pairing protocol
 
@@ -143,35 +137,11 @@ Standing checks on every review, taken from the README:
   `docker compose config` for compose changes. Workflows are validated by pushing a branch and watching
   `gh run watch`.
 - Docs stay consistent in the same change. Plumbing that adds or renames a variable, target, profile, image name,
-  or workflow updates the README, the Makefile `##` comments, and the facts below together with the code. Every
-  Makefile target carries a `##` comment, since `make help` is built from them.
+  or workflow updates the README and the Makefile `##` comments together with the code. Every Makefile target
+  carries a `##` comment, since `make help` is built from them.
 - Git writes are the human's, see Security settings. When something needs staging or committing, say which paths
   in one line and leave it there.
 - One plumbing concern per change.
 - State every new dependency, plugin, or Gradle repository in the message that adds it.
 - Write feature or domain code when the human asks for it.
 - Keep to the asked scope. List everything else as findings.
-
-## Commands
-
-```bash
-./gradlew build                        # compile, unit tests, BDD once wired
-./gradlew test --tests '*OrderTest'    # one test class
-./gradlew bootRun                      # one load generator, local profile
-docker compose up                      # the swarm, local profile
-./gradlew dependencies --configuration runtimeClasspath
-git diff main...HEAD                   # scope a review
-```
-
-`make build|test|bdd|run|check` become the entry points as soon as the Makefile is populated. CI uses the same
-targets.
-
-## Repository facts, keep current
-
-- `compose.yaml` is the swarm of workers only. There is no local Kafka; every profile runs against Confluent Cloud,
-  and `bootRun` runs without Docker.
-- `HELP.md` is git-ignored Spring Initializr boilerplate. Leave it as is.
-- `.env.test.private` and `.env.prod.private` are the human's Confluent credentials, see Security settings.
-- The container image from `bootBuildImage` is the deployment unit.
-- Generated Protobuf code is committed under `src/generated/java` and compiled as a plain source directory. Only
-  `make proto-gen` runs the generator, which is not configuration-cache compatible. Every other build keeps the cache.

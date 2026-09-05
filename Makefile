@@ -31,7 +31,7 @@ ENV_FILE := .env.$(ENV).private
 WITH_ENV := test ! -f $(ENV_FILE) || { set -a; . ./$(ENV_FILE); set +a; };
 
 .DEFAULT_GOAL := build
-.PHONY: help check build test run clean version next-version proto-gen proto-check docker-image docker-publish docker-image-exists docker-run docker-smoke bdd bdd-published bdd-snippets up up-product up-offer up-order down git-tag git-release gh-main-protection
+.PHONY: help check build test run run-tiny clean version next-version proto-gen proto-check docker-image docker-publish docker-image-exists docker-run docker-smoke bdd bdd-published bdd-snippets up up-product up-offer up-order down tf-init tf-check tf-plan git-tag git-release gh-main-protection
 
 # sections are the ##@ lines, targets are the ## comments; the tab before each description is expanded to one column
 help:      ## this list
@@ -48,11 +48,11 @@ build: proto-check     ## compile, unit tests, jar
 test:      ## unit tests
 	$(GRADLE) test
 
-run:       ## one generator from source; properties defaults, or ARGS="--load.type=order --load.ttl=10"; credentials from .env.<ENV>.private
-	$(WITH_ENV) $(GRADLE) bootRun $(if $(ARGS),--args="$(ARGS)")
+run:       ## one generator from source with profile ENV, default test; properties defaults, or ARGS="--load.type=order --load.ttl=10"; credentials from .env.<ENV>.private
+	$(WITH_ENV) SPRING_PROFILES_ACTIVE=$(ENV) $(GRADLE) bootRun $(if $(ARGS),--args="$(ARGS)")
 
-run-tiny:   ## one generator from source, with the minimum load; credentials from .env.<ENV>.private
-	$(MAKE) run ARGS="$(MINIMUM) --logging.level.dk.mathmagicians=DEBUG"
+run-tiny:  ## the minimum load from source with the local profile: one producer, about one event, to the log
+	$(MAKE) run ENV=local ARGS="$(MINIMUM)"
 
 clean:     ## remove build output
 	$(GRADLE) clean
@@ -120,6 +120,26 @@ up-order:     ## one generator
 
 down:      ## stop the swarm
 	VERSION=$(VERSION) docker compose down
+
+##@ Infrastructure, Terraform Cloud creates the topics on the Confluent cluster from iac/, applied on main
+# the workspace: TF_CLOUD_ORGANIZATION TF_WORKSPACE; the cluster and its Kafka API key are variables of the workspace
+TF := terraform -chdir=iac
+# the plan text, written to the GitHub job summary when GITHUB_STEP_SUMMARY is set
+TF_PLAN := build/tf-plan.txt
+
+tf-init:   ## download the provider and connect the workspace; settings from .env.<ENV>.private
+	$(WITH_ENV) $(TF) init -input=false
+
+tf-check:  ## formatting and validation of iac/, no cloud access; workspace names from .env.<ENV>.private once tf-init ran
+	$(TF) fmt -check -diff -recursive
+	$(WITH_ENV) $(TF) init -backend=false -input=false > /dev/null
+	$(TF) validate
+
+tf-plan: tf-init   ## what Terraform Cloud would apply, a speculative plan, also into the job summary; settings from .env.<ENV>.private
+	@mkdir -p $(dir $(TF_PLAN))
+	$(WITH_ENV) $(TF) plan -input=false -no-color > $(TF_PLAN) 2>&1 && result=0 || result=$$?; cat $(TF_PLAN); \
+	test -z "$$GITHUB_STEP_SUMMARY" || { printf '### Plan\n\n```\n'; cat $(TF_PLAN); printf '```\n'; } >> "$$GITHUB_STEP_SUMMARY"; \
+	exit $$result
 
 ##@ Repository, git tags and GitHub settings
 git-tag:   ## git tag v<RELEASE> on HEAD and push it; RELEASE defaults to Gradle's next version

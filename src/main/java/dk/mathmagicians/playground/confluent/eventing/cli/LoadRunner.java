@@ -1,8 +1,11 @@
 package dk.mathmagicians.playground.confluent.eventing.cli;
 
+import dk.mathmagicians.playground.confluent.eventing.domain.Envelope;
 import dk.mathmagicians.playground.confluent.eventing.domain.Offer;
 import dk.mathmagicians.playground.confluent.eventing.domain.Order;
+import dk.mathmagicians.playground.confluent.eventing.domain.Payload;
 import dk.mathmagicians.playground.confluent.eventing.domain.Product;
+import dk.mathmagicians.playground.confluent.eventing.domain.Publisher;
 import dk.mathmagicians.playground.confluent.eventing.load.Generator;
 import dk.mathmagicians.playground.confluent.eventing.load.LoadProperties;
 import org.slf4j.Logger;
@@ -11,18 +14,21 @@ import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
 
-import java.util.function.Consumer;
-
 /// Inbound adapter: the command line, bound to `LoadProperties`, picks the recipe and runs a generator with it.
 @Component
 public final class LoadRunner implements ApplicationRunner {
 
+    /// The service name, stamped on every envelope. See the README Services table.
+    static final String APP = "load-generator";
+
     private static final Logger log = LoggerFactory.getLogger(LoadRunner.class);
 
     private final LoadProperties properties;
+    private final Publisher publisher;
 
-    public LoadRunner(LoadProperties properties) {
+    public LoadRunner(LoadProperties properties, Publisher publisher) {
         this.properties = properties;
+        this.publisher = publisher;
     }
 
     @Override
@@ -35,11 +41,13 @@ public final class LoadRunner implements ApplicationRunner {
         log.info("Produced {} {} events for {}", produced, properties.type(), properties.region());
     }
 
-    /// The sink logs each event at DEBUG until the Kafka adapter takes its place. The clock is wired here, at the
-    /// edge.
-    private <T> long start(Generator.Recipe<T> recipe) {
-        Consumer<T> sink = payload -> log.info("Produced {} for {}", payload, properties.region());
-        return new Generator<>(recipe, sink, java.time.Clock.systemUTC())
+    /// Wraps each payload in an envelope stamped with the region and this service, and hands it to the publisher.
+    /// The clock is wired here, at the edge.
+    private long start(Generator.Recipe<? extends Payload> payloads) {
+        Generator.Recipe<Envelope> envelopes = (random, at) -> {
+            throw new UnsupportedOperationException("LoadRunner.start");
+        };
+        return new Generator<>(envelopes, publisher::publish, java.time.Clock.systemUTC())
                 .start(properties.concurrent(), properties.interval(), properties.ttl());
     }
 }
