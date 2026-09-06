@@ -6,11 +6,10 @@ locals {
   environments = ["test", "prod"]
   partitions   = 6
 
-  topics = toset(flatten([
-    for name in local.names : [
-      for environment in local.environments : ["${environment}.${name}", "${environment}.${name}.DLT"]
-    ]
-  ]))
+  # the topics the services use, one per environment and name: test.orders
+  main = toset([for pair in setproduct(local.environments, local.names) : "${pair[0]}.${pair[1]}"])
+  # plus a dead-letter twin each: test.orders.DLT
+  topics = setunion(local.main, toset([for topic in local.main : "${topic}.DLT"]))
 }
 
 # the dead-letter topic keeps the partition count of its source: the recoverer publishes to the same partition number

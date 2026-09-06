@@ -2,3 +2,8 @@
 output "topics" {
   value = { for topic in confluent_kafka_topic.topic : topic.topic_name => topic.partitions_count }
 }
+
+# the schema version per subject, as registered
+output "schemas" {
+  value = { for schema in confluent_schema.envelope : schema.subject_name => schema.version }
+}
