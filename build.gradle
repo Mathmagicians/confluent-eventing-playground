@@ -83,6 +83,12 @@ protobuf {
 tasks.named('bootBuildImage') {
     // launch environment of the image, inherited by compose, docker run, and the integration tests
     environment = ['BPE_BPL_JAVA_NMT_ENABLED': 'false']
+    // the image is no file, so a build record is the output; with it Gradle skips the task while the jar and the
+    // image name are unchanged
+    def record = layout.buildDirectory.file("image/${project.version}.txt")
+    def image = imageName
+    outputs.file(record)
+    doLast { record.get().asFile.text = "${image.get()}\n" }
 }
 
 tasks.register('version') {

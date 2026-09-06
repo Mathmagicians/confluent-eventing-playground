@@ -19,8 +19,6 @@ REPO = $(shell echo $(REGISTRY)/$(IMAGE) | tr A-Z a-z)
 TAGS ?= $(VERSION)
 # registry image tag for docker-run, docker-smoke, bdd-published and git-release
 TAG ?= latest
-# the image under test in bdd: the local build, or a registry image through bdd-published
-BDD_IMAGE ?= $(IMAGE):$(VERSION)
 # the minimum load, one producer and about one event; everything else is the image's own defaults
 MINIMUM := --load.concurrent=1 --load.interval=1000 --load.ttl=2
 # what the image reads, passed through to bdd, docker-run and docker-smoke
@@ -43,19 +41,19 @@ help:      ## this list
 check: proto-check build docker-image bdd   ## generated code, build, image, integration tests, in this order
 
 build: proto-check     ## compile, unit tests, jar
-	$(GRADLE) build
+	@$(GRADLE) build
 
 test:      ## unit tests
-	$(GRADLE) test
+	@$(GRADLE) test
 
 run:       ## one generator from source with profile ENV, default test; properties defaults, or ARGS="--load.type=order --load.ttl=10"; credentials from .env.<ENV>.private
-	$(WITH_ENV) SPRING_PROFILES_ACTIVE=$(ENV) $(GRADLE) bootRun $(if $(ARGS),--args="$(ARGS)")
+	@$(WITH_ENV) SPRING_PROFILES_ACTIVE=$(ENV) $(GRADLE) bootRun $(if $(ARGS),--args="$(ARGS)")
 
 run-tiny:  ## the minimum load from source with the local profile: one producer, about one event, to the log
-	$(MAKE) run ENV=local ARGS="$(MINIMUM)"
+	@$(MAKE) run ENV=local ARGS="$(MINIMUM)"
 
 clean:     ## remove build output
-	$(GRADLE) clean
+	@$(GRADLE) clean
 
 version:   ## the version, from git tags: 1.2.3 at tag v1.2.3, 1.2.4-SNAPSHOT after it
 	@echo $(VERSION)
@@ -65,58 +63,58 @@ next-version:   ## the next version, the SNAPSHOT without its suffix
 
 ##@ Protobuf, generated code is committed under src/generated
 proto-gen:     ## regenerate src/generated from src/main/proto
-	$(GRADLE) generateProto --no-configuration-cache
+	@$(GRADLE) generateProto --no-configuration-cache
 
 proto-check: proto-gen   ## fail when src/generated is not regenerated and staged
 	@git status --porcelain -- src/generated | grep "^.[^ ]" && { echo "src/generated is out of date: make proto-gen, then git add src/generated"; exit 1; } || true
 
 ##@ Docker, the image built by buildpacks, the registry, and running one generator from it
-docker-image:   ## build the container image
-	$(GRADLE) bootBuildImage
+docker-image:   ## build the container image; Gradle skips it while the jar and the version are unchanged
+	@$(GRADLE) bootBuildImage
 
 docker-repo:   ## the registry image path, REGISTRY/IMAGE in lowercase
 	@echo $(REPO)
 
-docker-publish:   ## push the image to the registry under each tag in TAGS
-	for tag in $(TAGS); do docker tag $(IMAGE):$(VERSION) $(REPO):$$tag && docker push $(REPO):$$tag; done
+docker-publish: docker-image   ## push the image to the registry under each tag in TAGS
+	@for tag in $(TAGS); do docker tag $(IMAGE):$(VERSION) $(REPO):$$tag && docker push $(REPO):$$tag; done
 
 docker-image-exists:   ## exit 0 when the registry has a latest image
-	docker manifest inspect $(REPO):latest > /dev/null
+	@docker manifest inspect $(REPO):latest > /dev/null
 
 docker-run:   ## one generator from the registry image TAG; image defaults, or ARGS="--load.type=order --load.ttl=60"; credentials from .env.<ENV>.private
-	$(WITH_ENV) docker run --rm --pull always $(addprefix -e ,$(CREDENTIALS)) $(REPO):$(TAG) $(ARGS)
+	@$(WITH_ENV) docker run --rm --pull always $(addprefix -e ,$(CREDENTIALS)) $(REPO):$(TAG) $(ARGS)
 
 docker-smoke:   ## the minimum load from the registry image TAG, one producer and about one event
-	$(MAKE) docker-run ARGS="$(MINIMUM)"
+	@$(MAKE) docker-run ARGS="$(MINIMUM)"
 
 ##@ Integration tests, Cucumber runs an image against the Confluent test cluster
-bdd:       ## against the local image, or BDD_IMAGE=<reference>; credentials from .env.<ENV>.private
-	$(WITH_ENV) $(GRADLE) bdd -Pimage=$(BDD_IMAGE)
+bdd: docker-image   ## against the local image, built first when stale; credentials from .env.<ENV>.private
+	@$(WITH_ENV) $(GRADLE) bdd -Pimage=$(IMAGE):$(VERSION)
 
-bdd-published:   ## against the registry image TAG
-	$(MAKE) bdd BDD_IMAGE=$(REPO):$(TAG)
+bdd-published:   ## against the registry image TAG, as it is; credentials from .env.<ENV>.private
+	@$(WITH_ENV) $(GRADLE) bdd -Pimage=$(REPO):$(TAG)
 
 bdd-snippets:  ## step-definition snippets for undefined steps, no execution
-	$(GRADLE) bdd -PdryRun || true
+	@$(GRADLE) bdd -PdryRun || true
 
 ##@ Docker compose controls the swarm of workers, all generators from compose.yaml against ENV, default test; settings are environment variables, e.g. OFFER_CONCURRENT=50 TTL=300 make up-offer
 # the swarm's environment: the profile and the credentials from .env.<ENV>.private
 COMPOSE := $(WITH_ENV) ENV=$(ENV) VERSION=$(VERSION) docker compose
 
-up:        ## all generators
-	$(COMPOSE) up
+up: docker-image   ## all generators
+	@$(COMPOSE) up
 
-up-product:   ## one generator
-	$(COMPOSE) up product-generator
+up-product: docker-image   ## one generator
+	@$(COMPOSE) up product-generator
 
-up-offer:     ## one generator
-	$(COMPOSE) up offer-generator
+up-offer: docker-image   ## one generator
+	@$(COMPOSE) up offer-generator
 
-up-order:     ## one generator
-	$(COMPOSE) up order-generator
+up-order: docker-image   ## one generator
+	@$(COMPOSE) up order-generator
 
 down:      ## stop the swarm
-	$(COMPOSE) down
+	@$(COMPOSE) down
 
 ##@ Infrastructure, Terraform Cloud creates the topics on the Confluent cluster from iac/, applied on main
 # the workspace: TF_CLOUD_ORGANIZATION TF_WORKSPACE; the cluster, the schema registry, and their API keys are Terraform variables of the workspace, see iac/variables.tf
@@ -124,21 +122,21 @@ down:      ## stop the swarm
 TF := terraform -chdir=iac
 
 tf-init:   ## download the provider and connect the workspace; settings from .env.<ENV>.private
-	$(WITH_ENV) $(TF) init -input=false
+	@$(WITH_ENV) $(TF) init -input=false
 
 tf-check: tf-init   ## formatting and validation of iac/
-	$(TF) fmt -check -diff -recursive
-	$(TF) validate
+	@$(TF) fmt -check -diff -recursive
+	@$(TF) validate
 
 tf-plan: tf-init   ## what Terraform Cloud would apply, a speculative plan, no colour for logs; settings from .env.<ENV>.private
-	$(WITH_ENV) $(TF) plan -input=false -no-color
+	@$(WITH_ENV) $(TF) plan -input=false -no-color
 
 ##@ Repository, git tags and GitHub settings
 git-tag:   ## git tag v<RELEASE> on HEAD and push it; RELEASE defaults to Gradle's next version
-	git tag -a v$(RELEASE) -m "release $(RELEASE)" && git push origin v$(RELEASE)
+	@git tag -a v$(RELEASE) -m "release $(RELEASE)" && git push origin v$(RELEASE)
 
 git-release: git-tag   ## the tag, plus <RELEASE> on the candidate image TAG in the registry
-	docker buildx imagetools create -t $(REPO):$(RELEASE) $(REPO):$(TAG)
+	@docker buildx imagetools create -t $(REPO):$(RELEASE) $(REPO):$(TAG)
 
 gh-main-protection:   ## apply .github/branch-protection.json to main
-	gh api --method PUT repos/$(GITHUB_REPO)/branches/main/protection --input .github/branch-protection.json
+	@gh api --method PUT repos/$(GITHUB_REPO)/branches/main/protection --input .github/branch-protection.json

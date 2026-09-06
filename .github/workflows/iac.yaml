@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: terraform-cloud
     env:
-      TF_TOKEN_app_terraform_io: ${{ secrets.TF_TOKEN_app_terraform_io }}
+      TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}   # the CLI's name for a token: TF_TOKEN_<hostname>
       TF_CLOUD_ORGANIZATION: ${{ secrets.TF_CLOUD_ORGANIZATION }}
       TF_WORKSPACE: ${{ secrets.TF_WORKSPACE }}
     steps:

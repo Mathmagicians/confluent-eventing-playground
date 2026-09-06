@@ -11,7 +11,8 @@ Reference implementation of a Kafka **load generator** and **stream consumer** r
 - JUnit 5, AssertJ, Mockito - unit tests, versions from the Boot BOM
 - Testcontainers - Kafka container for BDD, version from the Boot BOM
 - Docker + Compose - starts the swarm of load generators and the consumer
-- GitHub Actions - CICD + publish to GH registry, and hourly load runs 
+- GitHub Actions - CICD + publish to GH registry, and hourly load runs
+- Terraform + Terraform Cloud - topics and schemas on Confluent Cloud, provider `confluentinc/confluent`
 - Container image - deployment unit, built with `./gradlew bootBuildImage`
 
 ## Purpose
@@ -60,9 +61,7 @@ payload.
 - **The key picks the partition**, one key per topic as shown under Purpose. The default partitioner (murmur2 over
   the serialized key) maps a key to a partition by partition count, so the partition count of a topic is fixed at
   topic creation.
-- `transactions` are keyed by region, product id, and customer id: region and product from the offer the
-  transaction settles, the customer from the transaction, so a customer's transactions for one product in one
-  region stay in order.
+- A `Transaction` takes region and product for its key from the offer it settles, the customer id from itself.
 - Serialization: Protobuf via Confluent Schema Registry.
 
 ### Data flow
@@ -98,7 +97,7 @@ payload.
 ├── Makefile                  single entry point for humans and CI
 ├── compose.yaml              the swarm: load generators per region, the consumer
 ├── build.gradle / settings.gradle
-├── iac/                      Terraform: the topics on the Confluent cluster, applied by Terraform Cloud
+├── iac/                      Terraform: topics and schemas on the Confluent cluster, applied by Terraform Cloud
 ├── .github/workflows/        cicd.yaml, load-run.yaml, iac.yaml
 ├── common/                   Order domain, serialization, shared test fixtures
 │   ├── src/main/proto/       Protobuf schemas
@@ -121,7 +120,8 @@ src/test/java/.../bdd/           step definitions and test drivers
 
 ## Getting started
 
-Prerequisites: JDK 25, Docker, the `gh` CLI for pipeline work, a Confluent Cloud API key.
+Prerequisites: JDK 25, Docker, the `gh` CLI for pipeline work, Terraform for `iac/`, Confluent Cloud API keys for
+Kafka and Schema Registry.
 
 The Makefile is the entry point for humans and CI. `make help` lists the targets by section, `make check` is the
 CI gate.
@@ -141,19 +141,17 @@ properties files. Names are `UPPER_SNAKE`, prefixed by concern.
 | `PRODUCT_INTERVAL`, `OFFER_INTERVAL`, `ORDER_INTERVAL`    | compose          | Milliseconds a producer sleeps between events, default 250               |
 | `REGION`                                                  | compose          | Region stamped on every event, default EMEA                                     |
 | `TTL`                                                     | compose          | Seconds a generator runs, default 60, max 300                            |
-| `TF_CLOUD_ORGANIZATION` / `TF_WORKSPACE`                  | `make tf-*`      | Terraform Cloud workspace holding the state                              |
-| `TF_TOKEN_app_terraform_io`                               | `iac.yaml`       | Terraform Cloud token; a developer machine has `terraform login` instead |
 
 Secrets live in two GitHub environments, `confluent-test` and `confluent-prod`, the same Confluent cluster and API
-key, one topic prefix each. Locally the same six variables live in `.env.test.private` and `.env.prod.private`,
+keys, one topic prefix each. Locally the same variables live in `.env.test.private` and `.env.prod.private`,
 git-ignored. `make` sources the file for `ENV`, default `test`, into the command it runs and nothing else, so your
 shell never carries them. Properties files, Gherkin, and test fixtures refer to them by variable name.
 
-The Terraform Cloud workspace holds the cluster id, its REST endpoint, and the Kafka API key, and the same three
-for the Schema Registry, as Terraform variables, declared in `iac/variables.tf`.
-Plans and applies run there, from its GitHub connection to `iac/`. A third GitHub environment, `terraform-cloud`,
-holds the Terraform Cloud token as `TF_TOKEN_app_terraform_io`, the organization, and the workspace name for
-`iac.yaml`, each secret named as the variable it becomes.
+Terraform Cloud creates the topics and schemas from `iac/`, applied on every push to `main`. Its workspace holds
+the cluster, the Schema Registry, and their API keys as Terraform variables, declared in `iac/variables.tf`. The
+GitHub environment `terraform-cloud` holds `TF_API_TOKEN`, `TF_CLOUD_ORGANIZATION`, and `TF_WORKSPACE` for the plan
+`iac.yaml` runs on every pull request. A developer machine runs `terraform login` once and keeps the organization
+and workspace names in `.env.test.private`.
 
 ## Play
 
@@ -263,9 +261,9 @@ Unit tests:
 
 BDD with Cucumber:
 
-- A feature file describes one capability in domain language. Topics and partitions are domain concepts in this
-  project and belong in features. Class names, serialization formats, ports, and client configuration belong in step
-  definitions and drivers.
+- A feature file describes one capability in domain language. Topics, ordering, and schemas are domain concepts in
+  this project and belong in features: a schema is what data stewards govern, so a feature names the schema a topic
+  carries. Partition counts, class names, ports, and client configuration belong in step definitions and drivers.
 - `Given` sets up state, `When` is one action, `Then` asserts an observable outcome. Up to three `And` steps per
   keyword.
 - `Scenario Outline` for variations of one behaviour. Separate scenarios for separate behaviours.
@@ -315,14 +313,14 @@ BDD with Cucumber:
   against the candidate, with the credentials of the `confluent-test` environment. A green `cd` on a pull request
   is what says the build can be promoted.
 - `cicd.yaml`, job `tag`, follows `cd` on `main`: `make git-release` puts a git tag `v<version>` on the tested
-  commit and the same version on the candidate image in the registry. `make git-tag` is the git part alone. The version is Gradle's next, or the
-  `workflow_dispatch` input, e.g. `0.1.0`.
+  commit and the same version on the candidate image in the registry. `make git-tag` is the git part alone. The
+  version is Gradle's next, or the `workflow_dispatch` input, e.g. `0.1.0`.
 - `load-run.yaml` runs hourly (`0 * * * *`) and on `workflow_dispatch` with one input, the load arguments. It
-  deploys to prod: the `latest` image, `make docker-smoke` when the arguments are empty and `make docker-run` otherwise, with the
-  credentials of the `confluent-prod` environment. No `latest` image, no run.
-- `iac.yaml` runs on pull requests to `main`, on pushes to `main`, and on `workflow_dispatch`: `make tf-check`,
-  then `make tf-plan`, a speculative plan in Terraform Cloud written to the job summary, with the credentials of
-  the `terraform-cloud` environment. Terraform Cloud applies on `main` from its GitHub connection to `iac/`.
+  deploys to prod: the `latest` image, `make docker-smoke` when the arguments are empty and `make docker-run`
+  otherwise, with the credentials of the `confluent-prod` environment. No `latest` image, no run.
+- `iac.yaml` runs on the same events as `cicd.yaml`: `make tf-check`, then `make tf-plan`, the speculative plan
+  written to the job summary, with the credentials of the `terraform-cloud` environment. Terraform Cloud applies
+  `iac/` on `main` through its GitHub connection.
 - `main` is protected: changes arrive by pull request with a green `ci` and `cd`, no force pushes, linear history.
   `.github/branch-protection.json` is the setting, `make gh-main-protection` applies it.
 
@@ -348,10 +346,10 @@ BDD with Cucumber:
 - [ ] Cucumber wired into the build (JUnit Platform Suite, Testcontainers for workers, Confluent test.* topics)
 - [ ] BDD feature: I can publish messages
 - [ ] BDD feature: same key ends up in the same partition
-- [x] Partition key strategy defined pr payload type 
+- [x] Partition key strategy defined per payload type
 - [x] Publish Ks of messages to Confluent Cloud
 - [ ] Stream consumer service
-- [x ] Protobuf via Schema Registry
+- [x] Protobuf via Schema Registry
 - [ ] Split into modules, convert to hexagonal
 - [x] GitHub Actions `cicd.yaml`
 - [x] GitHub Actions `load-run.yaml`, hourly cron
