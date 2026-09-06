@@ -1,6 +1,7 @@
 package dk.mathmagicians.playground.confluent.eventing.cli;
 
 import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures.APP;
+import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures.publisher;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import dk.mathmagicians.playground.confluent.eventing.domain.Envelope;
@@ -20,7 +21,7 @@ class LoadRunnerTest {
     @Test
     void publishesEachPayloadInAnEnvelopeStampedWithRegionAndApp() {
         var published = new ConcurrentLinkedQueue<Envelope>();
-        var runner = new LoadRunner(OFFERS, published::add, APP);
+        var runner = new LoadRunner(OFFERS, publisher(published), APP);
 
         runner.run(new DefaultApplicationArguments());
 
@@ -34,7 +35,7 @@ class LoadRunnerTest {
     @Test
     void givesEveryEnvelopeItsOwnId() {
         var published = new ConcurrentLinkedQueue<Envelope>();
-        var runner = new LoadRunner(OFFERS, published::add, APP);
+        var runner = new LoadRunner(OFFERS, publisher(published), APP);
 
         runner.run(new DefaultApplicationArguments());
 

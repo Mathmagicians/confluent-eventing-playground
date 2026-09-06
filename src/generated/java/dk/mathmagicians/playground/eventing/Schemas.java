@@ -97,6 +97,13 @@ public final class Schemas extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.AnyOrBuilder getPayloadOrBuilder();
   }
   /**
+   * <pre>
+   * The thin envelope pattern, kept for discussion and unused on the wire. On the wire the envelope's fields travel as
+   * record headers, id, region, source, and time as strings, and the record value is the payload message itself, so
+   * each topic's schema is its payload type and stream processing reads the topic directly. An Envelope value with an
+   * Any payload keeps one schema for every topic and hides the payload from stream processing.
+   * </pre>
+   *
    * Protobuf type {@code dk.mathmagicians.playground.eventing.Envelope}
    */
   public static final class Envelope extends
@@ -524,6 +531,13 @@ public final class Schemas extends com.google.protobuf.GeneratedFile {
       return builder;
     }
     /**
+     * <pre>
+     * The thin envelope pattern, kept for discussion and unused on the wire. On the wire the envelope's fields travel as
+     * record headers, id, region, source, and time as strings, and the record value is the payload message itself, so
+     * each topic's schema is its payload type and stream processing reads the topic directly. An Envelope value with an
+     * Any payload keeps one schema for every topic and hides the payload from stream processing.
+     * </pre>
+     *
      * Protobuf type {@code dk.mathmagicians.playground.eventing.Envelope}
      */
     public static final class Builder extends

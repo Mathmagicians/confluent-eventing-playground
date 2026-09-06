@@ -38,6 +38,8 @@ dependencies {
     testImplementation 'io.cucumber:cucumber-junit-platform-engine'
     testImplementation 'io.cucumber:cucumber-spring'
     testImplementation 'org.junit.platform:junit-platform-suite'
+    testImplementation 'org.testcontainers:testcontainers'
+    testImplementation 'org.awaitility:awaitility'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 

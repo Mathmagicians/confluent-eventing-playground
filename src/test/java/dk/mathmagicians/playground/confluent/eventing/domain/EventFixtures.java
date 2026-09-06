@@ -1,7 +1,9 @@
 package dk.mathmagicians.playground.confluent.eventing.domain;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
 import java.util.random.RandomGenerator;
 import java.util.random.RandomGeneratorFactory;
@@ -61,6 +63,19 @@ public final class EventFixtures {
 
     public static Envelope envelope(Payload payload) {
         return Envelope.of( dice(),  REGION, APP, AT, payload);
+    }
+
+    /// A publisher that keeps every envelope it gets and answers at once with `receipt`.
+    public static Publisher publisher(Collection<Envelope> published) {
+        return envelope -> {
+            published.add(envelope);
+            return CompletableFuture.completedFuture(receipt(envelope));
+        };
+    }
+
+    /// The first offset of the first partition of `orders`.
+    public static Receipt receipt(Envelope envelope) {
+        return new Receipt(envelope.id(), "orders", 0, 0);
     }
 
     private EventFixtures() {

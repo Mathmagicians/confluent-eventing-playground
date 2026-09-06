@@ -1,8 +1,11 @@
 package dk.mathmagicians.playground.confluent.eventing.domain;
 
-/// Outbound port: where envelopes go. One adapter per profile, the log or Kafka.
+import java.util.concurrent.CompletableFuture;
+
+/// Outbound port: where envelopes go. One adapter per profile, the log or Kafka. The receipt completes when the
+/// message has landed.
 @FunctionalInterface
 public interface Publisher {
 
-    void publish(Envelope envelope);
+    CompletableFuture<Receipt> publish(Envelope envelope);
 }

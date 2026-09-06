@@ -315,6 +315,9 @@ BDD with Cucumber:
 - `cicd.yaml`, job `tag`, follows `cd` on `main`: `make git-release` puts a git tag `v<version>` on the tested
   commit and the same version on the candidate image in the registry. `make git-tag` is the git part alone. The
   version is Gradle's next, or the `workflow_dispatch` input, e.g. `0.1.0`.
+- A minor or major version is a `workflow_dispatch` of `cicd.yaml` on `main` with the version. The merge before
+  it would tag the next patch by itself, so pause the workflow around the merge: `gh workflow disable cicd.yaml`,
+  merge, `gh workflow enable cicd.yaml`, then `gh workflow run cicd.yaml --ref main -f version=<version>`.
 - `load-run.yaml` runs hourly (`0 * * * *`) and on `workflow_dispatch` with one input, the load arguments. It
   deploys to prod: the `latest` image, `make docker-smoke` when the arguments are empty and `make docker-run`
   otherwise, with the credentials of the `confluent-prod` environment. No `latest` image, no run.
