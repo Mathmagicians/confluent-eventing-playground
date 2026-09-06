@@ -17,7 +17,7 @@ message Envelope {
 message Order {
     string id = 1;
     string customer_id = 2;
-    repeated string products = 3;
+    string product_id = 3;
     google.protobuf.Timestamp created_at = 5;
 }
 

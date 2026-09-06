@@ -1,0 +1,7 @@
+${AnsiColor.BRIGHT_MAGENTA}
+        (\ /)
+        ( . .)      ${AnsiColor.DEFAULT}Confluent Eventing Playground${application.formatted-version}${AnsiColor.BRIGHT_MAGENTA}
+       c(")(")      ${AnsiColor.DEFAULT}Spring Boot${spring-boot.formatted-version} for ${load.region}${AnsiColor.BRIGHT_MAGENTA}
+
+   "Oh dear! Oh dear! I shall be too late!"   the White Rabbit
+${AnsiColor.DEFAULT}

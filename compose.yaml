@@ -1,11 +1,15 @@
-# The swarm: one generator per event type. `docker compose up` starts all three, `make up-<type>` starts one.
-# Defaults live here; override with environment variables, e.g. OFFER_CONCURRENT=50 TTL=300 docker compose up offer-generator.
+# The swarm: one generator per event type. `make up` starts all three, `make up-<type>` starts one, against ENV.
+# Defaults live here; override with environment variables, e.g. OFFER_CONCURRENT=50 TTL=300 make up-offer.
 name: confluent-eventing-playground
 
 x-generator: &generator
-  image: confluent-eventing-playground:0.0.1-SNAPSHOT   # make image
-  labels:
-    org.springframework.boot.ignore: true   # bootRun's compose support skips the swarm
+  image: confluent-eventing-playground:${VERSION:?set by make, the version is Gradle's}   # make docker-image
+  # the profile is the environment; make sources what the image reads from .env.<ENV>.private
+  environment:
+    SPRING_PROFILES_ACTIVE: ${ENV:?set by make, test or prod}
+    KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:?from .env.<ENV>.private}
+    KAFKA_API_KEY: ${KAFKA_API_KEY:?from .env.<ENV>.private}
+    KAFKA_API_SECRET: ${KAFKA_API_SECRET:?from .env.<ENV>.private}
 
 services:
   product-generator:

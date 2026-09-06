@@ -1,11 +1,18 @@
 package dk.mathmagicians.playground.confluent.eventing.domain;
 
 import java.time.Instant;
-import java.util.List;
+import java.util.random.RandomGenerator;
 
-public record Order(String id, String customerId, List<String> products, Instant createdAt) {
+public record Order(String id, String customerId, String productId, Instant createdAt) implements Payload {
 
-    public Order {
-        products = List.copyOf(products);
+    static final String ID_PREFIX = "ORD";
+
+    /// An order from a character for one of the things.
+    public static Order random(RandomGenerator random, Instant at) {
+        return new Order(
+                Payload.id(ID_PREFIX, random),
+                Wonderland.CHARACTERS.next(random),
+                Product.id(Wonderland.THINGS.next(random)),
+                at);
     }
 }

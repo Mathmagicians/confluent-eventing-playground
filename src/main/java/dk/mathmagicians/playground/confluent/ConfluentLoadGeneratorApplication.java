@@ -9,7 +9,6 @@ import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 public class ConfluentLoadGeneratorApplication {
 
     public static void main(String[] args) {
-        IO.println("Hello Confluent, this is load generator EMEA");
         SpringApplication.run(ConfluentLoadGeneratorApplication.class, args);
     }
 
