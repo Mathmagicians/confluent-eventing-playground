@@ -6,6 +6,7 @@ import java.util.random.RandomGenerator;
 public record Offer(String offerId, String productId, double price, String sellerId, Instant createdAt)
         implements Payload {
 
+    static final String ID_PREFIX = "OFF";
     static final double MIN_PRICE = 0.5;
     static final double MAX_PRICE = 100.0;
 
@@ -13,7 +14,7 @@ public record Offer(String offerId, String productId, double price, String selle
     public static Offer random(RandomGenerator random, Instant at) {
         var cents = random.nextLong(Math.round(MIN_PRICE * 100), Math.round(MAX_PRICE * 100) + 1);
         return new Offer(
-                Payload.id("OF", random),
+                Payload.id(ID_PREFIX, random),
                 Product.id(Wonderland.THINGS.next(random)),
                 cents / 100.0,
                 Wonderland.CHARACTERS.next(random),

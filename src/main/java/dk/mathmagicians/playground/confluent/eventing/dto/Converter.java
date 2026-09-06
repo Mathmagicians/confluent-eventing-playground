@@ -107,13 +107,13 @@ public final class Converter {
         return Schemas.Order.newBuilder()
                 .setId(order.id())
                 .setCustomerId(order.customerId())
-                .addAllProducts(order.products())
+                .setProductId(order.productId())
                 .setCreatedAt(to(order.createdAt()))
                 .build();
     }
 
     public static Order from(Schemas.Order order) {
-        return new Order(order.getId(), order.getCustomerId(), order.getProductsList(), from(order.getCreatedAt()));
+        return new Order(order.getId(), order.getCustomerId(), order.getProductId(), from(order.getCreatedAt()));
     }
 
     public static Schemas.Transaction to(Transaction transaction) {

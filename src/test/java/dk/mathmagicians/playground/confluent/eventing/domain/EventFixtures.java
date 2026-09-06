@@ -32,7 +32,6 @@ public final class EventFixtures {
         return Stream.generate(() -> recipe.apply(dice, AT)).limit(DRAWS);
     }
 
-
     public static Product product() {
         return Product.random(dice(), AT);
     }
@@ -60,7 +59,7 @@ public final class EventFixtures {
     }
 
     public static Envelope envelope(Payload payload) {
-        return new Envelope("E-0000000000000001", REGION, APP, AT, payload);
+        return Envelope.of( dice(),  REGION, APP, AT, payload);
     }
 
     private EventFixtures() {
