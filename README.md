@@ -149,8 +149,8 @@ key, one topic prefix each. Locally the same six variables live in `.env.test.pr
 git-ignored. `make` sources the file for `ENV`, default `test`, into the command it runs and nothing else, so your
 shell never carries them. Properties files, Gherkin, and test fixtures refer to them by variable name.
 
-The Terraform Cloud workspace holds the cluster id, its REST endpoint, and the Kafka API key as Terraform
-variables, declared in `iac/variables.tf`.
+The Terraform Cloud workspace holds the cluster id, its REST endpoint, and the Kafka API key, and the same three
+for the Schema Registry, as Terraform variables, declared in `iac/variables.tf`.
 Plans and applies run there, from its GitHub connection to `iac/`. A third GitHub environment, `terraform-cloud`,
 holds the Terraform Cloud token as `TF_TOKEN_app_terraform_io`, the organization, and the workspace name for
 `iac.yaml`, each secret named as the variable it becomes.
@@ -225,7 +225,7 @@ A review finding cites the rule it breaks.
 - Producer: `acks=all`, `enable.idempotence=true`, compression `lz4` or `zstd`, explicit `linger.ms` and `batch.size`.
   All of it through Spring properties, each tuning value with a comment.
 - Every record has a key.
-- Topics are created by Terraform Cloud from `iac/`. Test containers auto-create.
+- Topics and their schemas are created by Terraform Cloud from `iac/`. Test containers auto-create.
 - Topic names are `<env>.<topic>`, the environment `test` or `prod` first: `test.orders`. The dot is the only
   separator.
 - Consumer group id is explicit and named after the service. Offset management stays on Spring defaults until a
@@ -237,7 +237,8 @@ A review finding cites the rule it breaks.
 - Every message on the wire is an `Envelope`, the payload packed as `google.protobuf.Any`. The envelope schema stays
   the same when a payload type is added.
 - Schema evolution: `BACKWARD` compatibility, `TopicNameStrategy`, schemas checked in under
-  `common/src/main/proto`.
+  `common/src/main/proto`. `iac/` registers the proto file under every service topic's `<topic>-value` subject, so
+  a producer runs with `auto.register.schemas=false` and `use.latest.version=true`.
 - Confluent Cloud clients use `SASL_SSL` with `PLAIN`. Every other setting stays at the Confluent-recommended default
   until a measurement justifies a change.
 
@@ -339,18 +340,18 @@ BDD with Cucumber:
 - [x] Hello world
 - [x] Gradle script builds and runs the unit test
 - [x] Makefile with `build`, `test`, `bdd`, `run`, `check`
-- [ ] Local docker compose spins up a swarm of workers
-- [ ] workers can generate load, and convert it to protobuf
-- [ ] Topics and dead-letter topics created by Terraform Cloud from `iac/`
-- [ ] workers can publish against test.* kafka topics
-- [ ] Prod docker swarm works against prod.* kafka topics
+- [x] Local docker compose spins up a swarm of workers
+- [x] workers can generate load, and convert it to protobuf
+- [x] Topics, dead-letter topics, and schemas created by Terraform Cloud from `iac/`
+- [x] workers can publish against test.* kafka topics
+- [x] Prod docker swarm works against prod.* kafka topics
 - [ ] Cucumber wired into the build (JUnit Platform Suite, Testcontainers for workers, Confluent test.* topics)
 - [ ] BDD feature: I can publish messages
 - [ ] BDD feature: same key ends up in the same partition
-- [ ] Partition key per topic
-- [ ] Publish 1 000 000 messages to Confluent Cloud
+- [x] Partition key strategy defined pr payload type 
+- [x] Publish Ks of messages to Confluent Cloud
 - [ ] Stream consumer service
-- [ ] Protobuf via Schema Registry
+- [x ] Protobuf via Schema Registry
 - [ ] Split into modules, convert to hexagonal
 - [x] GitHub Actions `cicd.yaml`
 - [x] GitHub Actions `load-run.yaml`, hourly cron

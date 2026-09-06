@@ -2,6 +2,7 @@ package dk.mathmagicians.playground.confluent.eventing.kafka;
 
 import dk.mathmagicians.playground.confluent.eventing.domain.Envelope;
 import dk.mathmagicians.playground.confluent.eventing.domain.Publisher;
+import dk.mathmagicians.playground.confluent.eventing.dto.Converter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
@@ -27,6 +28,16 @@ final class KafkaPublisher implements Publisher {
 
     @Override
     public void publish(Envelope envelope) {
-        throw new UnsupportedOperationException("KafkaPublisher.publish");
+        var bytes = Converter.to(envelope).toByteArray();
+        var topic = topics.select(envelope.payload());
+        template.send(topic, envelope.key(), bytes).whenComplete((result, failure) -> {
+            if (failure != null) {
+                log.error("Publishing {} to {} failed", envelope.id(), topic, failure);
+            } else {
+                var metadata = result.getRecordMetadata();
+                log.debug("Published {} to {}-{} at offset {}",
+                        envelope.id(), metadata.topic(), metadata.partition(), metadata.offset());
+            }
+        });
     }
 }

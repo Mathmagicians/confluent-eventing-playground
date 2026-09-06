@@ -23,8 +23,8 @@ TAG ?= latest
 BDD_IMAGE ?= $(IMAGE):$(VERSION)
 # the minimum load, one producer and about one event; everything else is the image's own defaults
 MINIMUM := --load.concurrent=1 --load.interval=1000 --load.ttl=2
-# Confluent credentials, passed through to bdd, docker-run and docker-smoke
-CREDENTIALS := KAFKA_BOOTSTRAP_SERVERS KAFKA_API_KEY KAFKA_API_SECRET SCHEMA_REGISTRY_URL SCHEMA_REGISTRY_API_KEY SCHEMA_REGISTRY_API_SECRET
+# what the image reads, passed through to bdd, docker-run and docker-smoke
+CREDENTIALS := KAFKA_BOOTSTRAP_SERVERS KAFKA_API_KEY KAFKA_API_SECRET
 # locally they live in .env.<ENV>.private, sourced into the command's shell only, CI has them in the environment
 ENV ?= test
 ENV_FILE := .env.$(ENV).private
@@ -99,21 +99,24 @@ bdd-published:   ## against the registry image TAG
 bdd-snippets:  ## step-definition snippets for undefined steps, no execution
 	$(GRADLE) bdd -PdryRun || true
 
-##@ Docker compose controls the swarm of workers, all generators from compose.yaml; settings are environment variables, e.g. OFFER_CONCURRENT=50 TTL=300 make up-offer
+##@ Docker compose controls the swarm of workers, all generators from compose.yaml against ENV, default test; settings are environment variables, e.g. OFFER_CONCURRENT=50 TTL=300 make up-offer
+# the swarm's environment: the profile and the credentials from .env.<ENV>.private
+COMPOSE := $(WITH_ENV) ENV=$(ENV) VERSION=$(VERSION) docker compose
+
 up:        ## all generators
-	VERSION=$(VERSION) docker compose up
+	$(COMPOSE) up
 
 up-product:   ## one generator
-	VERSION=$(VERSION) docker compose up product-generator
+	$(COMPOSE) up product-generator
 
 up-offer:     ## one generator
-	VERSION=$(VERSION) docker compose up offer-generator
+	$(COMPOSE) up offer-generator
 
 up-order:     ## one generator
-	VERSION=$(VERSION) docker compose up order-generator
+	$(COMPOSE) up order-generator
 
 down:      ## stop the swarm
-	VERSION=$(VERSION) docker compose down
+	$(COMPOSE) down
 
 ##@ Infrastructure, Terraform Cloud creates the topics on the Confluent cluster from iac/, applied on main
 # the workspace: TF_CLOUD_ORGANIZATION TF_WORKSPACE; the cluster, the schema registry, and their API keys are Terraform variables of the workspace, see iac/variables.tf
