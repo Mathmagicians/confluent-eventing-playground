@@ -9,6 +9,7 @@ Reference implementation of a Kafka **load generator** and **stream consumer** r
 - Confluent Cloud - Kafka + Schema Registry
 - Cucumber BDD - for black box testing, JUnit Platform engine, version pinned in `build.gradle`
 - JUnit 5, AssertJ, Mockito - unit tests, versions from the Boot BOM
+- jMolecules + ArchUnit - hexagonal stereotypes on ports, adapters, and application services, and the rule that enforces them, versions pinned in `build.gradle`
 - Testcontainers - Kafka container for BDD, version from the Boot BOM
 - Docker + Compose - starts the swarm of load generators and the consumer
 - GitHub Actions - CICD + publish to GH registry, and hourly load runs
@@ -185,7 +186,10 @@ A review finding cites the rule it breaks.
 2. **SOLID.** One responsibility per class, narrow interfaces, dependencies injected through the constructor.
 3. **Functional style.** Immutable data, pure functions, side effects at the edges: Kafka, clock, logging.
 4. **Behaviour first.** A change starts with the Gherkin scenario or unit test that describes it.
-5. **Hexagonal architecture.** Domain in the centre, Kafka and Spring in adapters at the edges.
+5. **Hexagonal architecture.** Domain in the centre, use cases around it as driving ports with a record behind each,
+   Kafka and Spring in adapters at the edges. The architecture is a test: ports, adapters, and application services
+   carry jMolecules stereotypes, and `ArchitectureTest` fails the build when the core reaches an adapter or an
+   adapter bypasses its port.
 
 ### Java 25
 
@@ -268,6 +272,8 @@ BDD with Cucumber:
   keyword.
 - `Scenario Outline` for variations of one behaviour. Separate scenarios for separate behaviours.
 - Step definitions are glue: one line delegating to a test driver class. Assertions live in the driver.
+- Test code follows the rules of its framework: `public` step classes for Cucumber, drivers as beans of the suite's
+  context.
 - Steps are shared across features. Search for an existing step before writing one.
 - Tags: `@wip` (runs locally), `@slow`, `@cloud` (runs where credentials are present).
 - Features run through the JUnit Platform Suite engine as part of `make check`. A red feature blocks the build.

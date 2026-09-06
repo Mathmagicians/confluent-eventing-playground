@@ -1,5 +1,6 @@
 package dk.mathmagicians.playground.confluent.eventing.domain;
 
+import dk.mathmagicians.playground.confluent.eventing.application.Publisher;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;

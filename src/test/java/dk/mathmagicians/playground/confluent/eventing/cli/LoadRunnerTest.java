@@ -4,9 +4,11 @@ import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixture
 import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures.publisher;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import dk.mathmagicians.playground.confluent.eventing.application.GenerateLoadService;
 import dk.mathmagicians.playground.confluent.eventing.domain.Envelope;
 import dk.mathmagicians.playground.confluent.eventing.domain.Offer;
 import dk.mathmagicians.playground.confluent.eventing.load.LoadProperties;
+import java.time.Clock;
 import java.time.Duration;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import org.junit.jupiter.api.Test;
@@ -19,26 +21,15 @@ class LoadRunnerTest {
             new LoadProperties(LoadProperties.Type.OFFER, 1, 10, "APAC", Duration.ofSeconds(1));
 
     @Test
-    void publishesEachPayloadInAnEnvelopeStampedWithRegionAndApp() {
+    void publishesThePayloadTypeOfTheRun() {
         var published = new ConcurrentLinkedQueue<Envelope>();
-        var runner = new LoadRunner(OFFERS, publisher(published), APP);
+        var generateLoad =
+                new GenerateLoadService(OFFERS.region(), APP, publisher(published)::publish, Clock.systemUTC());
+        var runner = new LoadRunner(OFFERS, generateLoad);
 
         runner.run(new DefaultApplicationArguments());
 
-        assertThat(published).isNotEmpty().allSatisfy(envelope -> {
-            assertThat(envelope.region()).isEqualTo(OFFERS.region());
-            assertThat(envelope.app()).isEqualTo(APP);
-            assertThat(envelope.payload()).isInstanceOf(Offer.class);
-        });
-    }
-
-    @Test
-    void givesEveryEnvelopeItsOwnId() {
-        var published = new ConcurrentLinkedQueue<Envelope>();
-        var runner = new LoadRunner(OFFERS, publisher(published), APP);
-
-        runner.run(new DefaultApplicationArguments());
-
-        assertThat(published).extracting(Envelope::id).doesNotHaveDuplicates();
+        assertThat(published).isNotEmpty().allSatisfy(envelope ->
+                assertThat(envelope.payload()).isInstanceOf(Offer.class));
     }
 }
