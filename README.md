@@ -149,7 +149,8 @@ key, one topic prefix each. Locally the same six variables live in `.env.test.pr
 git-ignored. `make` sources the file for `ENV`, default `test`, into the command it runs and nothing else, so your
 shell never carries them. Properties files, Gherkin, and test fixtures refer to them by variable name.
 
-The Terraform Cloud workspace holds `KAFKA_ID`, `KAFKA_REST_ENDPOINT`, and the Kafka API key as workspace variables.
+The Terraform Cloud workspace holds the cluster id, its REST endpoint, and the Kafka API key as Terraform
+variables, declared in `iac/variables.tf`.
 Plans and applies run there, from its GitHub connection to `iac/`. A third GitHub environment, `terraform-cloud`,
 holds the Terraform Cloud token as `TF_TOKEN_app_terraform_io`, the organization, and the workspace name for
 `iac.yaml`, each secret named as the variable it becomes.

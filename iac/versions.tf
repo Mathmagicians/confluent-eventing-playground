@@ -12,5 +12,9 @@ terraform {
   }
 }
 
-# one Kafka cluster; KAFKA_ID, KAFKA_REST_ENDPOINT, KAFKA_API_KEY and KAFKA_API_SECRET come from the environment
-provider "confluent" {}
+provider "confluent" {
+  kafka_id            = var.kafka_id
+  kafka_rest_endpoint = var.kafka_rest_endpoint
+  kafka_api_key       = var.kafka_api_key
+  kafka_api_secret    = var.kafka_api_secret
+}

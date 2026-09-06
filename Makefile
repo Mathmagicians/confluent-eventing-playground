@@ -116,7 +116,7 @@ down:      ## stop the swarm
 	VERSION=$(VERSION) docker compose down
 
 ##@ Infrastructure, Terraform Cloud creates the topics on the Confluent cluster from iac/, applied on main
-# the workspace: TF_CLOUD_ORGANIZATION TF_WORKSPACE; the cluster and its Kafka API key are variables of the workspace
+# the workspace: TF_CLOUD_ORGANIZATION TF_WORKSPACE; the cluster and its Kafka API key are Terraform variables of the workspace, see iac/variables.tf
 # the token: `terraform login` once on a developer machine, TF_TOKEN_app_terraform_io in CI
 TF := terraform -chdir=iac
 
