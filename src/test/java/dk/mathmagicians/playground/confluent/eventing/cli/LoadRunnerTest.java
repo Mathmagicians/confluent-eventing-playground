@@ -1,5 +1,6 @@
 package dk.mathmagicians.playground.confluent.eventing.cli;
 
+import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures.APP;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import dk.mathmagicians.playground.confluent.eventing.domain.Envelope;
@@ -19,13 +20,13 @@ class LoadRunnerTest {
     @Test
     void publishesEachPayloadInAnEnvelopeStampedWithRegionAndApp() {
         var published = new ConcurrentLinkedQueue<Envelope>();
-        var runner = new LoadRunner(OFFERS, published::add);
+        var runner = new LoadRunner(OFFERS, published::add, APP);
 
         runner.run(new DefaultApplicationArguments());
 
         assertThat(published).isNotEmpty().allSatisfy(envelope -> {
             assertThat(envelope.region()).isEqualTo(OFFERS.region());
-            assertThat(envelope.app()).isEqualTo(LoadRunner.APP);
+            assertThat(envelope.app()).isEqualTo(APP);
             assertThat(envelope.payload()).isInstanceOf(Offer.class);
         });
     }
@@ -33,7 +34,7 @@ class LoadRunnerTest {
     @Test
     void givesEveryEnvelopeItsOwnId() {
         var published = new ConcurrentLinkedQueue<Envelope>();
-        var runner = new LoadRunner(OFFERS, published::add);
+        var runner = new LoadRunner(OFFERS, published::add, APP);
 
         runner.run(new DefaultApplicationArguments());
 

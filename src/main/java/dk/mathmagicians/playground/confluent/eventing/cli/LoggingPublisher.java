@@ -16,6 +16,6 @@ final class LoggingPublisher implements Publisher {
 
     @Override
     public void publish(Envelope envelope) {
-        throw new UnsupportedOperationException("LoggingPublisher.publish");
+        log.info("Published {} key {}: {}", envelope.id(), envelope.key(), envelope.payload());
     }
 }

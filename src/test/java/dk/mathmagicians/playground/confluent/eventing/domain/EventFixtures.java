@@ -13,7 +13,8 @@ public final class EventFixtures {
 
     public static final String REGION = "EMEA";
 
-    public static final String APP = "load-generator";
+    /// `spring.application.name`
+    public static final String APP = "confluent-eventing-playground";
 
     /// Rule Forty-two, the oldest rule in the book.
     public static final long SEED = 42;
