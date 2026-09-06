@@ -1,21 +1,91 @@
 package dk.mathmagicians.playground.confluent.eventing.load;
 
+import java.time.Clock;
 import java.time.Duration;
-import java.util.function.Supplier;
+import java.time.Instant;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Consumer;
+import java.util.random.RandomGenerator;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /// Runs `concurrent` virtual threads, each sleeping `interval` milliseconds then producing one event from the
-/// supplier, for a region, until the TTL has passed. Application core: no Spring, no Kafka.
-/// Stub: `start` logs the request. The threads and the loop are not implemented.
-public abstract class Generator<T> {
+/// recipe into the sink, until the TTL has passed. Application core: no Spring, no Kafka.
+/// Randomness and time are inputs: the recipe is a function of both, the loop owns the thread's generator and the
+/// clock.
+public final class Generator<T> {
+
+    /// A pure function from a generator and an instant to a payload.
+    @FunctionalInterface
+    public interface Recipe<T> {
+        T from(RandomGenerator random, Instant at);
+    }
 
     private static final Logger log = LoggerFactory.getLogger(Generator.class);
 
-    public final void start(int concurrent, int interval, String region, Duration ttl) {
-        log.info("{} for {}: {} concurrent, interval {} ms, {} events per second, {} seconds",
-                getClass().getSimpleName(), region, concurrent, interval, concurrent * 1000L / interval, ttl.toSeconds());
+    private final Recipe<T> recipe;
+    private final Consumer<? super T> sink;
+    private final Clock clock;
+
+    public Generator(Recipe<T> recipe, Consumer<? super T> sink, Clock clock) {
+        this.recipe = recipe;
+        this.sink = sink;
+        this.clock = clock;
     }
 
-    protected abstract Supplier<T> supplier();
+    /// Starts the threads, waits for all of them, returns the number of events produced.
+    public long start(int concurrent, int interval, Duration ttl) {
+        var deadline = clock.instant().plus(ttl);
+        log.info("Starting {} threads, each sleeping {} ms, until {}", concurrent, interval, deadline);
+        var threadFactory = Thread.ofVirtual().name("generator-", 0).factory();
+        try (var executor = Executors.newThreadPerTaskExecutor(threadFactory)) {
+            Callable<Long> looper = () -> loop(deadline, interval);
+            List<Future<Long>> loops = executor.invokeAll(
+                    Collections.nCopies(concurrent, looper));
+            return loops.stream().mapToLong(Generator::produced).sum();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.warn("Interrupted while waiting for our loop futures to terminate, produced count unknown.");
+            return 0;
+        }
+    }
+
+    private static long produced(Future<Long> someLoop) {
+        return switch (someLoop.state()) {
+            case SUCCESS -> someLoop.resultNow();
+            case FAILED -> throw new IllegalStateException("A loop failed", someLoop.exceptionNow());
+            case CANCELLED, RUNNING -> throw new IllegalStateException("A loop is " + someLoop.state());
+        };
+    }
+
+    /// One thread: its own `ThreadLocalRandom`, sleep, produce, until the deadline. An interrupt ends it with its
+    /// count.
+    private long loop(Instant deadline, int interval) {
+        final String FAILURE_MESSAGE = "Thread %s failed after producing %d events";
+        long produced = 0;
+        try {
+            var random = ThreadLocalRandom.current();
+            while (clock.instant().isBefore(deadline)) {
+                Thread.sleep(interval);
+                var at = clock.instant();
+                var payload = recipe.from(random, at);
+                sink.accept(payload);
+                produced++;
+            }
+            return produced;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.info("Thread interrupted, produced {} events", produced);
+            return produced;
+        } catch (RuntimeException e) {
+            log.error("Thread failed in loop after producing {} events", produced, e);
+            throw new IllegalStateException( FAILURE_MESSAGE.formatted(Thread.currentThread().getName(), produced), e);
+        }
+    }
 }

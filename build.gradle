@@ -6,8 +6,16 @@ plugins {
 }
 
 group = 'dk.mathmagicians.playground'
-version = '0.0.1-SNAPSHOT'
 description = 'confluent-eventing-playground'
+
+// version from git tags: at v1.2.3 it is 1.2.3, after it 1.2.4-SNAPSHOT, with no tag 0.0.1-SNAPSHOT
+def describe = providers.exec {
+    commandLine 'git', 'describe', '--tags', '--match', 'v*', '--long', '--always'
+}.standardOutput.asText.get().trim()
+def tagged = describe =~ /^v(\d+)\.(\d+)\.(\d+)-(\d+)-g[0-9a-f]+$/
+def (major, minor, patch, commits) = tagged.matches() ? (1..4).collect { tagged[0][it] as int } : [0, 0, 0, 1]
+def nextVersion = "${major}.${minor}.${patch + 1}"
+version = commits == 0 ? "${major}.${minor}.${patch}" : "${nextVersion}-SNAPSHOT"
 
 java {
     toolchain {
@@ -21,9 +29,9 @@ repositories {
 
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter'
+    implementation 'org.springframework.boot:spring-boot-starter-kafka'
     implementation 'com.google.protobuf:protobuf-java'
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
-    developmentOnly 'org.springframework.boot:spring-boot-docker-compose'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation platform('io.cucumber:cucumber-bom:7.34.7') // not in the Boot BOM, 2026-09-03
     testImplementation 'io.cucumber:cucumber-java'
@@ -50,6 +58,8 @@ tasks.register('bdd', Test) {
     if (providers.gradleProperty('dryRun').isPresent()) {
         systemProperty 'cucumber.execution.dry-run', 'true'
     }
+    // the image under test, -Pimage=<repo>:<tag>; default is the local build from bootBuildImage
+    systemProperty 'bdd.image', providers.gradleProperty('image').getOrElse("${project.name}:${project.version}")
     testLogging.showStandardStreams = true
     outputs.upToDateWhen { false }
 }
@@ -68,6 +78,25 @@ protobuf {
             }
         }
     }
+}
+
+tasks.named('bootBuildImage') {
+    // launch environment of the image, inherited by compose, docker run, and the integration tests
+    environment = ['BPE_BPL_JAVA_NMT_ENABLED': 'false']
+}
+
+tasks.register('version') {
+    description = 'Prints the version.'
+    group = 'help'
+    def current = version
+    doLast { println current }
+}
+
+tasks.register('nextVersion') {
+    description = 'Prints the next version, the SNAPSHOT without its suffix.'
+    group = 'help'
+    def next = nextVersion
+    doLast { println next }
 }
 
 // generated code is committed: compile from src/generated, regenerate with make proto-gen.

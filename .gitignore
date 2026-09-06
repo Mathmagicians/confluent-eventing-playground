@@ -1,4 +1,5 @@
 HELP.md
+*.private
 .gradle
 build/
 !gradle/wrapper/gradle-wrapper.jar
@@ -35,3 +36,8 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### Terraform ###
+.terraform/
+*.tfstate
+*.tfstate.*

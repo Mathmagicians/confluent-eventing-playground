@@ -11,13 +11,35 @@ Reference implementation of a Kafka **load generator** and **stream consumer** r
 - JUnit 5, AssertJ, Mockito - unit tests, versions from the Boot BOM
 - Testcontainers - Kafka container for BDD, version from the Boot BOM
 - Docker + Compose - starts the swarm of load generators and the consumer
-- GitHub Actions - CI and hourly load runs
+- GitHub Actions - CICD + publish to GH registry, and hourly load runs 
 - Container image - deployment unit, built with `./gradlew bootBuildImage`
 
 ## Purpose
 
-- Refresh event-streaming fundamentals against a managed Confluent cluster: keys, partitions, ordering, idempotence, schemas.
+- Playground for refreshing event-streaming fundamentals against a managed Confluent cluster: keys, partitions, ordering, idempotence, schemas.
 - Generate repeatable load from GitHub Actions (hourly cron) and from a developer machine.
+- Use stream processing capabilities from Confluent to consume over several topics
+
+One topic per payload type, each keyed for a different ordering guarantee. Kafka keeps the records of one partition
+in order, and the key picks the partition, so records with the same key stay in order.
+
+```
+ products   key = product     offers   key = region + product    orders   key = region
+
+ p0 | P-POCK P-POCK P-POCK    p0 | EMEA/P-POCK EMEA/P-POCK       p0 | EMEA EMEA EMEA EMEA
+ p1 | P-FANN P-FANN           p1 | APAC/P-POCK APAC/P-POCK       p1 | APAC APAC
+ p2 | P-TEAS                  p2 | EMEA/P-FANN                   p2 | AMER AMER AMER
+
+ ordered per product          ordered per product in a region    ordered per region
+
+ transactions   key = region + product + customer
+
+ p0 | EMEA/P-POCK/C-01 EMEA/P-POCK/C-01
+ p1 | APAC/P-POCK/C-07
+ p2 | EMEA/P-FANN/C-01
+
+ ordered per customer, per product in a region
+```
 
 ## Architecture
 
@@ -25,18 +47,22 @@ Reference implementation of a Kafka **load generator** and **stream consumer** r
 
 | Service           | Role                                                                                                                                  | Runs where                              |
 |-------------------|---------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------|
-| `load-generator`  | Produces `Order` events to the `orders` topic. One codebase, many instances distinguished by region (`EMEA`, `AMER`, `APAC`, ...).    | Compose swarm, GitHub Actions cron      |
-| `stream-consumer` | Consumes `orders`, verifies per-product ordering, exposes counters.                                                                   | Compose swarm                           |
+| `load-generator`  | Produces one payload type to its topic. One codebase, many instances distinguished by type and region (`EMEA`, `AMER`, `APAC`, ...). | Compose swarm, GitHub Actions cron      |
+| `stream-consumer` | Consumes the topics, verifies ordering per key, exposes counters.                                                                     | Compose swarm                           |
 
 Both are Spring Boot applications. Actuator health and metrics are the endpoints they expose.
 
 ### Domain
 
-`Order(product, quantity, price)` is the single event type.
+A payload is a `Product`, an `Offer`, an `Order`, or a `Transaction`, a sealed set. An event is an `Envelope` with a
+payload.
 
-- **Partition key is `product`.** All orders for one product land on one partition, so per-product order is preserved.
-  The default partitioner (murmur2 over the serialized key) maps a key to a partition by partition count, so the
-  partition count of `orders` is fixed at topic creation.
+- **The key picks the partition**, one key per topic as shown under Purpose. The default partitioner (murmur2 over
+  the serialized key) maps a key to a partition by partition count, so the partition count of a topic is fixed at
+  topic creation.
+- `transactions` are keyed by region, product id, and customer id: region and product from the offer the
+  transaction settles, the customer from the transaction, so a customer's transactions for one product in one
+  region stay in order.
 - Serialization: Protobuf via Confluent Schema Registry.
 
 ### Data flow
@@ -46,9 +72,9 @@ Both are Spring Boot applications. Actuator health and metrics are the endpoints
           |                                   |
           v                                   v
    load-generator (EMEA)   ...   load-generator (region N)
-          |   key = product, value = Order
+          |   key per topic, value = Envelope
           v
-   Confluent Cloud   topic: orders-<profile>   (N partitions, fixed)
+   Confluent Cloud   topics: products, offers, orders, transactions, prefixed test. or prod.   (N partitions, fixed)
           |
           v
    stream-consumer   per-partition ordering checks, metrics
@@ -56,12 +82,13 @@ Both are Spring Boot applications. Actuator health and metrics are the endpoints
 
 ### Environments
 
-| Profile | Topic           | Runs from                        |
-|---------|-----------------|----------------------------------|
-| `local` | `orders-local`  | Developer machine, compose swarm |
-| `prod`  | `orders-prod`   | GitHub Actions, hourly cron      |
+| Profile | Publishes to    | Runs from                                                      |
+|---------|-----------------|----------------------------------------------------------------|
+| `local` | the log         | Developer machine, no credentials                              |
+| `test`  | `test.<topic>`  | Developer machine, the `cd` job on every pull request          |
+| `prod`  | `prod.<topic>`  | `load-run.yaml` hourly cron, developer machine with `ENV=prod` |
 
-Both run against Confluent Cloud.
+`test` and `prod` run against Confluent Cloud.
 
 ## Repository layout
 
@@ -71,7 +98,8 @@ Both run against Confluent Cloud.
 ├── Makefile                  single entry point for humans and CI
 ├── compose.yaml              the swarm: load generators per region, the consumer
 ├── build.gradle / settings.gradle
-├── .github/workflows/        cicd.yaml, load-run.yml
+├── iac/                      Terraform: the topics on the Confluent cluster, applied by Terraform Cloud
+├── .github/workflows/        cicd.yaml, load-run.yaml, iac.yaml
 ├── common/                   Order domain, serialization, shared test fixtures
 │   ├── src/main/proto/       Protobuf schemas
 │   └── src/generated/        protoc output, committed, regenerated with make proto-gen
@@ -79,7 +107,9 @@ Both run against Confluent Cloud.
 └── stream-consumer/          consumer service
 ```
 
-Root package: `dk.mathmagicians.playground.confluent`. Sub-packages by feature: `order`, `load`, `consumer`.
+Root package: `dk.mathmagicians.playground.confluent`. Packages by layer inside a service: `domain` in the centre,
+`dto`, `cli`, and the Kafka adapter at the edge. The domain is one package, so a sealed type and its records stay
+package-private neighbours.
 
 Tests live next to what they test:
 
@@ -93,18 +123,8 @@ src/test/java/.../bdd/           step definitions and test drivers
 
 Prerequisites: JDK 25, Docker, the `gh` CLI for pipeline work, a Confluent Cloud API key.
 
-```bash
-make check                 # the CI gate: proto-check, build, image, bdd, in that order
-make build                 # compile, unit tests, jar
-make test                  # unit tests
-make image                 # container image confluent-eventing-playground:0.0.1-SNAPSHOT
-make bdd                   # Cucumber with Testcontainers, against the image
-make bdd-snippets          # step-definition snippets for undefined steps
-make proto-gen             # regenerate src/generated from the schemas
-make publish REGISTRY=ghcr.io/<owner> TAGS="0.0.1-SNAPSHOT latest"   # push the image
-```
-
-CI calls the same targets.
+The Makefile is the entry point for humans and CI. `make help` lists the targets by section, `make check` is the
+CI gate.
 
 ### Configuration
 
@@ -119,30 +139,31 @@ properties files. Names are `UPPER_SNAKE`, prefixed by concern.
 | `SCHEMA_REGISTRY_API_KEY` / `SCHEMA_REGISTRY_API_SECRET`  | both services    | Schema Registry basic auth                                               |
 | `PRODUCT_CONCURRENT`, `OFFER_CONCURRENT`, `ORDER_CONCURRENT` | compose       | Producers per generator, default 10                                      |
 | `PRODUCT_INTERVAL`, `OFFER_INTERVAL`, `ORDER_INTERVAL`    | compose          | Milliseconds a producer sleeps between events, default 250               |
-| `REGION`                                                  | compose          | Region stamped on every event, default EMEA                              |
+| `REGION`                                                  | compose          | Region stamped on every event, default EMEA                                     |
 | `TTL`                                                     | compose          | Seconds a generator runs, default 60, max 300                            |
+| `TF_CLOUD_ORGANIZATION` / `TF_WORKSPACE`                  | `make tf-*`      | Terraform Cloud workspace holding the state                              |
+| `TF_TOKEN_app_terraform_io`                               | `iac.yaml`       | Terraform Cloud token; a developer machine has `terraform login` instead |
 
-Secrets live in GitHub Actions secrets in CI and in a git-ignored `.env` locally. Properties files, Gherkin, and test
-fixtures refer to them by variable name.
+Secrets live in two GitHub environments, `confluent-test` and `confluent-prod`, the same Confluent cluster and API
+key, one topic prefix each. Locally the same six variables live in `.env.test.private` and `.env.prod.private`,
+git-ignored. `make` sources the file for `ENV`, default `test`, into the command it runs and nothing else, so your
+shell never carries them. Properties files, Gherkin, and test fixtures refer to them by variable name.
+
+The Terraform Cloud workspace holds the cluster id, its REST endpoint, and the Kafka API key, and the same three
+for the Schema Registry, as Terraform variables, declared in `iac/variables.tf`.
+Plans and applies run there, from its GitHub connection to `iac/`. A third GitHub environment, `terraform-cloud`,
+holds the Terraform Cloud token as `TF_TOKEN_app_terraform_io`, the organization, and the workspace name for
+`iac.yaml`, each secret named as the variable it becomes.
 
 ## Play
 
-The swarm, one generator per event type, defaults from `compose.yaml`:
-
-```bash
-make image                 # once, or after a code change
-make up                    # product, offer, and order generators
-make up-offer              # one generator; also up-product, up-order
-OFFER_CONCURRENT=50 OFFER_INTERVAL=100 TTL=300 make up-offer
-REGION=APAC make up
-make down
-```
+The swarm, one generator per payload type with defaults from `compose.yaml`, is the Swarm section of `make help`.
 
 The image on its own, defaults from `application.properties`:
 
 ```bash
-docker run --rm confluent-eventing-playground:0.0.1-SNAPSHOT
-docker run --rm confluent-eventing-playground:0.0.1-SNAPSHOT --load.type=order --load.concurrent=20 --load.interval=100 --load.region=APAC --load.ttl=120
+docker run --rm confluent-eventing-playground:$(make version)
+docker run --rm confluent-eventing-playground:$(make version) --load.type=order --load.concurrent=20 --load.interval=100 --load.region=APAC --load.ttl=120
 docker run --rm ghcr.io/mathmagicians/confluent-eventing-playground:latest --load.type=product
 ```
 
@@ -187,10 +208,12 @@ A review finding cites the rule it breaks.
 
 ### Spring Boot
 
-- Configuration as `@ConfigurationProperties` records with `@Validated` constraints, injected where needed.
+- Configuration as `@ConfigurationProperties` records, validated in the compact constructor with a message that
+  carries the value, injected where needed.
 - Auto-configuration first. A `@Bean` method covers what auto-configuration cannot express and carries a one-line
   comment saying so.
-- Profiles are `local` and `prod`. Differences between them live in properties.
+- Profiles are `local`, `test`, and `prod`. `local` publishes every envelope to the log at INFO and needs no
+  credentials, the other two publish to Kafka and differ in properties: the topic names.
 - `application.properties` holds defaults, `application-<profile>.properties` holds the profile. Secrets are
   `${ENV_VAR}` placeholders that fail fast when unset. Everything else has a default.
 - `@SpringBootTest` serves one wiring test per service and the BDD suite.
@@ -202,14 +225,20 @@ A review finding cites the rule it breaks.
 - Producer: `acks=all`, `enable.idempotence=true`, compression `lz4` or `zstd`, explicit `linger.ms` and `batch.size`.
   All of it through Spring properties, each tuning value with a comment.
 - Every record has a key.
-- Topics are created by infrastructure. Test containers auto-create.
+- Topics and their schemas are created by Terraform Cloud from `iac/`. Test containers auto-create.
+- Topic names are `<env>.<topic>`, the environment `test` or `prod` first: `test.orders`. The dot is the only
+  separator.
 - Consumer group id is explicit and named after the service. Offset management stays on Spring defaults until a
   scenario needs otherwise.
 - Listener exceptions propagate to Spring's `DefaultErrorHandler`, which publishes to the dead-letter topic
-  `<topic>.dlt` through `DeadLetterPublishingRecoverer`.
-- One serialization class per direction owns `byte[]` and serializer configuration. Business code works with `Order`.
+  `<topic>.DLT`, Spring's default name and partition, through `DeadLetterPublishingRecoverer`.
+- One serialization class per direction owns `byte[]` and serializer configuration. Business code works with
+  `Envelope`.
+- Every message on the wire is an `Envelope`, the payload packed as `google.protobuf.Any`. The envelope schema stays
+  the same when a payload type is added.
 - Schema evolution: `BACKWARD` compatibility, `TopicNameStrategy`, schemas checked in under
-  `common/src/main/proto`.
+  `common/src/main/proto`. `iac/` registers the proto file under every service topic's `<topic>-value` subject, so
+  a producer runs with `auto.register.schemas=false` and `use.latest.version=true`.
 - Confluent Cloud clients use `SASL_SSL` with `PLAIN`. Every other setting stays at the Confluent-recommended default
   until a measurement justifies a change.
 
@@ -220,8 +249,8 @@ Test layers:
 | Layer | Tool                                              | Scope                                          | Speed   |
 |-------|---------------------------------------------------|------------------------------------------------|---------|
 | Unit  | JUnit 5, AssertJ, Mockito                         | One class in isolation                         | ms      |
-| BDD   | Cucumber, Spring Boot test, Testcontainers Kafka  | One feature end to end against Kafka in Docker | seconds |
-| Load  | GitHub Actions against Confluent Cloud            | `LOAD_MESSAGE_COUNT` orders per run, measured  | minutes |
+| BDD   | Cucumber, Testcontainers running the image        | One feature end to end: the image against the Confluent test cluster | seconds |
+| Load  | GitHub Actions against Confluent Cloud            | the latest image, hourly, measured             | minutes |
 
 Unit tests:
 
@@ -258,7 +287,8 @@ BDD with Cucumber:
 - SLF4J with parameterised messages: `log.info("Produced {} orders for {}", count, region)`.
 - `ERROR` means a human should look. `WARN` means degraded but running. `INFO` is lifecycle and counts. `DEBUG` is
   per-message detail, off by default.
-- Log lines carry identifiers and counts. Payloads appear at `DEBUG`, stack traces at `ERROR`.
+- Log lines carry identifiers and counts. Payloads appear at `DEBUG`, stack traces at `ERROR`. The `local` profile
+  is the exception: the log is its publisher, so every envelope appears at `INFO`.
 - Micrometer counters and timers for produced and consumed records.
 
 ### Dependencies and build
@@ -274,14 +304,27 @@ BDD with Cucumber:
 - Default branch `main`. Short-lived branches: `feat/<topic>`, `fix/<topic>`, `chore/<topic>`.
 - Conventional Commits: `feat:`, `fix:`, `test:`, `chore:`, `docs:`, `ci:`, `build:`. Imperative subject under 72
   characters. The body says why.
-- Every PR has a green `cicd.yaml` and a review before a human merges.
-- `cicd.yaml` runs on pull requests to `main` and on pushes to `main`: `make check`, which is proto-check, build
-  with unit tests, container image, then Cucumber with Testcontainers against that image. A push to `main` also
-  publishes the image to `ghcr.io/mathmagicians/confluent-eventing-playground` tagged with the version, the short
-  sha, and `latest`.
-- `main` is protected: changes arrive by pull request with a green `check`, no force pushes, linear history.
-- `load-run.yml` runs hourly (`0 * * * *`) and on `workflow_dispatch`: builds the load generator and produces
-  `LOAD_MESSAGE_COUNT` orders to Confluent Cloud using repository secrets.
+- Every PR has a green `ci` and `cd` and a review before a human merges.
+- The version is Gradle's, derived from git tags: `1.2.3` at tag `v1.2.3`, `1.2.4-SNAPSHOT` after it,
+  `0.0.1-SNAPSHOT` before the first tag. `make version` and `make next-version` print them.
+- `cicd.yaml`, job `ci`, runs on pull requests to `main`, on pushes to `main`, and on `workflow_dispatch`:
+  proto-check, build with unit tests, container image, then publishes the build to
+  `ghcr.io/mathmagicians/confluent-eventing-playground` as a candidate tagged `sha-<short sha>`. A pull request
+  adds `pr-<number>`, a push to `main` adds `latest`. Only `main` moves `latest`.
+- `cicd.yaml`, job `cd`, follows `ci`: it deploys to test by running the integration tests, `make bdd-published`,
+  against the candidate, with the credentials of the `confluent-test` environment. A green `cd` on a pull request
+  is what says the build can be promoted.
+- `cicd.yaml`, job `tag`, follows `cd` on `main`: `make git-release` puts a git tag `v<version>` on the tested
+  commit and the same version on the candidate image in the registry. `make git-tag` is the git part alone. The version is Gradle's next, or the
+  `workflow_dispatch` input, e.g. `0.1.0`.
+- `load-run.yaml` runs hourly (`0 * * * *`) and on `workflow_dispatch` with one input, the load arguments. It
+  deploys to prod: the `latest` image, `make docker-smoke` when the arguments are empty and `make docker-run` otherwise, with the
+  credentials of the `confluent-prod` environment. No `latest` image, no run.
+- `iac.yaml` runs on pull requests to `main`, on pushes to `main`, and on `workflow_dispatch`: `make tf-check`,
+  then `make tf-plan`, a speculative plan in Terraform Cloud written to the job summary, with the credentials of
+  the `terraform-cloud` environment. Terraform Cloud applies on `main` from its GitHub connection to `iac/`.
+- `main` is protected: changes arrive by pull request with a green `ci` and `cd`, no force pushes, linear history.
+  `.github/branch-protection.json` is the setting, `make gh-main-protection` applies it.
 
 ## Definition of done
 
@@ -296,16 +339,19 @@ BDD with Cucumber:
 - [x] Install Java 25
 - [x] Hello world
 - [x] Gradle script builds and runs the unit test
-- [ ] Makefile with `build`, `test`, `bdd`, `run`, `check`
-- [ ] Local docker swarm works against *-local kafka topics
-- [ ] Prod docker swarm works against *-prod kafka topics
-- [ ] Cucumber wired into the build (JUnit Platform Suite, Testcontainers Kafka)
-- [ ] BDD feature: load generator produces `Order(product, quantity, price)`
-- [ ] BDD feature: same product ends up in the same partition
-- [ ] Partition key on product
-- [ ] Publish 1 000 000 messages to Confluent Cloud
+- [x] Makefile with `build`, `test`, `bdd`, `run`, `check`
+- [x] Local docker compose spins up a swarm of workers
+- [x] workers can generate load, and convert it to protobuf
+- [x] Topics, dead-letter topics, and schemas created by Terraform Cloud from `iac/`
+- [x] workers can publish against test.* kafka topics
+- [x] Prod docker swarm works against prod.* kafka topics
+- [ ] Cucumber wired into the build (JUnit Platform Suite, Testcontainers for workers, Confluent test.* topics)
+- [ ] BDD feature: I can publish messages
+- [ ] BDD feature: same key ends up in the same partition
+- [x] Partition key strategy defined pr payload type 
+- [x] Publish Ks of messages to Confluent Cloud
 - [ ] Stream consumer service
-- [ ] Protobuf via Schema Registry
-- [ ] Split into `common`, `load-generator`, `stream-consumer` modules
-- [ ] GitHub Actions `cicd.yaml`
-- [ ] GitHub Actions `load-run.yml`, hourly cron
+- [x ] Protobuf via Schema Registry
+- [ ] Split into modules, convert to hexagonal
+- [x] GitHub Actions `cicd.yaml`
+- [x] GitHub Actions `load-run.yaml`, hourly cron

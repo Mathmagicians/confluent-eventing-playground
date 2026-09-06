@@ -1,0 +1,45 @@
+name: load-run
+
+on:
+  schedule:
+    - cron: '0 * * * *'
+  workflow_dispatch:
+    inputs:
+      args:
+        description: load arguments, e.g. --load.type=order --load.concurrent=10 --load.ttl=60. Empty runs the minimum.
+        default: ''
+
+permissions:
+  contents: read
+  packages: read
+
+concurrency: load-run
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    environment: confluent-prod
+    env:
+      KAFKA_BOOTSTRAP_SERVERS: ${{ secrets.KAFKA_BOOTSTRAP_SERVERS }}
+      KAFKA_API_KEY: ${{ secrets.KAFKA_API_KEY }}
+      KAFKA_API_SECRET: ${{ secrets.KAFKA_API_SECRET }}
+      SCHEMA_REGISTRY_URL: ${{ secrets.SCHEMA_REGISTRY_URL }}
+      SCHEMA_REGISTRY_API_KEY: ${{ secrets.SCHEMA_REGISTRY_API_KEY }}
+      SCHEMA_REGISTRY_API_SECRET: ${{ secrets.SCHEMA_REGISTRY_API_SECRET }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: is there a latest image
+        id: latest
+        run: make docker-image-exists && echo present=true >> "$GITHUB_OUTPUT" || echo present=false >> "$GITHUB_OUTPUT"
+      - name: no latest image, nothing to run
+        if: steps.latest.outputs.present == 'false'
+        run: echo "::notice::no latest image in the registry, skipping"
+      - name: deploy to prod, the latest image
+        if: steps.latest.outputs.present == 'true'
+        run: |
+          if [ -n "${{ inputs.args }}" ]; then make docker-run ARGS="${{ inputs.args }}"; else make docker-smoke; fi

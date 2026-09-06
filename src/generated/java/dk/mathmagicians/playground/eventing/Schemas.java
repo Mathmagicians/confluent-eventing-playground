@@ -1278,29 +1278,16 @@ public final class Schemas extends com.google.protobuf.GeneratedFile {
         getCustomerIdBytes();
 
     /**
-     * <code>repeated string products = 3;</code>
-     * @return A list containing the products.
+     * <code>string product_id = 3;</code>
+     * @return The productId.
      */
-    java.util.List<java.lang.String>
-        getProductsList();
+    java.lang.String getProductId();
     /**
-     * <code>repeated string products = 3;</code>
-     * @return The count of products.
-     */
-    int getProductsCount();
-    /**
-     * <code>repeated string products = 3;</code>
-     * @param index The index of the element to return.
-     * @return The products at the given index.
-     */
-    java.lang.String getProducts(int index);
-    /**
-     * <code>repeated string products = 3;</code>
-     * @param index The index of the value to return.
-     * @return The bytes of the products at the given index.
+     * <code>string product_id = 3;</code>
+     * @return The bytes for productId.
      */
     com.google.protobuf.ByteString
-        getProductsBytes(int index);
+        getProductIdBytes();
 
     /**
      * <code>.google.protobuf.Timestamp created_at = 5;</code>
@@ -1341,8 +1328,7 @@ public final class Schemas extends com.google.protobuf.GeneratedFile {
     private Order() {
       id_ = "";
       customerId_ = "";
-      products_ =
-          com.google.protobuf.LazyStringArrayList.emptyList();
+      productId_ = "";
     }
 
     public static final com.google.protobuf.Descriptors.Descriptor
@@ -1442,41 +1428,43 @@ public final class Schemas extends com.google.protobuf.GeneratedFile {
       }
     }
 
-    public static final int PRODUCTS_FIELD_NUMBER = 3;
+    public static final int PRODUCT_ID_FIELD_NUMBER = 3;
     @SuppressWarnings("serial")
-    private com.google.protobuf.LazyStringArrayList products_ =
-        com.google.protobuf.LazyStringArrayList.emptyList();
+    private volatile java.lang.Object productId_ = "";
     /**
-     * <code>repeated string products = 3;</code>
-     * @return A list containing the products.
+     * <code>string product_id = 3;</code>
+     * @return The productId.
      */
-    public com.google.protobuf.ProtocolStringList
-        getProductsList() {
-      return products_;
+    @java.lang.Override
+    public java.lang.String getProductId() {
+      java.lang.Object ref = productId_;
+      if (ref instanceof java.lang.String) {
+        return (java.lang.String) ref;
+      } else {
+        com.google.protobuf.ByteString bs = 
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        productId_ = s;
+        return s;
+      }
     }
     /**
-     * <code>repeated string products = 3;</code>
-     * @return The count of products.
+     * <code>string product_id = 3;</code>
+     * @return The bytes for productId.
      */
-    public int getProductsCount() {
-      return products_.size();
-    }
-    /**
-     * <code>repeated string products = 3;</code>
-     * @param index The index of the element to return.
-     * @return The products at the given index.
-     */
-    public java.lang.String getProducts(int index) {
-      return products_.get(index);
-    }
-    /**
-     * <code>repeated string products = 3;</code>
-     * @param index The index of the value to return.
-     * @return The bytes of the products at the given index.
-     */
+    @java.lang.Override
     public com.google.protobuf.ByteString
-        getProductsBytes(int index) {
-      return products_.getByteString(index);
+        getProductIdBytes() {
+      java.lang.Object ref = productId_;
+      if (ref instanceof java.lang.String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        productId_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
     }
 
     public static final int CREATED_AT_FIELD_NUMBER = 5;
@@ -1525,8 +1513,8 @@ public final class Schemas extends com.google.protobuf.GeneratedFile {
       if (!com.google.protobuf.GeneratedMessage.isStringEmpty(customerId_)) {
         com.google.protobuf.GeneratedMessage.writeString(output, 2, customerId_);
       }
-      for (int i = 0; i < products_.size(); i++) {
-        com.google.protobuf.GeneratedMessage.writeString(output, 3, products_.getRaw(i));
+      if (!com.google.protobuf.GeneratedMessage.isStringEmpty(productId_)) {
+        com.google.protobuf.GeneratedMessage.writeString(output, 3, productId_);
       }
       if (((bitField0_ & 0x00000001) != 0)) {
         output.writeMessage(5, getCreatedAt());
@@ -1541,13 +1529,8 @@ public final class Schemas extends com.google.protobuf.GeneratedFile {
       if (!com.google.protobuf.GeneratedMessage.isStringEmpty(customerId_)) {
         size += com.google.protobuf.GeneratedMessage.computeStringSize(2, customerId_);
       }
-      {
-        int dataSize = 0;
-        for (int i = 0; i < products_.size(); i++) {
-          dataSize += computeStringSizeNoTag(products_.getRaw(i));
-        }
-        size += dataSize;
-        size += 1 * getProductsList().size();
+      if (!com.google.protobuf.GeneratedMessage.isStringEmpty(productId_)) {
+        size += com.google.protobuf.GeneratedMessage.computeStringSize(3, productId_);
       }
       if (((bitField0_ & 0x00000001) != 0)) {
         size += com.google.protobuf.CodedOutputStream
@@ -1581,8 +1564,8 @@ public final class Schemas extends com.google.protobuf.GeneratedFile {
           .equals(other.getId())) return false;
       if (!getCustomerId()
           .equals(other.getCustomerId())) return false;
-      if (!getProductsList()
-          .equals(other.getProductsList())) return false;
+      if (!getProductId()
+          .equals(other.getProductId())) return false;
       if (hasCreatedAt() != other.hasCreatedAt()) return false;
       if (hasCreatedAt()) {
         if (!getCreatedAt()
@@ -1603,10 +1586,8 @@ public final class Schemas extends com.google.protobuf.GeneratedFile {
       hash = (53 * hash) + getId().hashCode();
       hash = (37 * hash) + CUSTOMER_ID_FIELD_NUMBER;
       hash = (53 * hash) + getCustomerId().hashCode();
-      if (getProductsCount() > 0) {
-        hash = (37 * hash) + PRODUCTS_FIELD_NUMBER;
-        hash = (53 * hash) + getProductsList().hashCode();
-      }
+      hash = (37 * hash) + PRODUCT_ID_FIELD_NUMBER;
+      hash = (53 * hash) + getProductId().hashCode();
       if (hasCreatedAt()) {
         hash = (37 * hash) + CREATED_AT_FIELD_NUMBER;
         hash = (53 * hash) + getCreatedAt().hashCode();
@@ -1750,8 +1731,7 @@ public final class Schemas extends com.google.protobuf.GeneratedFile {
         bitField0_ = 0;
         id_ = "";
         customerId_ = "";
-        products_ =
-            com.google.protobuf.LazyStringArrayList.emptyList();
+        productId_ = "";
         createdAt_ = null;
         if (createdAtBuilder_ != null) {
           createdAtBuilder_.dispose();
@@ -1797,8 +1777,7 @@ public final class Schemas extends com.google.protobuf.GeneratedFile {
           result.customerId_ = customerId_;
         }
         if (((from_bitField0_ & 0x00000004) != 0)) {
-          products_.makeImmutable();
-          result.products_ = products_;
+          result.productId_ = productId_;
         }
         int to_bitField0_ = 0;
         if (((from_bitField0_ & 0x00000008) != 0)) {
@@ -1832,14 +1811,9 @@ public final class Schemas extends com.google.protobuf.GeneratedFile {
           bitField0_ |= 0x00000002;
           onChanged();
         }
-        if (!other.products_.isEmpty()) {
-          if (products_.isEmpty()) {
-            products_ = other.products_;
-            bitField0_ |= 0x00000004;
-          } else {
-            ensureProductsIsMutable();
-            products_.addAll(other.products_);
-          }
+        if (!other.getProductId().isEmpty()) {
+          productId_ = other.productId_;
+          bitField0_ |= 0x00000004;
           onChanged();
         }
         if (other.hasCreatedAt()) {
@@ -1882,8 +1856,8 @@ public final class Schemas extends com.google.protobuf.GeneratedFile {
                 break;
               } // case 18
               case 26: {
-                ensureProductsIsMutable();
-                products_.add(input.readStringRequireUtf8());
+                productId_ = input.readStringRequireUtf8();
+                bitField0_ |= 0x00000004;
                 break;
               } // case 26
               case 42: {
@@ -2054,112 +2028,73 @@ public final class Schemas extends com.google.protobuf.GeneratedFile {
         return this;
       }
 
-      private com.google.protobuf.LazyStringArrayList products_ =
-          com.google.protobuf.LazyStringArrayList.emptyList();
-      private void ensureProductsIsMutable() {
-        if (!products_.isModifiable()) {
-          products_ = new com.google.protobuf.LazyStringArrayList(products_);
+      private java.lang.Object productId_ = "";
+      /**
+       * <code>string product_id = 3;</code>
+       * @return The productId.
+       */
+      public java.lang.String getProductId() {
+        java.lang.Object ref = productId_;
+        if (!(ref instanceof java.lang.String)) {
+          com.google.protobuf.ByteString bs =
+              (com.google.protobuf.ByteString) ref;
+          java.lang.String s = bs.toStringUtf8();
+          productId_ = s;
+          return s;
+        } else {
+          return (java.lang.String) ref;
         }
-        bitField0_ |= 0x00000004;
       }
       /**
-       * <code>repeated string products = 3;</code>
-       * @return A list containing the products.
-       */
-      public com.google.protobuf.ProtocolStringList
-          getProductsList() {
-        products_.makeImmutable();
-        return products_;
-      }
-      /**
-       * <code>repeated string products = 3;</code>
-       * @return The count of products.
-       */
-      public int getProductsCount() {
-        return products_.size();
-      }
-      /**
-       * <code>repeated string products = 3;</code>
-       * @param index The index of the element to return.
-       * @return The products at the given index.
-       */
-      public java.lang.String getProducts(int index) {
-        return products_.get(index);
-      }
-      /**
-       * <code>repeated string products = 3;</code>
-       * @param index The index of the value to return.
-       * @return The bytes of the products at the given index.
+       * <code>string product_id = 3;</code>
+       * @return The bytes for productId.
        */
       public com.google.protobuf.ByteString
-          getProductsBytes(int index) {
-        return products_.getByteString(index);
+          getProductIdBytes() {
+        java.lang.Object ref = productId_;
+        if (ref instanceof String) {
+          com.google.protobuf.ByteString b = 
+              com.google.protobuf.ByteString.copyFromUtf8(
+                  (java.lang.String) ref);
+          productId_ = b;
+          return b;
+        } else {
+          return (com.google.protobuf.ByteString) ref;
+        }
       }
       /**
-       * <code>repeated string products = 3;</code>
-       * @param index The index to set the value at.
-       * @param value The products to set.
+       * <code>string product_id = 3;</code>
+       * @param value The productId to set.
        * @return This builder for chaining.
        */
-      public Builder setProducts(
-          int index, java.lang.String value) {
-        if (value == null) { throw new NullPointerException(); }
-        ensureProductsIsMutable();
-        products_.set(index, value);
-        bitField0_ |= 0x00000004;
-        onChanged();
-        return this;
-      }
-      /**
-       * <code>repeated string products = 3;</code>
-       * @param value The products to add.
-       * @return This builder for chaining.
-       */
-      public Builder addProducts(
+      public Builder setProductId(
           java.lang.String value) {
         if (value == null) { throw new NullPointerException(); }
-        ensureProductsIsMutable();
-        products_.add(value);
+        productId_ = value;
         bitField0_ |= 0x00000004;
         onChanged();
         return this;
       }
       /**
-       * <code>repeated string products = 3;</code>
-       * @param values The products to add.
+       * <code>string product_id = 3;</code>
        * @return This builder for chaining.
        */
-      public Builder addAllProducts(
-          java.lang.Iterable<java.lang.String> values) {
-        ensureProductsIsMutable();
-        com.google.protobuf.AbstractMessageLite.Builder.addAll(
-            values, products_);
-        bitField0_ |= 0x00000004;
+      public Builder clearProductId() {
+        productId_ = getDefaultInstance().getProductId();
+        bitField0_ = (bitField0_ & ~0x00000004);
         onChanged();
         return this;
       }
       /**
-       * <code>repeated string products = 3;</code>
+       * <code>string product_id = 3;</code>
+       * @param value The bytes for productId to set.
        * @return This builder for chaining.
        */
-      public Builder clearProducts() {
-        products_ =
-          com.google.protobuf.LazyStringArrayList.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000004);;
-        onChanged();
-        return this;
-      }
-      /**
-       * <code>repeated string products = 3;</code>
-       * @param value The bytes of the products to add.
-       * @return This builder for chaining.
-       */
-      public Builder addProductsBytes(
+      public Builder setProductIdBytes(
           com.google.protobuf.ByteString value) {
         if (value == null) { throw new NullPointerException(); }
         checkByteStringIsUtf8(value);
-        ensureProductsIsMutable();
-        products_.add(value);
+        productId_ = value;
         bitField0_ |= 0x00000004;
         onChanged();
         return this;
@@ -6142,25 +6077,25 @@ public final class Schemas extends com.google.protobuf.GeneratedFile {
       "velope\022\n\n\002id\030\001 \001(\t\022\016\n\006region\030\002 \001(\t\022\r\n\005ap" +
       "pid\030\003 \001(\t\022-\n\ttimestamp\030\004 \001(\0132\032.google.pr" +
       "otobuf.Timestamp\022%\n\007payload\030\005 \001(\0132\024.goog" +
-      "le.protobuf.Any\"j\n\005Order\022\n\n\002id\030\001 \001(\t\022\023\n\013" +
-      "customer_id\030\002 \001(\t\022\020\n\010products\030\003 \003(\t\022.\n\nc" +
-      "reated_at\030\005 \001(\0132\032.google.protobuf.Timest" +
-      "amp\"\225\001\n\007Product\022\023\n\013producer_id\030\001 \001(\t\022\022\n\n" +
-      "product_id\030\002 \001(\t\022\024\n\014product_name\030\003 \001(\t\022\033" +
-      "\n\023product_description\030\004 \001(\t\022.\n\ncreated_a" +
-      "t\030\005 \001(\0132\032.google.protobuf.Timestamp\"\177\n\005O" +
-      "ffer\022\020\n\010offer_id\030\001 \001(\t\022\022\n\nproduct_id\030\002 \001" +
-      "(\t\022\r\n\005price\030\003 \001(\001\022\021\n\tseller_id\030\004 \001(\t\022.\n\n" +
-      "created_at\030\005 \001(\0132\032.google.protobuf.Times" +
-      "tamp\"\214\002\n\013Transaction\022\026\n\016transaction_id\030\001" +
-      " \001(\t\022>\n\torder_ref\030\002 \001(\0132+.dk.mathmagicia" +
-      "ns.playground.eventing.Order\022>\n\toffer_re" +
-      "f\030\003 \001(\0132+.dk.mathmagicians.playground.ev" +
-      "enting.Offer\022\023\n\013customer_id\030\004 \001(\t\022\021\n\tsel" +
-      "ler_id\030\005 \001(\t\022\r\n\005price\030\006 \001(\001\022.\n\ncreated_a" +
-      "t\030\007 \001(\0132\032.google.protobuf.TimestampB&\n$d" +
-      "k.mathmagicians.playground.eventingb\006pro" +
-      "to3"
+      "le.protobuf.Any\"l\n\005Order\022\n\n\002id\030\001 \001(\t\022\023\n\013" +
+      "customer_id\030\002 \001(\t\022\022\n\nproduct_id\030\003 \001(\t\022.\n" +
+      "\ncreated_at\030\005 \001(\0132\032.google.protobuf.Time" +
+      "stamp\"\225\001\n\007Product\022\023\n\013producer_id\030\001 \001(\t\022\022" +
+      "\n\nproduct_id\030\002 \001(\t\022\024\n\014product_name\030\003 \001(\t" +
+      "\022\033\n\023product_description\030\004 \001(\t\022.\n\ncreated" +
+      "_at\030\005 \001(\0132\032.google.protobuf.Timestamp\"\177\n" +
+      "\005Offer\022\020\n\010offer_id\030\001 \001(\t\022\022\n\nproduct_id\030\002" +
+      " \001(\t\022\r\n\005price\030\003 \001(\001\022\021\n\tseller_id\030\004 \001(\t\022." +
+      "\n\ncreated_at\030\005 \001(\0132\032.google.protobuf.Tim" +
+      "estamp\"\214\002\n\013Transaction\022\026\n\016transaction_id" +
+      "\030\001 \001(\t\022>\n\torder_ref\030\002 \001(\0132+.dk.mathmagic" +
+      "ians.playground.eventing.Order\022>\n\toffer_" +
+      "ref\030\003 \001(\0132+.dk.mathmagicians.playground." +
+      "eventing.Offer\022\023\n\013customer_id\030\004 \001(\t\022\021\n\ts" +
+      "eller_id\030\005 \001(\t\022\r\n\005price\030\006 \001(\001\022.\n\ncreated" +
+      "_at\030\007 \001(\0132\032.google.protobuf.TimestampB&\n" +
+      "$dk.mathmagicians.playground.eventingb\006p" +
+      "roto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -6179,7 +6114,7 @@ public final class Schemas extends com.google.protobuf.GeneratedFile {
     internal_static_dk_mathmagicians_playground_eventing_Order_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_dk_mathmagicians_playground_eventing_Order_descriptor,
-        new java.lang.String[] { "Id", "CustomerId", "Products", "CreatedAt", });
+        new java.lang.String[] { "Id", "CustomerId", "ProductId", "CreatedAt", });
     internal_static_dk_mathmagicians_playground_eventing_Product_descriptor =
       getDescriptor().getMessageType(2);
     internal_static_dk_mathmagicians_playground_eventing_Product_fieldAccessorTable = new
