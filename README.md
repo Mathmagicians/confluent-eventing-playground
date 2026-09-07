@@ -309,6 +309,8 @@ BDD with Cucumber:
 - Steps are shared across features. Search for an existing step before writing one.
 - Tags: `@wip` (runs locally), `@slow`, `@cloud` (runs where credentials are present).
 - Features run through the JUnit Platform Suite engine as part of `make check`. A red feature blocks the build.
+  The report is `build/reports/cucumber/index.html`; the `cd` job prints the scenarios in its summary and uploads
+  the report as the artifact `cucumber-report`.
 
 ### Naming and structure
 

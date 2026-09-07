@@ -95,9 +95,17 @@ jobs:
       - name: deploy to test, the BDD suite against the candidate
         id: bdd
         run: make bdd-published TAG=${{ needs.ci.outputs.tag }}
-      - name: the result into the job summary
+      - name: the result and the scenarios into the job summary
         if: ${{ !cancelled() && steps.bdd.outcome != 'skipped' }}
-        run: printf '### Tested\n\n| Image | Result |\n|---|---|\n| `%s:%s` | %s |\n' "$(make docker-repo)" "${{ needs.ci.outputs.tag }}" "${{ steps.bdd.outcome }}" >> "$GITHUB_STEP_SUMMARY"
+        run: |
+          printf '### Tested\n\n| Image | Result |\n|---|---|\n| `%s:%s` | %s |\n\n' "$(make docker-repo)" "${{ needs.ci.outputs.tag }}" "${{ steps.bdd.outcome }}" >> "$GITHUB_STEP_SUMMARY"
+          { printf '```\n'; cat build/reports/cucumber/pretty.txt; printf '```\n'; } >> "$GITHUB_STEP_SUMMARY"
+      - name: the Cucumber report as an artifact
+        if: ${{ !cancelled() && steps.bdd.outcome != 'skipped' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: cucumber-report
+          path: build/reports/cucumber
 
   tag:
     needs: [ci, cd]
