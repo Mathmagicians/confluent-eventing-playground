@@ -1,9 +1,12 @@
 package dk.mathmagicians.playground.confluent.eventing.domain;
 
+import org.jmolecules.ddd.annotation.ValueObject;
+
 import java.time.Instant;
 import java.util.random.RandomGenerator;
 
-/// An event is an envelope with a payload. The header names the event, where it came from, and when.
+/// An event is an envelope with a payload. The header names the event, where it came from, and when. We use the CloudEvent approach, but express it as a domain object
+@ValueObject
 public record Envelope(String id, String region, String app, Instant at, Payload payload) {
     static final String ID_PREFIX = "ENVL";
 

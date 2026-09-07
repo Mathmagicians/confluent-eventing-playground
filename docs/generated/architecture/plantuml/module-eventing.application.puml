@@ -1,0 +1,30 @@
+@startuml
+title <size:24>Application</size>
+
+set separator none
+top to bottom direction
+
+<style>
+  root {
+    BackgroundColor: #ffffff
+    FontColor: #444444
+  }
+</style>
+
+!include <C4/C4>
+!include <C4/C4_Context>
+!include <C4/C4_Component>
+
+System_Boundary("ConfluentLoadGeneratorApplication_boundary", "ConfluentLoadGeneratorApplication", $tags="") {
+  Container_Boundary("ConfluentLoadGeneratorApplication.ConfluentLoadGeneratorApplication_boundary", "ConfluentLoadGeneratorApplication", $tags="") {
+    Component(ConfluentLoadGeneratorApplication.ConfluentLoadGeneratorApplication.Domain, "Domain", $techn="Module", $descr="", $tags="", $link="")
+    Component(ConfluentLoadGeneratorApplication.ConfluentLoadGeneratorApplication.Application, "Application", $techn="Module", $descr="", $tags="", $link="")
+  }
+
+}
+
+Rel(ConfluentLoadGeneratorApplication.ConfluentLoadGeneratorApplication.Application, ConfluentLoadGeneratorApplication.ConfluentLoadGeneratorApplication.Domain, "depends on", $techn="", $tags="", $link="")
+
+SHOW_LEGEND(true)
+hide stereotypes
+@enduml

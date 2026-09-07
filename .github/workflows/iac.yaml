@@ -1,5 +1,7 @@
 name: iac
 
+# the same triggers as cicd. The job always runs, so it can be a required check on main, and does its work when
+# iac/ or this file changed; a run with nothing to do is green in seconds
 on:
   pull_request:
     branches: [main]
@@ -21,12 +23,20 @@ jobs:
       TF_WORKSPACE: ${{ secrets.TF_WORKSPACE }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0   # the diff below needs the base of the pull request or the pushed range
+      - name: changes under iac/ since the base of the pull request or the pushed range; a dispatch or an unknown base always works
+        id: changes
+        run: echo "iac=$(make -s changed BASE='${{ github.event.pull_request.base.sha || github.event.before }}' PATHS='iac/ .github/workflows/iac.yaml')" >> "$GITHUB_OUTPUT"
       - uses: hashicorp/setup-terraform@v4
+        if: steps.changes.outputs.iac == 'true'
         with:
           terraform_wrapper: false   # plain stdout
       - name: formatting and validation of iac/
+        if: steps.changes.outputs.iac == 'true'
         run: make tf-check
       - name: speculative plan in Terraform Cloud, into the job summary
+        if: steps.changes.outputs.iac == 'true'
         shell: bash   # pipefail, so a failed plan fails the step
         run: |
           make tf-plan | tee plan.txt && result=0 || result=$?

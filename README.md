@@ -3,6 +3,7 @@
 [![cicd](https://github.com/Mathmagicians/confluent-eventing-playground/actions/workflows/cicd.yaml/badge.svg?branch=main)](https://github.com/Mathmagicians/confluent-eventing-playground/actions/workflows/cicd.yaml)
 [![iac](https://github.com/Mathmagicians/confluent-eventing-playground/actions/workflows/iac.yaml/badge.svg?branch=main)](https://github.com/Mathmagicians/confluent-eventing-playground/actions/workflows/iac.yaml)
 [![load-run](https://github.com/Mathmagicians/confluent-eventing-playground/actions/workflows/load-run.yaml/badge.svg)](https://github.com/Mathmagicians/confluent-eventing-playground/actions/workflows/load-run.yaml)
+[![architecture-discovery](https://github.com/Mathmagicians/confluent-eventing-playground/actions/workflows/architecture-discovery.yaml/badge.svg?branch=main)](https://github.com/Mathmagicians/confluent-eventing-playground/actions/workflows/architecture-discovery.yaml)
 
 Reference implementation of a Kafka **load generator** and **stream consumer** running against **Confluent Cloud**.
 
@@ -60,6 +61,15 @@ in order, and the key picks the partition, so records with the same key stay in 
 ```
 
 ## Architecture
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/generated/architecture/svg/hexagon.svg" width="100%" alt="The hexagon, generated from the code"></td>
+  </tr>
+  <tr>
+    <td align="center">Nobody drew this: the hexagon from the annotations in the code, <code>make arch-gen</code>, guarded by <code>make check</code> ... read how in <a href="architecture-discovery/architecture-discoverability.md">architecture-discoverability.md</a>. The picture is owing to Alistair Cockburn's classic, <a href="https://alistair.cockburn.us/hexagonal-architecture/">Hexagonal Architecture</a>, 2005.</td>
+  </tr>
+</table>
 
 ### Services
 
@@ -138,7 +148,9 @@ only, and nothing inside reaches an adapter.
 ├── compose.yaml              the swarm: load generators per region, the consumer
 ├── build.gradle / settings.gradle
 ├── iac/                      Terraform: topics and schemas on the Confluent cluster, applied by Terraform Cloud
-├── .github/workflows/        cicd.yaml, load-run.yaml, iac.yaml
+├── .github/workflows/        cicd.yaml, load-run.yaml, iac.yaml, architecture-discovery.yaml
+├── architecture-discovery/   the library behind the hexagon diagram: its own build, its own workflow, published to GitHub Packages
+├── docs/                     architecture-discoverability.md; generated/architecture from the code, make arch-gen
 ├── common/                   Order domain, serialization, shared test fixtures
 │   ├── src/main/proto/       Protobuf schemas
 │   └── src/generated/        protoc output, committed, regenerated with make proto-gen
@@ -357,7 +369,7 @@ BDD with Cucumber:
 - The version is Gradle's, derived from git tags: `1.2.3` at tag `v1.2.3`, `1.2.4-SNAPSHOT` after it,
   `0.0.1-SNAPSHOT` before the first tag. `make version` and `make next-version` print them.
 - `cicd.yaml`, job `ci`, runs on pull requests to `main`, on pushes to `main`, and on `workflow_dispatch`:
-  proto-check, build with unit tests, container image, then publishes the build to
+  generated-check, arch-verify, build with unit tests, container image, then publishes the build to
   `ghcr.io/mathmagicians/confluent-eventing-playground` as a candidate tagged `sha-<short sha>`. A pull request
   adds `pr-<number>`, a push to `main` adds `latest`. Only `main` moves `latest`.
 - `cicd.yaml`, job `cd`, follows `ci`: it deploys to test by running the integration tests, `make bdd-published`,
@@ -373,10 +385,15 @@ BDD with Cucumber:
   generates load in production: the `latest` image with the `prod` profile, `make docker-smoke` when the arguments
   are empty and `make docker-run` otherwise, with the credentials of the `confluent-prod` environment. No `latest`
   image, no run.
-- `iac.yaml` runs on the same events as `cicd.yaml`: `make tf-check`, then `make tf-plan`, the speculative plan
+- `iac.yaml` runs on the same events as `cicd.yaml` and does its work when `iac/` changed, so it can be a required
+  check while a run with nothing to do is green in seconds: `make tf-check`, then `make tf-plan`, the speculative plan
   written to the job summary, with the credentials of the `terraform-cloud` environment. Terraform Cloud applies
   `iac/` on `main` through its GitHub connection.
-- `main` is protected: changes arrive by pull request with a green `ci` and `cd`, no force pushes, linear history.
+- `architecture-discovery.yaml` runs on the same events as `cicd.yaml` and does its work when
+  `architecture-discovery/` changed, the same way: `make discovery-build`, then `make discovery-publish`, the
+  library's snapshot to GitHub Packages, where `ci` and `cd` resolve it.
+- `main` is protected: changes arrive by pull request with a green `ci`, `cd`, `iac`, and `architecture-discovery`,
+  no force pushes, linear history.
   `.github/branch-protection.json` is the setting, `make gh-main-protection` applies it.
 
 ## Definition of done
@@ -405,10 +422,11 @@ BDD with Cucumber:
 - [x] Publish Ks of messages to Confluent Cloud
 - [ ] Stream consumer service
 - [x] Protobuf via Schema Registry
-- [ ] Split into modules
+- [x] Split into modules
 - [x] Convert to hexagonal
 - [x] GitHub Actions `cicd.yaml`
 - [x] GitHub Actions `load-run.yaml`, hourly cron
+- [x] Auto discover architecture, verify architecture rules, generate diagrams, and check for drift
 
 ## License
 

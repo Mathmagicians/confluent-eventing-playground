@@ -28,8 +28,13 @@ ENV ?= test
 ENV_FILE := .env.$(ENV).private
 WITH_ENV := test ! -f $(ENV_FILE) || { set -a; . ./$(ENV_FILE); set +a; };
 
+# the architecture-discovery library, its own build in its folder, resolved from GitHub Packages; a token is needed
+# even to read: CI's GITHUB_ACTOR and GITHUB_TOKEN, or gh's on a developer machine
+DISCOVERY := architecture-discovery/gradlew -p architecture-discovery
+WITH_GH := GITHUB_ACTOR=$${GITHUB_ACTOR:-$$(gh api user -q .login)} GITHUB_TOKEN=$${GITHUB_TOKEN:-$$(gh auth token)}
+
 .DEFAULT_GOAL := build
-.PHONY: help check build test run run-tiny clean version next-version proto-gen proto-check docker-image docker-repo docker-publish docker-image-exists docker-run docker-smoke bdd bdd-published bdd-snippets up up-product up-offer up-order down tf-init tf-check tf-plan git-tag git-release gh-main-protection
+.PHONY: help check generated-check build test run run-tiny clean version next-version proto-gen proto-check arch-verify arch-gen arch-check discovery-build discovery-install discovery-publish changed docker-image docker-repo docker-publish docker-image-exists docker-run docker-smoke bdd bdd-published bdd-snippets up up-product up-offer up-order down tf-init tf-check tf-plan git-tag git-release gh-main-protection
 
 # sections are the ##@ lines, targets are the ## comments; the tab before each description is expanded to one column
 help:      ## this list
@@ -38,9 +43,11 @@ help:      ## this list
 	@echo
 
 ##@ Build, the CI gate, gradle powered
-check: proto-check build docker-image bdd   ## generated code, build, image, integration tests, in this order
+check: generated-check arch-verify build docker-image bdd   ## generated code and documents, architecture, build, image, integration tests, in this order
 
-build: proto-check     ## compile, unit tests, jar
+generated-check: proto-check arch-check   ## fail when generated code or documents are stale, before anything builds
+
+build: generated-check     ## compile, unit tests, jar
 	@$(GRADLE) build
 
 test:      ## unit tests
@@ -131,7 +138,38 @@ tf-check: tf-init   ## formatting and validation of iac/
 tf-plan: tf-init   ## what Terraform Cloud would apply, a speculative plan, no colour for logs; settings from .env.<ENV>.private
 	@$(WITH_ENV) $(TF) plan -input=false -no-color
 
+##@ Architecture, the hexagon from the annotations in the code: verified by tests, documented under docs/generated/architecture
+arch-verify:   ## the hexagonal rule and the module boundaries, the two architecture tests alone
+	@$(GRADLE) test --tests '*ArchitectureTest' --tests '*ArchitectureDocumentationTest'
+
+arch-gen:      ## write docs/generated/architecture: plantuml and canvases from the code, svg from plantuml
+	@$(GRADLE) renderDiagrams
+
+# the plantuml sources are compared line-sorted, the Documenter writes dependency lines in varying order; the svg files
+# follow that order, so they are required to be in git but not compared, see docs/architecture-discoverability.md
+arch-check: arch-gen   ## fail when docs/generated/architecture is not regenerated and staged
+	@git status --porcelain -- docs/generated/architecture | grep '^??' && { echo "docs/generated/architecture has files not in git: git add docs/generated/architecture"; exit 1; } || true
+	@for f in $$(git status --porcelain -- docs/generated/architecture/plantuml | awk '/^.[^ ]/ { print $$2 }'); do \
+	  [ "$$(git show ":$$f" | sort | cksum)" = "$$(sort "$$f" | cksum)" ] || { echo "$$f is out of date: make arch-gen, then git add docs/generated/architecture"; exit 1; }; \
+	done
+	@$(GRADLE) renderDiagrams
+
+##@ Architecture discovery, the library in architecture-discovery/ with its own build, published to GitHub Packages
+discovery-build:   ## compile, tests, jar of the library
+	@$(DISCOVERY) build
+
+discovery-install: ## the library into the local Maven repository, where this build takes it from first
+	@$(DISCOVERY) publishToMavenLocal
+
+discovery-publish: ## the library to GitHub Packages, where CI takes it from
+	@$(WITH_GH) $(DISCOVERY) publish
+
 ##@ Repository, git tags and GitHub settings
+changed:   ## true when a file under PATHS changed between commit BASE and HEAD, false when not; an empty or unknown BASE is true
+	@if [ -z "$(BASE)" ] || ! git cat-file -e "$(BASE)" 2>/dev/null; then echo true; \
+	elif git diff --quiet "$(BASE)" HEAD -- $(PATHS); then echo false; \
+	else echo true; fi
+
 git-tag:   ## git tag v<RELEASE> on HEAD and push it; RELEASE defaults to Gradle's next version
 	@git tag -a v$(RELEASE) -m "release $(RELEASE)" && git push origin v$(RELEASE)
 

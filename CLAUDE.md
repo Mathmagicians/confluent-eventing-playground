@@ -142,6 +142,8 @@ keys, topics, and layering.
 - Git writes are the human's, see Security settings. When something needs staging or committing, say which paths
   in one line and leave it there.
 - One plumbing concern per change.
-- State every new dependency, plugin, or Gradle repository in the message that adds it.
+- Nothing external enters the repository unapproved: a dependency, a plugin, a Gradle repository, a GitHub Action,
+  a tool installed in a workflow. Name it with its origin in the proposal, community projects as such, and add it
+  after the go on that name. The one exception is what the README's Tech Stack already lists.
 - Write feature or domain code when the human asks for it.
 - Keep to the asked scope. List everything else as findings.

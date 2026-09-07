@@ -1,9 +1,12 @@
 package dk.mathmagicians.playground.confluent.eventing.domain;
 
+import org.jmolecules.ddd.annotation.ValueObject;
+
 import java.util.UUID;
 import java.util.random.RandomGenerator;
 
-/// The closed set of payload types. A switch over it is exhaustive.
+/// The closed set of payload types. A switch over it is exhaustive.'
+@ValueObject
 public sealed interface Payload permits Product, Offer, Order, Transaction {
 
     /// An event id: should be  UUID type

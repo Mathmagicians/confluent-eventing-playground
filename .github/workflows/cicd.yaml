@@ -20,6 +20,11 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.tags.outputs.tag }}
+    env:
+      # the architecture-discovery library resolves from GitHub Packages, published by its own workflow; the
+      # registry needs a token even to read
+      GITHUB_ACTOR: ${{ github.actor }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -31,8 +36,10 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
         with:
           add-job-summary: never   # the job summary carries our own tables only
-      - name: generated code matches the schema
-        run: make proto-check
+      - name: generated code and documents match the sources
+        run: make generated-check
+      - name: architecture verified, the hexagonal rule and the module boundaries
+        run: make arch-verify
       - name: compile, unit tests, jar
         run: make build
       - name: container image
@@ -76,6 +83,9 @@ jobs:
       SCHEMA_REGISTRY_REST_ENDPOINT: ${{ vars.SCHEMA_REGISTRY_REST_ENDPOINT }}
       SCHEMA_REGISTRY_API_KEY: ${{ secrets.SCHEMA_REGISTRY_API_KEY }}
       SCHEMA_REGISTRY_API_SECRET: ${{ secrets.SCHEMA_REGISTRY_API_SECRET }}
+      # the test classpath holds the architecture-discovery library, from GitHub Packages
+      GITHUB_ACTOR: ${{ github.actor }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v7
         with:

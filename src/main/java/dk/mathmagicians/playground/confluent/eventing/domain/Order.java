@@ -1,8 +1,10 @@
 package dk.mathmagicians.playground.confluent.eventing.domain;
 
+import org.jmolecules.ddd.annotation.ValueObject;
+
 import java.time.Instant;
 import java.util.random.RandomGenerator;
-
+@ValueObject
 public record Order(String id, String customerId, String productId, Instant createdAt) implements Payload {
 
     static final String ID_PREFIX = "ORD";
