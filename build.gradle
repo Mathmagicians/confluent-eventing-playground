@@ -25,12 +25,16 @@ java {
 
 repositories {
     mavenCentral()
+    maven { url = 'https://packages.confluent.io/maven/' } // the Schema Registry client and the Protobuf serializer
 }
 
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter'
     implementation 'org.springframework.boot:spring-boot-starter-kafka'
     implementation 'com.google.protobuf:protobuf-java'
+    implementation 'io.confluent:kafka-protobuf-serializer:8.3.1' // Confluent's own, not in the Boot BOM, 2026-09-07
+    implementation platform('org.jmolecules:jmolecules-bom:2025.0.2') // not in the Boot BOM, 2026-09-07
+    implementation 'org.jmolecules:jmolecules-hexagonal-architecture'
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation platform('io.cucumber:cucumber-bom:7.34.7') // not in the Boot BOM, 2026-09-03
@@ -38,6 +42,11 @@ dependencies {
     testImplementation 'io.cucumber:cucumber-junit-platform-engine'
     testImplementation 'io.cucumber:cucumber-spring'
     testImplementation 'org.junit.platform:junit-platform-suite'
+    testImplementation 'org.testcontainers:testcontainers'
+    testImplementation 'org.awaitility:awaitility'
+    testImplementation 'io.confluent:kafka-schema-registry-client:8.3.1' // Confluent's own, not in the Boot BOM, 2026-09-07
+    testImplementation 'org.jmolecules.integrations:jmolecules-archunit'
+    testImplementation 'com.tngtech.archunit:archunit-junit5:1.5.0' // not in the Boot BOM, 2026-09-07
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 

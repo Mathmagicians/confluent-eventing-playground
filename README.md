@@ -9,11 +9,14 @@ Reference implementation of a Kafka **load generator** and **stream consumer** r
 - Confluent Cloud - Kafka + Schema Registry
 - Cucumber BDD - for black box testing, JUnit Platform engine, version pinned in `build.gradle`
 - JUnit 5, AssertJ, Mockito - unit tests, versions from the Boot BOM
+- jMolecules + ArchUnit - hexagonal stereotypes on ports, adapters, and application services, and the rule that enforces them, versions pinned in `build.gradle`
 - Testcontainers - Kafka container for BDD, version from the Boot BOM
 - Docker + Compose - starts the swarm of load generators and the consumer
 - GitHub Actions - CICD + publish to GH registry, and hourly load runs
 - Terraform + Terraform Cloud - topics and schemas on Confluent Cloud, provider `confluentinc/confluent`
 - Container image - deployment unit, built with `./gradlew bootBuildImage`
+
+! [Confluent Cloud](~/docs/confluent.png)
 
 ## Purpose
 
@@ -64,6 +67,38 @@ payload.
 - A `Transaction` takes region and product for its key from the offer it settles, the customer id from itself.
 - Serialization: Protobuf via Confluent Schema Registry.
 
+### Hexagon
+
+The load generator is one hexagon. The domain sits in the centre, the use cases around it, and every technology, the
+command line, the log, Kafka, Spring, in an adapter at the rim. Dependencies point inward: an adapter knows its port,
+a use case knows the domain and its ports, the domain knows nothing outside itself.
+
+```
+ driving side                                                                          driven side
+
+ command line --> LoadRunner --> GenerateLoad --> PublishMessage --> Publisher --> LoggingPublisher --> the log
+                                 use cases, the driving ports        driven port   KafkaPublisher   --> Confluent Cloud
+                                               |
+                                             domain
+                             Payload records, Envelope, Receipt, Wonderland
+```
+
+| Ring             | What lives there                                                                                              | Package               | Stereotype          |
+|------------------|---------------------------------------------------------------------------------------------------------------|-----------------------|---------------------|
+| Domain           | `Payload` and its records, `Envelope`, `Receipt`, `Wonderland`: the data, the key rules, the random recipes.  | `domain`              | none                |
+| Use cases        | The driving ports, named in the features' words: `PublishMessage`, `GenerateLoad`. Records, plain Java and SLF4J. | `application`     | `@PrimaryPort`      |
+| Driven ports     | What the use cases need from the outside: `Publisher`. Interfaces.                                            | `application`         | `@SecondaryPort`    |
+| Driving adapters | What calls a use case: `LoadRunner`, the command line bound to `LoadProperties`.                              | `adapter/cli`         | `@PrimaryAdapter`   |
+| Driven adapters  | What implements a driven port: `LoggingPublisher` for `local`, `KafkaPublisher` with `Topics` and `Converter` for `test` and `prod`. | `adapter/log`, `adapter/kafka` | `@SecondaryAdapter` |
+| Composition root | `UseCases`, a `@Configuration` that builds each use case from its ports, the clock, and the random source.    | root                  | none                |
+
+A use case takes what the generator has, a payload, and the driven port takes what the wire carries, an envelope:
+`PublishMessage` makes the one from the other, and `GenerateLoad` publishes through it. Use cases are records Spring
+never sees: `UseCases` wires them by hand from their ports, the clock, and the random source. The stereotypes are
+jMolecules annotations, and `ArchitectureTest` runs `ensureHexagonal()` over them: a use case reaches driven ports,
+other use cases, and the domain only, a driving adapter reaches use cases only, a driven adapter reaches driven ports
+only, and nothing inside reaches an adapter.
+
 ### Data flow
 
 ```
@@ -71,7 +106,7 @@ payload.
           |                                   |
           v                                   v
    load-generator (EMEA)   ...   load-generator (region N)
-          |   key per topic, value = Envelope
+          |   key per topic, headers = envelope, value = payload
           v
    Confluent Cloud   topics: products, offers, orders, transactions, prefixed test. or prod.   (N partitions, fixed)
           |
@@ -79,15 +114,6 @@ payload.
    stream-consumer   per-partition ordering checks, metrics
 ```
 
-### Environments
-
-| Profile | Publishes to    | Runs from                                                      |
-|---------|-----------------|----------------------------------------------------------------|
-| `local` | the log         | Developer machine, no credentials                              |
-| `test`  | `test.<topic>`  | Developer machine, the `cd` job on every pull request          |
-| `prod`  | `prod.<topic>`  | `load-run.yaml` hourly cron, developer machine with `ENV=prod` |
-
-`test` and `prod` run against Confluent Cloud.
 
 ## Repository layout
 
@@ -106,9 +132,10 @@ payload.
 └── stream-consumer/          consumer service
 ```
 
-Root package: `dk.mathmagicians.playground.confluent`. Packages by layer inside a service: `domain` in the centre,
-`dto`, `cli`, and the Kafka adapter at the edge. The domain is one package, so a sealed type and its records stay
-package-private neighbours.
+Root package: `dk.mathmagicians.playground.confluent`. Packages by ring inside a service: `domain` in the centre,
+`application` around it, and `adapter` at the edge with one package per technology, `cli`, `log`, `kafka`, see
+Hexagon under Architecture. The domain is one package, so a sealed type and its records stay package-private
+neighbours.
 
 Tests live next to what they test:
 
@@ -128,25 +155,30 @@ CI gate.
 
 ### Configuration
 
-All environment-specific values come from environment variables, bound through `${...}` placeholders in the profile
-properties files. Names are `UPPER_SNAKE`, prefixed by concern.
+#### Environments
 
-| Variable                                                  | Used by          | Meaning                                                                  |
-|-----------------------------------------------------------|------------------|--------------------------------------------------------------------------|
-| `KAFKA_BOOTSTRAP_SERVERS`                                 | both services    | Confluent Cloud bootstrap endpoint                                       |
-| `KAFKA_API_KEY` / `KAFKA_API_SECRET`                      | both services    | SASL/PLAIN credentials                                                   |
-| `SCHEMA_REGISTRY_URL`                                     | both services    | Schema Registry endpoint                                                 |
-| `SCHEMA_REGISTRY_API_KEY` / `SCHEMA_REGISTRY_API_SECRET`  | both services    | Schema Registry basic auth                                               |
-| `PRODUCT_CONCURRENT`, `OFFER_CONCURRENT`, `ORDER_CONCURRENT` | compose       | Producers per generator, default 10                                      |
-| `PRODUCT_INTERVAL`, `OFFER_INTERVAL`, `ORDER_INTERVAL`    | compose          | Milliseconds a producer sleeps between events, default 250               |
-| `REGION`                                                  | compose          | Region stamped on every event, default EMEA                                     |
-| `TTL`                                                     | compose          | Seconds a generator runs, default 60, max 300                            |
+| Profile | Publishes to    | Runs from                                                      |
+|---------|-----------------|----------------------------------------------------------------|
+| `local` | the log         | Developer machine, no credentials                              |
+| `test`  | `test.<topic>`  | Developer machine, the `cd` job on every pull request          |
+| `prod`  | `prod.<topic>`  | `load-run.yaml` hourly cron, developer machine with `ENV=prod` |
+
+`test` and `prod` run against Confluent Cloud.
+
+#### Variables and secrets
+All environment-specific values come from environment variables, bound through `${...}` placeholders in the profile
+properties files. 
+Secrets are:
+- Sourced from .env.<NAME>.private, where '<NAME>' is either test or prod
+- Stored in GitHub environments `confluent-test` and `confluent-prod`
+- Configured in Terraform Cloud workspace variables
+See the file .env.private.sample for names and usage.
 
 Secrets live in two GitHub environments, `confluent-test` and `confluent-prod`, the same Confluent cluster and API
 keys, one topic prefix each. Locally the same variables live in `.env.test.private` and `.env.prod.private`,
-git-ignored. `make` sources the file for `ENV`, default `test`, into the command it runs and nothing else, so your
-shell never carries them. Properties files, Gherkin, and test fixtures refer to them by variable name.
+git-ignored. `make` sources the file for `ENV`, default `test`, into the command it runs.
 
+# IaC
 Terraform Cloud creates the topics and schemas from `iac/`, applied on every push to `main`. Its workspace holds
 the cluster, the Schema Registry, and their API keys as Terraform variables, declared in `iac/variables.tf`. The
 GitHub environment `terraform-cloud` holds `TF_API_TOKEN`, `TF_CLOUD_ORGANIZATION`, and `TF_WORKSPACE` for the plan
@@ -154,16 +186,16 @@ GitHub environment `terraform-cloud` holds `TF_API_TOKEN`, `TF_CLOUD_ORGANIZATIO
 and workspace names in `.env.test.private`.
 
 ## Play
-
-The swarm, one generator per payload type with defaults from `compose.yaml`, is the Swarm section of `make help`.
-
-The image on its own, defaults from `application.properties`:
+Application is containerized. 
+Start the message generators using compose,  see `compose.yaml`, and check out usage with  `make help`.
+You can start the container image on its own:
 
 ```bash
 docker run --rm confluent-eventing-playground:$(make version)
 docker run --rm confluent-eventing-playground:$(make version) --load.type=order --load.concurrent=20 --load.interval=100 --load.region=APAC --load.ttl=120
 docker run --rm ghcr.io/mathmagicians/confluent-eventing-playground:latest --load.type=product
 ```
+You can customize the load generator with the following arguments:
 
 | Argument            | Values                    | Default |
 |---------------------|---------------------------|---------|
@@ -185,7 +217,9 @@ A review finding cites the rule it breaks.
 2. **SOLID.** One responsibility per class, narrow interfaces, dependencies injected through the constructor.
 3. **Functional style.** Immutable data, pure functions, side effects at the edges: Kafka, clock, logging.
 4. **Behaviour first.** A change starts with the Gherkin scenario or unit test that describes it.
-5. **Hexagonal architecture.** Domain in the centre, Kafka and Spring in adapters at the edges.
+5. **Hexagonal architecture.** Domain in the centre, use cases around it, Kafka and Spring in adapters at the edges,
+   see Hexagon under Architecture. The architecture is a test: `ArchitectureTest` fails the build when the core
+   reaches an adapter or an adapter bypasses its port.
 
 ### Java 25
 
@@ -232,11 +266,13 @@ A review finding cites the rule it breaks.
   `<topic>.DLT`, Spring's default name and partition, through `DeadLetterPublishingRecoverer`.
 - One serialization class per direction owns `byte[]` and serializer configuration. Business code works with
   `Envelope`.
-- Every message on the wire is an `Envelope`, the payload packed as `google.protobuf.Any`. The envelope schema stays
-  the same when a payload type is added.
+- Every message carries its envelope as record headers, `ce_id`, `ce_region`, `ce_source`, `ce_time`, and its
+  payload as the value, so a topic's value schema is its payload type and stream processing reads the topic
+  directly. The `Envelope` message in `envelope.proto` documents the thin-envelope alternative and stays off the
+  wire.
 - Schema evolution: `BACKWARD` compatibility, `TopicNameStrategy`, schemas checked in under
-  `common/src/main/proto`. `iac/` registers the proto file under every service topic's `<topic>-value` subject, so
-  a producer runs with `auto.register.schemas=false` and `use.latest.version=true`.
+  `common/src/main/proto`, one file per payload, registered by `iac/` under its topic's `<topic>-value` subject,
+  imports as schema references. A producer runs with `auto.register.schemas=false` and `use.latest.version=true`.
 - Confluent Cloud clients use `SASL_SSL` with `PLAIN`. Every other setting stays at the Confluent-recommended default
   until a measurement justifies a change.
 
@@ -268,6 +304,8 @@ BDD with Cucumber:
   keyword.
 - `Scenario Outline` for variations of one behaviour. Separate scenarios for separate behaviours.
 - Step definitions are glue: one line delegating to a test driver class. Assertions live in the driver.
+- Test code follows the rules of its framework: `public` step classes for Cucumber, drivers as beans of the suite's
+  context.
 - Steps are shared across features. Search for an existing step before writing one.
 - Tags: `@wip` (runs locally), `@slow`, `@cloud` (runs where credentials are present).
 - Features run through the JUnit Platform Suite engine as part of `make check`. A red feature blocks the build.
@@ -315,9 +353,13 @@ BDD with Cucumber:
 - `cicd.yaml`, job `tag`, follows `cd` on `main`: `make git-release` puts a git tag `v<version>` on the tested
   commit and the same version on the candidate image in the registry. `make git-tag` is the git part alone. The
   version is Gradle's next, or the `workflow_dispatch` input, e.g. `0.1.0`.
+- A minor or major version is a `workflow_dispatch` of `cicd.yaml` on `main` with the version. The merge before
+  it would tag the next patch by itself, so pause the workflow around the merge: `gh workflow disable cicd.yaml`,
+  merge, `gh workflow enable cicd.yaml`, then `gh workflow run cicd.yaml --ref main -f version=<version>`.
 - `load-run.yaml` runs hourly (`0 * * * *`) and on `workflow_dispatch` with one input, the load arguments. It
-  deploys to prod: the `latest` image, `make docker-smoke` when the arguments are empty and `make docker-run`
-  otherwise, with the credentials of the `confluent-prod` environment. No `latest` image, no run.
+  generates load in production: the `latest` image with the `prod` profile, `make docker-smoke` when the arguments
+  are empty and `make docker-run` otherwise, with the credentials of the `confluent-prod` environment. No `latest`
+  image, no run.
 - `iac.yaml` runs on the same events as `cicd.yaml`: `make tf-check`, then `make tf-plan`, the speculative plan
   written to the job summary, with the credentials of the `terraform-cloud` environment. Terraform Cloud applies
   `iac/` on `main` through its GitHub connection.
@@ -327,7 +369,7 @@ BDD with Cucumber:
 ## Definition of done
 
 - Unit tests cover the new class or the changed branch.
-- `make check` passes locally.
+- `make check`, `make bdd` passes locally. You can start with `make run-tiny` .
 - Every new dependency is noted in the PR.
 - README updated if a standard, variable, or architectural decision changed.
 - Review findings above Nit are resolved or explicitly deferred with a reason.
@@ -343,13 +385,14 @@ BDD with Cucumber:
 - [x] Topics, dead-letter topics, and schemas created by Terraform Cloud from `iac/`
 - [x] workers can publish against test.* kafka topics
 - [x] Prod docker swarm works against prod.* kafka topics
-- [ ] Cucumber wired into the build (JUnit Platform Suite, Testcontainers for workers, Confluent test.* topics)
-- [ ] BDD feature: I can publish messages
+- [x] Cucumber wired into the build (JUnit Platform Suite, Testcontainers for workers, Confluent test.* topics)
+- [x] BDD feature: I can publish messages
 - [ ] BDD feature: same key ends up in the same partition
 - [x] Partition key strategy defined per payload type
 - [x] Publish Ks of messages to Confluent Cloud
 - [ ] Stream consumer service
 - [x] Protobuf via Schema Registry
-- [ ] Split into modules, convert to hexagonal
+- [ ] Split into modules, 
+- [x] convert to hexagonal
 - [x] GitHub Actions `cicd.yaml`
 - [x] GitHub Actions `load-run.yaml`, hourly cron

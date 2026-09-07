@@ -22,7 +22,7 @@ TAG ?= latest
 # the minimum load, one producer and about one event; everything else is the image's own defaults
 MINIMUM := --load.concurrent=1 --load.interval=1000 --load.ttl=2
 # what the image reads, passed through to bdd, docker-run and docker-smoke
-CREDENTIALS := KAFKA_BOOTSTRAP_SERVERS KAFKA_API_KEY KAFKA_API_SECRET
+CREDENTIALS := KAFKA_BOOTSTRAP_SERVERS KAFKA_API_KEY KAFKA_API_SECRET SCHEMA_REGISTRY_REST_ENDPOINT SCHEMA_REGISTRY_API_KEY SCHEMA_REGISTRY_API_SECRET
 # locally they live in .env.<ENV>.private, sourced into the command's shell only, CI has them in the environment
 ENV ?= test
 ENV_FILE := .env.$(ENV).private
@@ -81,8 +81,8 @@ docker-publish: docker-image   ## push the image to the registry under each tag 
 docker-image-exists:   ## exit 0 when the registry has a latest image
 	@docker manifest inspect $(REPO):latest > /dev/null
 
-docker-run:   ## one generator from the registry image TAG; image defaults, or ARGS="--load.type=order --load.ttl=60"; credentials from .env.<ENV>.private
-	@$(WITH_ENV) docker run --rm --pull always $(addprefix -e ,$(CREDENTIALS)) $(REPO):$(TAG) $(ARGS)
+docker-run:   ## one generator from the registry image TAG with profile ENV, default test; image defaults, or ARGS="--load.type=order --load.ttl=60"; credentials from .env.<ENV>.private
+	@$(WITH_ENV) docker run --rm --pull always -e SPRING_PROFILES_ACTIVE=$(ENV) $(addprefix -e ,$(CREDENTIALS)) $(REPO):$(TAG) $(ARGS)
 
 docker-smoke:   ## the minimum load from the registry image TAG, one producer and about one event
 	@$(MAKE) docker-run ARGS="$(MINIMUM)"

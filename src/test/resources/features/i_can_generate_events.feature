@@ -8,11 +8,12 @@ Feature: I can publish messages
     Given I am a generator in region <Region>
     When I publish one <Payload> in an envelope
     Then I receive the envelope id, and the partition and offset the message landed on
-    And the message at that offset in <Topic> is my envelope
-    And the message is serialized with the schema registered for <Topic>
+    And the message at that offset in the topic <Topic> is my envelope
+    And the message is serialized with the protobuf schema registered for the topic <Topic>
     And the envelope names region <Region>
 
     Examples:
-      | Region | Payload | Topic  |
-      | EMEA   | Order   | orders |
-      | APAC   | Offer   | offers |
+      | Region | Payload | Topic    |
+      | EMEA   | Order   | orders   |
+      | APAC   | Offer   | offers   |
+      | AMER   | Product | products |
