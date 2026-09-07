@@ -66,7 +66,7 @@ in order, and the key picks the partition, so records with the same key stay in 
     <td align="center"><img src="docs/generated/architecture/svg/hexagon.svg" width="100%" alt="The hexagon, generated from the code"></td>
   </tr>
   <tr>
-    <td align="center">Nobody drew this: the hexagon from the annotations in the code, <code>make arch-gen</code>, guarded by <code>make check</code> ... read how in <a href="architecture-discovery/architecture-discoverability.md">architecture-discoverability.md</a>. The picture is Alistair Cockburn's, <a href="https://alistair.cockburn.us/hexagonal-architecture/">Hexagonal Architecture</a>, 2005.</td>
+    <td align="center">Nobody drew this: the hexagon from the annotations in the code, <code>make arch-gen</code>, guarded by <code>make check</code> ... read how in <a href="architecture-discovery/architecture-discoverability.md">architecture-discoverability.md</a>. The picture is owing to Alistair Cockburn's classic, <a href="https://alistair.cockburn.us/hexagonal-architecture/">Hexagonal Architecture</a>, 2005.</td>
   </tr>
 </table>
 
@@ -121,11 +121,6 @@ never sees: `UseCases` wires them by hand from their ports, the clock, and the r
 jMolecules annotations, and `ArchitectureTest` runs `ensureHexagonal()` over them: a use case reaches driven ports,
 other use cases, and the domain only, a driving adapter reaches use cases only, a driven adapter reaches driven ports
 only, and nothing inside reaches an adapter.
-
-![The modules and their dependencies](docs/generated/architecture/svg/components.svg)
-
-Generated from the source: the annotations become the diagram with `make arch-gen`, and `make check` fails when
-the picture and the code disagree. How, and with what, is in `docs/architecture-discoverability.md`.
 
 ### Data flow
 
@@ -420,11 +415,11 @@ BDD with Cucumber:
 - [x] Publish Ks of messages to Confluent Cloud
 - [ ] Stream consumer service
 - [x] Protobuf via Schema Registry
-- [ ] Split into modules
+- [x] Split into modules
 - [x] Convert to hexagonal
 - [x] GitHub Actions `cicd.yaml`
 - [x] GitHub Actions `load-run.yaml`, hourly cron
-- [ ] Auto discover architecture, generate diagrams and module canvases
+- [x] Auto discover architecture, verify architecture rules, generate diagrams, and check for drift
 
 ## License
 

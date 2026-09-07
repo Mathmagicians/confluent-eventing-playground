@@ -7,7 +7,7 @@ The architecture layers are annotated in the code, and that information is used 
 
 ![The hexagon, generated from the code](../docs/generated/architecture/svg/hexagon.svg)
 
-The picture follows Alistair Cockburn's [Hexagonal Architecture](https://alistair.cockburn.us/hexagonal-architecture/),
+The picture is owing to Alistair Cockburn's classic, [Hexagonal Architecture](https://alistair.cockburn.us/hexagonal-architecture/),
 2005: the application in the middle, driving adapters on one side, driven adapters on the other, ports on the
 hexagon's edges.
 
