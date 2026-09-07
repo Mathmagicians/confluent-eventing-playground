@@ -21,7 +21,7 @@ jobs:
       TF_WORKSPACE: ${{ secrets.TF_WORKSPACE }}
     steps:
       - uses: actions/checkout@v7
-      - uses: hashicorp/setup-terraform@v3
+      - uses: hashicorp/setup-terraform@v4
         with:
           terraform_wrapper: false   # plain stdout
       - name: formatting and validation of iac/

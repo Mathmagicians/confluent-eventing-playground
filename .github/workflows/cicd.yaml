@@ -102,7 +102,7 @@ jobs:
           { printf '```\n'; cat build/reports/cucumber/pretty.txt; printf '```\n'; } >> "$GITHUB_STEP_SUMMARY"
       - name: the Cucumber report as an artifact
         if: ${{ !cancelled() && steps.bdd.outcome != 'skipped' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: cucumber-report
           path: build/reports/cucumber
