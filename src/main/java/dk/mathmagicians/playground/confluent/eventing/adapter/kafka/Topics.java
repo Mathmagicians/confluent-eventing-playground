@@ -1,4 +1,4 @@
-package dk.mathmagicians.playground.confluent.eventing.kafka;
+package dk.mathmagicians.playground.confluent.eventing.adapter.kafka;
 
 import dk.mathmagicians.playground.confluent.eventing.domain.Offer;
 import dk.mathmagicians.playground.confluent.eventing.domain.Order;

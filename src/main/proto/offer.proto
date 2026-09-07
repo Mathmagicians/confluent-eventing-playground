@@ -1,0 +1,15 @@
+syntax = "proto3";
+package dk.mathmagicians.playground.eventing;
+
+option java_package = "dk.mathmagicians.playground.eventing";
+option java_outer_classname = "OfferDTO";
+
+import "google/protobuf/timestamp.proto";
+
+message Offer {
+    string offer_id = 1;
+    string product_id = 2;
+    double price = 3;
+    string seller_id = 4;
+    google.protobuf.Timestamp created_at = 5;
+}

@@ -1,0 +1,20 @@
+syntax = "proto3";
+package dk.mathmagicians.playground.eventing;
+
+option java_package = "dk.mathmagicians.playground.eventing";
+option java_outer_classname = "EnvelopeDTO";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/any.proto";
+
+// The thin envelope pattern, kept for discussion and registered nowhere. On the wire the envelope's fields travel as
+// record headers, id, region, source, and time as strings, and the record value is the payload message itself, so
+// each topic's schema is its payload type and stream processing reads the topic directly. An Envelope value with an
+// Any payload keeps one schema for every topic and hides the payload from stream processing.
+message Envelope {
+    string id = 1;
+    string region = 2;
+    string appid = 3;
+    google.protobuf.Timestamp timestamp = 4;
+    google.protobuf.Any payload = 5;
+}

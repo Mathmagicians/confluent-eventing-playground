@@ -1,4 +1,4 @@
-package dk.mathmagicians.playground.confluent.eventing.load;
+package dk.mathmagicians.playground.confluent.eventing.adapter.cli;
 
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;

@@ -1,4 +1,4 @@
-package dk.mathmagicians.playground.confluent.eventing.kafka;
+package dk.mathmagicians.playground.confluent.eventing.adapter.kafka;
 
 import java.util.concurrent.CompletableFuture;
 import org.apache.kafka.clients.producer.RecordMetadata;

@@ -1,9 +1,9 @@
-package dk.mathmagicians.playground.confluent.eventing.kafka;
+package dk.mathmagicians.playground.confluent.eventing.adapter.kafka;
 
+import static dk.mathmagicians.playground.confluent.eventing.adapter.kafka.KafkaFixtures.landed;
+import static dk.mathmagicians.playground.confluent.eventing.adapter.kafka.KafkaFixtures.topics;
 import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures.envelope;
 import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures.offer;
-import static dk.mathmagicians.playground.confluent.eventing.kafka.KafkaFixtures.landed;
-import static dk.mathmagicians.playground.confluent.eventing.kafka.KafkaFixtures.topics;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -11,7 +11,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import dk.mathmagicians.playground.confluent.eventing.domain.Receipt;
-import dk.mathmagicians.playground.confluent.eventing.dto.Converter;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;

@@ -1,9 +1,10 @@
-package dk.mathmagicians.playground.confluent.eventing.dto;
+package dk.mathmagicians.playground.confluent.eventing.adapter.kafka;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.protobuf.Any;
-import dk.mathmagicians.playground.eventing.Schemas;
+import dk.mathmagicians.playground.eventing.EnvelopeDTO;
+import dk.mathmagicians.playground.eventing.OfferDTO;
 import java.nio.charset.StandardCharsets;
 import java.util.HexFormat;
 import org.junit.jupiter.api.Test;
@@ -12,7 +13,7 @@ import org.junit.jupiter.api.Test;
 /// followed by the value. Wire type 2 is length-delimited (strings, nested messages), wire type 1 is 64-bit.
 class OfferWireFormatTest {
 
-    private static final Schemas.Offer OFFER = Schemas.Offer.newBuilder()
+    private static final OfferDTO.Offer OFFER = OfferDTO.Offer.newBuilder()
             .setOfferId("o1")
             .setProductId("p1")
             .setPrice(1.5)
@@ -49,14 +50,14 @@ class OfferWireFormatTest {
 
     @Test
     void parsesBackToAnEqualMessage() throws Exception {
-        var parsed = Schemas.Offer.parseFrom(OFFER.toByteArray());
+        var parsed = OfferDTO.Offer.parseFrom(OFFER.toByteArray());
 
         assertThat(parsed).isEqualTo(OFFER);
     }
 
     @Test
     void packedInAnEnvelopeCostsTheTypeUrl() {
-        var envelope = Schemas.Envelope.newBuilder().setPayload(Any.pack(OFFER)).build();
+        var envelope = EnvelopeDTO.Envelope.newBuilder().setPayload(Any.pack(OFFER)).build();
         var typeUrl = "type.googleapis.com/dk.mathmagicians.playground.eventing.Offer";
         var typeUrlHex = HexFormat.of().formatHex(typeUrl.getBytes(StandardCharsets.UTF_8));
 

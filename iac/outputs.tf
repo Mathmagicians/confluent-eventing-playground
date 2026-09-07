@@ -5,5 +5,8 @@ output "topics" {
 
 # the schema version per subject, as registered
 output "schemas" {
-  value = { for schema in confluent_schema.envelope : schema.subject_name => schema.version }
+  value = {
+    for schema in concat(values(confluent_schema.topic), values(confluent_schema.transaction)) :
+    schema.subject_name => schema.version
+  }
 }

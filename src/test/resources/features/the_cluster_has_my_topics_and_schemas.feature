@@ -6,15 +6,15 @@ Feature: The cluster has my topics and schemas
     Given I have the API keys to the cluster
 
   Scenario Outline: A topic exists with its schema
-    When I look up the topic <Topic>
-    Then it exists, and so does its dead-letter topic <Topic>.DLT
-    And the Protobuf schema schemas.proto is registered for <Topic>
-    And that schema describes the envelope and its <Payload>
+    Then the topic <Topic> exists
+    And the dead-letter topic for <Topic> exists
+    And the Protobuf schema <Schema> is registered for the topic <Topic>
+    And that schema describes the message <Payload>
     And the schema evolves with BACKWARD compatibility
 
     Examples:
-      | Topic        | Payload     |
-      | products     | Product     |
-      | offers       | Offer       |
-      | orders       | Order       |
-      | transactions | Transaction |
+      | Topic        | Payload     | Schema            |
+      | products     | Product     | product.proto     |
+      | offers       | Offer       | offer.proto       |
+      | orders       | Order       | order.proto       |
+      | transactions | Transaction | transaction.proto |

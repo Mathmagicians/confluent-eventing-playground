@@ -1,9 +1,8 @@
-package dk.mathmagicians.playground.confluent.eventing.kafka;
+package dk.mathmagicians.playground.confluent.eventing.adapter.kafka;
 
 import dk.mathmagicians.playground.confluent.eventing.application.Publisher;
 import dk.mathmagicians.playground.confluent.eventing.domain.Envelope;
 import dk.mathmagicians.playground.confluent.eventing.domain.Receipt;
-import dk.mathmagicians.playground.confluent.eventing.dto.Converter;
 import java.util.concurrent.CompletableFuture;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.jmolecules.architecture.hexagonal.SecondaryAdapter;

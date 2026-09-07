@@ -7,6 +7,7 @@ import jakarta.annotation.PreDestroy;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.common.KafkaFuture;
 import org.springframework.kafka.core.KafkaAdmin;
 
 /// Test driver for the Confluent test cluster: one admin client from the `kafka` profile, for the life of the
@@ -24,7 +25,12 @@ class Cluster {
 
     /// The API keys open the cluster: the cheapest authenticated call answers with the cluster id.
     void assertReachable() {
-        assertThat(id()).isNotBlank();
+        assertThat(await(client.describeCluster().clusterId())).isNotBlank();
+    }
+
+    /// The topic is on the cluster, by its full name: `test.orders`.
+    void assertTopicExists(String topic) {
+        assertThat(await(client.listTopics().names())).contains(topic);
     }
 
     @PreDestroy
@@ -32,9 +38,9 @@ class Cluster {
         client.close();
     }
 
-    private String id() {
+    private <T> T await(KafkaFuture<T> answer) {
         try {
-            return client.describeCluster().clusterId().get(TIMEOUT_SECONDS, SECONDS);
+            return answer.get(TIMEOUT_SECONDS, SECONDS);
         } catch (ExecutionException e) {
             throw new IllegalStateException("the cluster refused: " + e.getCause().getMessage(), e);
         } catch (TimeoutException e) {

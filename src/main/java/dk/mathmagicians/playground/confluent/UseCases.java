@@ -5,7 +5,7 @@ import dk.mathmagicians.playground.confluent.eventing.application.GenerateLoadSe
 import dk.mathmagicians.playground.confluent.eventing.application.PublishMessage;
 import dk.mathmagicians.playground.confluent.eventing.application.PublishMessageService;
 import dk.mathmagicians.playground.confluent.eventing.application.Publisher;
-import dk.mathmagicians.playground.confluent.eventing.load.LoadProperties;
+import dk.mathmagicians.playground.confluent.eventing.adapter.cli.LoadProperties;
 import java.time.Clock;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;

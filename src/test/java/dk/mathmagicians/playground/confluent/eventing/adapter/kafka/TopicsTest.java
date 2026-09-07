@@ -1,7 +1,7 @@
-package dk.mathmagicians.playground.confluent.eventing.kafka;
+package dk.mathmagicians.playground.confluent.eventing.adapter.kafka;
 
+import static dk.mathmagicians.playground.confluent.eventing.adapter.kafka.KafkaFixtures.topics;
 import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures.payloads;
-import static dk.mathmagicians.playground.confluent.eventing.kafka.KafkaFixtures.topics;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 

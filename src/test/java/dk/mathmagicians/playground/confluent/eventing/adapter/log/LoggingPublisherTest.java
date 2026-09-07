@@ -1,4 +1,4 @@
-package dk.mathmagicians.playground.confluent.eventing.cli;
+package dk.mathmagicians.playground.confluent.eventing.adapter.log;
 
 import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures.envelope;
 import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures.offer;

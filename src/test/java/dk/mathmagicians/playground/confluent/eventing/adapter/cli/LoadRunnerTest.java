@@ -1,4 +1,4 @@
-package dk.mathmagicians.playground.confluent.eventing.cli;
+package dk.mathmagicians.playground.confluent.eventing.adapter.cli;
 
 import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures.APP;
 import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures.publisher;
@@ -7,7 +7,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import dk.mathmagicians.playground.confluent.eventing.application.GenerateLoadService;
 import dk.mathmagicians.playground.confluent.eventing.domain.Envelope;
 import dk.mathmagicians.playground.confluent.eventing.domain.Offer;
-import dk.mathmagicians.playground.confluent.eventing.load.LoadProperties;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.concurrent.ConcurrentLinkedQueue;

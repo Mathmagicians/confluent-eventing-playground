@@ -1,0 +1,14 @@
+syntax = "proto3";
+package dk.mathmagicians.playground.eventing;
+
+option java_package = "dk.mathmagicians.playground.eventing";
+option java_outer_classname = "OrderDTO";
+
+import "google/protobuf/timestamp.proto";
+
+message Order {
+    string id = 1;
+    string customer_id = 2;
+    string product_id = 3;
+    google.protobuf.Timestamp created_at = 5;
+}

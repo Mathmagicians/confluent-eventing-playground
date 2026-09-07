@@ -65,6 +65,40 @@ payload.
 - A `Transaction` takes region and product for its key from the offer it settles, the customer id from itself.
 - Serialization: Protobuf via Confluent Schema Registry.
 
+### Hexagon
+
+The load generator is one hexagon. The domain sits in the centre, the use cases around it, and every technology, the
+command line, the log, Kafka, Spring, in an adapter at the rim. Dependencies point inward: an adapter knows its port,
+a use case knows the domain and its ports, the domain knows nothing outside itself.
+
+```
+ driving side                                                                          driven side
+
+ command line --> LoadRunner --> GenerateLoad   ] driving ports
+                                 PublishMessage ]
+                                       |
+                                 GenerateLoadService   ] application --> Publisher --> LoggingPublisher --> the log
+                                 PublishMessageService ]                 driven port  KafkaPublisher   --> Confluent Cloud
+                                       |
+                                     domain
+                     Payload records, Envelope, Receipt, Wonderland
+```
+
+| Ring             | What lives there                                                                                              | Package               | Stereotype          |
+|------------------|---------------------------------------------------------------------------------------------------------------|-----------------------|---------------------|
+| Domain           | `Payload` and its records, `Envelope`, `Receipt`, `Wonderland`: the data, the key rules, the random recipes.  | `domain`              | none                |
+| Driving ports    | The use cases, named in the features' words: `PublishMessage`, `GenerateLoad`. Interfaces.                    | `application`         | `@PrimaryPort`      |
+| Application      | One record behind each driving port: `PublishMessageService`, `GenerateLoadService`. Plain Java and SLF4J.    | `application`         | `@Application`      |
+| Driven ports     | What the use cases need from the outside: `Publisher`. Interfaces.                                            | `application`         | `@SecondaryPort`    |
+| Driving adapters | What calls a use case: `LoadRunner`, the command line bound to `LoadProperties`.                              | `adapter/cli`         | `@PrimaryAdapter`   |
+| Driven adapters  | What implements a driven port: `LoggingPublisher` for `local`, `KafkaPublisher` with `Topics` and `Converter` for `test` and `prod`. | `adapter/log`, `adapter/kafka` | `@SecondaryAdapter` |
+| Composition root | `UseCases`, a `@Configuration` that builds each use case from its ports, the clock, and the random source.    | root                  | none                |
+
+Callers code to the port: the runner and the BDD driver see `PublishMessage`, never the record behind it, and
+Spring sees neither, since `UseCases` wires the records by hand. The stereotypes are jMolecules annotations, and
+`ArchitectureTest` runs `ensureHexagonal()` over them: the application reaches ports and domain only, a driving
+adapter reaches driving ports only, a driven adapter reaches driven ports only, and nothing inside reaches an adapter.
+
 ### Data flow
 
 ```
@@ -107,9 +141,10 @@ payload.
 └── stream-consumer/          consumer service
 ```
 
-Root package: `dk.mathmagicians.playground.confluent`. Packages by layer inside a service: `domain` in the centre,
-`dto`, `cli`, and the Kafka adapter at the edge. The domain is one package, so a sealed type and its records stay
-package-private neighbours.
+Root package: `dk.mathmagicians.playground.confluent`. Packages by ring inside a service: `domain` in the centre,
+`application` around it, and `adapter` at the edge with one package per technology, `cli`, `log`, `kafka`, see
+Hexagon under Architecture. The domain is one package, so a sealed type and its records stay package-private
+neighbours.
 
 Tests live next to what they test:
 
@@ -186,10 +221,9 @@ A review finding cites the rule it breaks.
 2. **SOLID.** One responsibility per class, narrow interfaces, dependencies injected through the constructor.
 3. **Functional style.** Immutable data, pure functions, side effects at the edges: Kafka, clock, logging.
 4. **Behaviour first.** A change starts with the Gherkin scenario or unit test that describes it.
-5. **Hexagonal architecture.** Domain in the centre, use cases around it as driving ports with a record behind each,
-   Kafka and Spring in adapters at the edges. The architecture is a test: ports, adapters, and application services
-   carry jMolecules stereotypes, and `ArchitectureTest` fails the build when the core reaches an adapter or an
-   adapter bypasses its port.
+5. **Hexagonal architecture.** Domain in the centre, use cases around it, Kafka and Spring in adapters at the edges,
+   see Hexagon under Architecture. The architecture is a test: `ArchitectureTest` fails the build when the core
+   reaches an adapter or an adapter bypasses its port.
 
 ### Java 25
 
@@ -239,8 +273,8 @@ A review finding cites the rule it breaks.
 - Every message on the wire is an `Envelope`, the payload packed as `google.protobuf.Any`. The envelope schema stays
   the same when a payload type is added.
 - Schema evolution: `BACKWARD` compatibility, `TopicNameStrategy`, schemas checked in under
-  `common/src/main/proto`. `iac/` registers the proto file under every service topic's `<topic>-value` subject, so
-  a producer runs with `auto.register.schemas=false` and `use.latest.version=true`.
+  `common/src/main/proto`, one file per payload, registered by `iac/` under its topic's `<topic>-value` subject,
+  imports as schema references. A producer runs with `auto.register.schemas=false` and `use.latest.version=true`.
 - Confluent Cloud clients use `SASL_SSL` with `PLAIN`. Every other setting stays at the Confluent-recommended default
   until a measurement justifies a change.
 

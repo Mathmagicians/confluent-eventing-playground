@@ -1,4 +1,4 @@
-package dk.mathmagicians.playground.confluent.eventing.dto;
+package dk.mathmagicians.playground.confluent.eventing.adapter.kafka;
 
 import com.google.protobuf.Any;
 import com.google.protobuf.InvalidProtocolBufferException;
@@ -10,24 +10,28 @@ import dk.mathmagicians.playground.confluent.eventing.domain.Order;
 import dk.mathmagicians.playground.confluent.eventing.domain.Payload;
 import dk.mathmagicians.playground.confluent.eventing.domain.Product;
 import dk.mathmagicians.playground.confluent.eventing.domain.Transaction;
-import dk.mathmagicians.playground.eventing.Schemas;
+import dk.mathmagicians.playground.eventing.EnvelopeDTO;
+import dk.mathmagicians.playground.eventing.OfferDTO;
+import dk.mathmagicians.playground.eventing.OrderDTO;
+import dk.mathmagicians.playground.eventing.ProductDTO;
+import dk.mathmagicians.playground.eventing.TransactionDTO;
 import java.time.Instant;
 import java.util.List;
 
 /// The serialization boundary: each record to its generated message and back, one exhaustive switch per direction.
 /// `Instant` travels as `google.protobuf.Timestamp`, a nested record as a nested message, a list as a repeated field.
-/// An `Envelope` travels as `Schemas.Envelope`, its payload packed as `google.protobuf.Any`.
+/// An `Envelope` travels as `EnvelopeDTO.Envelope`, its payload packed as `google.protobuf.Any`.
 public final class Converter {
 
     /// The message types an envelope may carry, the lookup for unpacking `Any`.
     private static final List<Class<? extends Message>> PAYLOADS =
-            List.of(Schemas.Product.class, Schemas.Offer.class, Schemas.Order.class, Schemas.Transaction.class);
+            List.of(ProductDTO.Product.class, OfferDTO.Offer.class, OrderDTO.Order.class, TransactionDTO.Transaction.class);
 
     private Converter() {
     }
 
-    public static Schemas.Envelope to(Envelope envelope) {
-        return Schemas.Envelope.newBuilder()
+    public static EnvelopeDTO.Envelope to(Envelope envelope) {
+        return EnvelopeDTO.Envelope.newBuilder()
                 .setId(envelope.id())
                 .setRegion(envelope.region())
                 .setAppid(envelope.app())
@@ -36,7 +40,7 @@ public final class Converter {
                 .build();
     }
 
-    public static Envelope from(Schemas.Envelope envelope) {
+    public static Envelope from(EnvelopeDTO.Envelope envelope) {
         return new Envelope(
                 envelope.getId(),
                 envelope.getRegion(),
@@ -56,17 +60,17 @@ public final class Converter {
 
     public static Payload from(Message message) {
         return switch (message) {
-            case Schemas.Product product -> from(product);
-            case Schemas.Offer offer -> from(offer);
-            case Schemas.Order order -> from(order);
-            case Schemas.Transaction transaction -> from(transaction);
+            case ProductDTO.Product product -> from(product);
+            case OfferDTO.Offer offer -> from(offer);
+            case OrderDTO.Order order -> from(order);
+            case TransactionDTO.Transaction transaction -> from(transaction);
             default -> throw new IllegalArgumentException(
                     "no record for " + message.getDescriptorForType().getFullName());
         };
     }
 
-    public static Schemas.Product to(Product product) {
-        return Schemas.Product.newBuilder()
+    public static ProductDTO.Product to(Product product) {
+        return ProductDTO.Product.newBuilder()
                 .setProducerId(product.producerId())
                 .setProductId(product.productId())
                 .setProductName(product.productName())
@@ -75,7 +79,7 @@ public final class Converter {
                 .build();
     }
 
-    public static Product from(Schemas.Product product) {
+    public static Product from(ProductDTO.Product product) {
         return new Product(
                 product.getProducerId(),
                 product.getProductId(),
@@ -84,8 +88,8 @@ public final class Converter {
                 from(product.getCreatedAt()));
     }
 
-    public static Schemas.Offer to(Offer offer) {
-        return Schemas.Offer.newBuilder()
+    public static OfferDTO.Offer to(Offer offer) {
+        return OfferDTO.Offer.newBuilder()
                 .setOfferId(offer.offerId())
                 .setProductId(offer.productId())
                 .setPrice(offer.price())
@@ -94,7 +98,7 @@ public final class Converter {
                 .build();
     }
 
-    public static Offer from(Schemas.Offer offer) {
+    public static Offer from(OfferDTO.Offer offer) {
         return new Offer(
                 offer.getOfferId(),
                 offer.getProductId(),
@@ -103,8 +107,8 @@ public final class Converter {
                 from(offer.getCreatedAt()));
     }
 
-    public static Schemas.Order to(Order order) {
-        return Schemas.Order.newBuilder()
+    public static OrderDTO.Order to(Order order) {
+        return OrderDTO.Order.newBuilder()
                 .setId(order.id())
                 .setCustomerId(order.customerId())
                 .setProductId(order.productId())
@@ -112,12 +116,12 @@ public final class Converter {
                 .build();
     }
 
-    public static Order from(Schemas.Order order) {
+    public static Order from(OrderDTO.Order order) {
         return new Order(order.getId(), order.getCustomerId(), order.getProductId(), from(order.getCreatedAt()));
     }
 
-    public static Schemas.Transaction to(Transaction transaction) {
-        return Schemas.Transaction.newBuilder()
+    public static TransactionDTO.Transaction to(Transaction transaction) {
+        return TransactionDTO.Transaction.newBuilder()
                 .setTransactionId(transaction.transactionId())
                 .setOrderRef(to(transaction.orderRef()))
                 .setOfferRef(to(transaction.offerRef()))
@@ -128,7 +132,7 @@ public final class Converter {
                 .build();
     }
 
-    public static Transaction from(Schemas.Transaction transaction) {
+    public static Transaction from(TransactionDTO.Transaction transaction) {
         return new Transaction(
                 transaction.getTransactionId(),
                 from(transaction.getOrderRef()),

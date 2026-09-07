@@ -1,0 +1,20 @@
+syntax = "proto3";
+package dk.mathmagicians.playground.eventing;
+
+option java_package = "dk.mathmagicians.playground.eventing";
+option java_outer_classname = "TransactionDTO";
+
+import "google/protobuf/timestamp.proto";
+import "order.proto";
+import "offer.proto";
+
+// Settles an order against an offer. The registry holds order.proto and offer.proto as references of this schema.
+message Transaction {
+    string transaction_id = 1;
+    Order order_ref = 2;
+    Offer offer_ref = 3;
+    string customer_id = 4;
+    string seller_id = 5;
+    double price = 6;
+    google.protobuf.Timestamp created_at = 7;
+}

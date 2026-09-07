@@ -1,11 +1,10 @@
-package dk.mathmagicians.playground.confluent.eventing.cli;
+package dk.mathmagicians.playground.confluent.eventing.adapter.cli;
 
 import dk.mathmagicians.playground.confluent.eventing.application.GenerateLoad;
 import dk.mathmagicians.playground.confluent.eventing.domain.Offer;
 import dk.mathmagicians.playground.confluent.eventing.domain.Order;
 import dk.mathmagicians.playground.confluent.eventing.domain.Payload;
 import dk.mathmagicians.playground.confluent.eventing.domain.Product;
-import dk.mathmagicians.playground.confluent.eventing.load.LoadProperties;
 import org.jmolecules.architecture.hexagonal.PrimaryAdapter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
