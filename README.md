@@ -147,7 +147,8 @@ only, and nothing inside reaches an adapter.
 ├── compose.yaml              the swarm: load generators per region, the consumer
 ├── build.gradle / settings.gradle
 ├── iac/                      Terraform: topics and schemas on the Confluent cluster, applied by Terraform Cloud
-├── .github/workflows/        cicd.yaml, load-run.yaml, iac.yaml
+├── .github/workflows/        cicd.yaml, load-run.yaml, iac.yaml, architecture-discovery.yaml
+├── architecture-discovery/   the library behind the hexagon diagram: its own build, its own workflow, published to GitHub Packages
 ├── docs/                     architecture-discoverability.md; generated/architecture from the code, make arch-gen
 ├── common/                   Order domain, serialization, shared test fixtures
 │   ├── src/main/proto/       Protobuf schemas
@@ -386,6 +387,9 @@ BDD with Cucumber:
 - `iac.yaml` runs on the same events as `cicd.yaml`: `make tf-check`, then `make tf-plan`, the speculative plan
   written to the job summary, with the credentials of the `terraform-cloud` environment. Terraform Cloud applies
   `iac/` on `main` through its GitHub connection.
+- `architecture-discovery.yaml` runs on the same events as `cicd.yaml`, for changes under `architecture-discovery/`
+  only: `make discovery-build`, then `make discovery-publish`, the library's snapshot to GitHub Packages, where
+  `ci` and `cd` resolve it.
 - `main` is protected: changes arrive by pull request with a green `ci` and `cd`, no force pushes, linear history.
   `.github/branch-protection.json` is the setting, `make gh-main-protection` applies it.
 

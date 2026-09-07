@@ -16,32 +16,13 @@ permissions:
   packages: write
 
 jobs:
-  architecture-discovery:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-java@v6
-        with:
-          distribution: temurin
-          java-version: 25
-      - uses: gradle/actions/setup-gradle@v6
-        with:
-          add-job-summary: never
-      - name: the library, compile, tests, jar
-        run: make discovery-build
-      - name: publish the library snapshot to GitHub Packages, where the ci job takes it from
-        run: make discovery-publish
-        env:
-          GITHUB_ACTOR: ${{ github.actor }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
   ci:
-    needs: architecture-discovery
     runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.tags.outputs.tag }}
     env:
-      # the architecture-discovery library resolves from GitHub Packages, which needs a token even to read
+      # the architecture-discovery library resolves from GitHub Packages, published by its own workflow; the
+      # registry needs a token even to read
       GITHUB_ACTOR: ${{ github.actor }}
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
