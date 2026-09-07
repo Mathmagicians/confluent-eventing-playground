@@ -39,7 +39,7 @@ jobs:
       - name: no latest image, nothing to run
         if: steps.latest.outputs.present == 'false'
         run: echo "::notice::no latest image in the registry, skipping"
-      - name: deploy to prod, the latest image
+      - name: generate load in production, the latest image with the prod profile
         if: steps.latest.outputs.present == 'true'
         run: |
-          if [ -n "${{ inputs.args }}" ]; then make docker-run ARGS="${{ inputs.args }}"; else make docker-smoke; fi
+          if [ -n "${{ inputs.args }}" ]; then make docker-run ENV=prod ARGS="${{ inputs.args }}"; else make docker-smoke ENV=prod; fi

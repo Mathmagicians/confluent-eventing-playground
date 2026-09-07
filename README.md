@@ -357,8 +357,9 @@ BDD with Cucumber:
   it would tag the next patch by itself, so pause the workflow around the merge: `gh workflow disable cicd.yaml`,
   merge, `gh workflow enable cicd.yaml`, then `gh workflow run cicd.yaml --ref main -f version=<version>`.
 - `load-run.yaml` runs hourly (`0 * * * *`) and on `workflow_dispatch` with one input, the load arguments. It
-  deploys to prod: the `latest` image, `make docker-smoke` when the arguments are empty and `make docker-run`
-  otherwise, with the credentials of the `confluent-prod` environment. No `latest` image, no run.
+  generates load in production: the `latest` image with the `prod` profile, `make docker-smoke` when the arguments
+  are empty and `make docker-run` otherwise, with the credentials of the `confluent-prod` environment. No `latest`
+  image, no run.
 - `iac.yaml` runs on the same events as `cicd.yaml`: `make tf-check`, then `make tf-plan`, the speculative plan
   written to the job summary, with the credentials of the `terraform-cloud` environment. Terraform Cloud applies
   `iac/` on `main` through its GitHub connection.
