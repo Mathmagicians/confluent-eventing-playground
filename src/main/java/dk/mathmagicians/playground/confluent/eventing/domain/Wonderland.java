@@ -1,9 +1,12 @@
 package dk.mathmagicians.playground.confluent.eventing.domain;
 
+import org.jmolecules.ddd.annotation.Factory;
+
 import java.util.List;
 import java.util.random.RandomGenerator;
 
 /// Vocabulary for generated events, Alice likes games. Every draw is a function of the generator passed in.
+@Factory
 enum Wonderland {
 
     CHARACTERS("Alice",

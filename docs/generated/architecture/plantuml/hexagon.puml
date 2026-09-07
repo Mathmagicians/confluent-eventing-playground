@@ -1,0 +1,54 @@
+@startuml
+' the hexagon from the code: Spring Modulith modules placed by their jMolecules stereotypes
+skinparam shadowing false
+skinparam defaultTextAlignment left
+<style>
+hexagon { HorizontalAlignment center }
+rectangle { HorizontalAlignment center }
+</style>
+
+rectangle "DRIVING ADAPTERS" as driving {
+  hexagon "Cli" as m_Cli {
+    card "LoadRunner\n<size:10>«PrimaryAdapter»</size>" as m_Cli_LoadRunner
+  }
+}
+rectangle "APPLICATION" as core {
+  hexagon "Application" as m_Application {
+    card "GenerateLoad\n<size:10>«PrimaryPort»</size>" as m_Application_GenerateLoad
+    card "PublishMessage\n<size:10>«PrimaryPort»</size>" as m_Application_PublishMessage
+    card "Publisher\n<size:10>«SecondaryPort»</size>" as m_Application_Publisher
+    m_Application_GenerateLoad -[hidden]-> m_Application_PublishMessage
+    m_Application_PublishMessage -[hidden]-> m_Application_Publisher
+    hexagon "Domain" as m_Domain {
+      card "Wonderland\n<size:10>«Factory»</size>" as m_Domain_Wonderland
+      card "Envelope\n<size:10>«ValueObject»</size>" as m_Domain_Envelope
+      card "Offer\n<size:10>«ValueObject»</size>" as m_Domain_Offer
+      card "Order\n<size:10>«ValueObject»</size>" as m_Domain_Order
+      card "Payload\n<size:10>«ValueObject»</size>" as m_Domain_Payload
+      card "Product\n<size:10>«ValueObject»</size>" as m_Domain_Product
+      card "Receipt\n<size:10>«ValueObject»</size>" as m_Domain_Receipt
+      card "Transaction\n<size:10>«ValueObject»</size>" as m_Domain_Transaction
+      m_Domain_Wonderland -[hidden]-> m_Domain_Envelope
+      m_Domain_Envelope -[hidden]-> m_Domain_Offer
+      m_Domain_Offer -[hidden]-> m_Domain_Order
+      m_Domain_Order -[hidden]-> m_Domain_Payload
+      m_Domain_Payload -[hidden]-> m_Domain_Product
+      m_Domain_Product -[hidden]-> m_Domain_Receipt
+      m_Domain_Receipt -[hidden]-> m_Domain_Transaction
+    }
+  }
+}
+rectangle "DRIVEN ADAPTERS" as driven {
+  hexagon "Kafka" as m_Kafka {
+    card "KafkaPublisher\n<size:10>«SecondaryAdapter»</size>" as m_Kafka_KafkaPublisher
+  }
+  hexagon "Log" as m_Log {
+    card "LoggingPublisher\n<size:10>«SecondaryAdapter»</size>" as m_Log_LoggingPublisher
+  }
+    m_Kafka -[hidden]-> m_Log
+}
+
+m_Cli_LoadRunner -right-> m_Application_GenerateLoad : uses
+m_Kafka_KafkaPublisher .left.> m_Application_Publisher : implements
+m_Log_LoggingPublisher .left.> m_Application_Publisher : implements
+@enduml

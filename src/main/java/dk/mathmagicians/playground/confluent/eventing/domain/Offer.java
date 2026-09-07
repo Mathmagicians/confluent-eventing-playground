@@ -1,8 +1,10 @@
 package dk.mathmagicians.playground.confluent.eventing.domain;
 
+import org.jmolecules.ddd.annotation.ValueObject;
+
 import java.time.Instant;
 import java.util.random.RandomGenerator;
-
+@ValueObject
 public record Offer(String offerId, String productId, double price, String sellerId, Instant createdAt)
         implements Payload {
 

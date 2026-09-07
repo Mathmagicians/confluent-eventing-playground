@@ -26,6 +26,25 @@ java {
 repositories {
     mavenCentral()
     maven { url = 'https://packages.confluent.io/maven/' } // the Schema Registry client and the Protobuf serializer
+    // architecture-discovery: the developer loop installs it locally, make discovery-install; CI publishes it to
+    // GitHub Packages, which needs a token even to read, GITHUB_ACTOR and GITHUB_TOKEN from the environment
+    mavenLocal {
+        content { includeGroup 'dk.mathmagicians.playground' }
+    }
+    maven {
+        name = 'GitHubPackages'
+        url = 'https://maven.pkg.github.com/mathmagicians/confluent-eventing-playground'
+        credentials {
+            username = System.getenv('GITHUB_ACTOR')
+            password = System.getenv('GITHUB_TOKEN')
+        }
+        content { includeGroup 'dk.mathmagicians.playground' }
+    }
+}
+
+// the library is a snapshot while it lives here: always take the newest
+configurations.configureEach {
+    resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
 }
 
 dependencies {
@@ -35,6 +54,7 @@ dependencies {
     implementation 'io.confluent:kafka-protobuf-serializer:8.3.1' // Confluent's own, not in the Boot BOM, 2026-09-07
     implementation platform('org.jmolecules:jmolecules-bom:2025.0.2') // not in the Boot BOM, 2026-09-07
     implementation 'org.jmolecules:jmolecules-hexagonal-architecture'
+    implementation 'org.jmolecules:jmolecules-ddd' // @Module on the packages Spring Modulith documents
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation platform('io.cucumber:cucumber-bom:7.34.7') // not in the Boot BOM, 2026-09-03
@@ -47,14 +67,59 @@ dependencies {
     testImplementation 'io.confluent:kafka-schema-registry-client:8.3.1' // Confluent's own, not in the Boot BOM, 2026-09-07
     testImplementation 'org.jmolecules.integrations:jmolecules-archunit'
     testImplementation 'com.tngtech.archunit:archunit-junit5:1.5.0' // not in the Boot BOM, 2026-09-07
+    testImplementation platform('org.springframework.modulith:spring-modulith-bom:2.1.1') // not in the Boot BOM, 2026-09-08
+    testImplementation 'org.springframework.modulith:spring-modulith-starter-test'
+    testImplementation 'dk.mathmagicians.playground:architecture-discovery:0.1.0-SNAPSHOT' // ours, see architecture-discovery/
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 def cucumberRunner = '**/RunCucumberTest.class'
 
+// the writer of the architecture documents runs from arch-gen, not with the unit tests
+def architectureGenTag = 'architecture-gen'
+
 tasks.named('test') {
-    useJUnitPlatform()
+    useJUnitPlatform {
+        excludeTags architectureGenTag
+    }
     exclude cucumberRunner
+}
+
+// the architecture documents, one folder per step under docs/generated/architecture: the tagged test writes the
+// PlantUML sources and the canvases, PlantUML renders the diagrams to SVG with its built-in layout engine, so no
+// Graphviz is needed
+configurations {
+    plantuml
+}
+
+dependencies {
+    plantuml 'net.sourceforge.plantuml:plantuml-mit:1.2026.8' // not in the Boot BOM, 2026-09-08
+}
+
+tasks.register('generateArchitecture', Test) {
+    description = 'Verifies the application modules and writes their PlantUML diagrams and canvases.'
+    group = 'documentation'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform {
+        includeTags architectureGenTag
+    }
+    exclude cucumberRunner
+    outputs.upToDateWhen { false }
+}
+
+tasks.register('renderDiagrams', JavaExec) {
+    description = 'Renders the PlantUML diagrams written by generateArchitecture to SVG.'
+    group = 'documentation'
+    dependsOn tasks.named('generateArchitecture')
+    def sources = layout.projectDirectory.dir('docs/generated/architecture/plantuml')
+    def rendered = layout.projectDirectory.dir('docs/generated/architecture/svg')
+    inputs.files(fileTree(sources) { include '*.puml' })
+    outputs.dir(rendered)
+    classpath = configurations.plantuml
+    mainClass = 'net.sourceforge.plantuml.Run'
+    jvmArgs '-Djava.awt.headless=true'
+    args '-tsvg', '-Playout=smetana', '-o', rendered.asFile.path, "${sources.asFile}/*.puml"
 }
 
 tasks.register('bdd', Test) {

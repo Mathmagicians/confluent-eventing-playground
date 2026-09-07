@@ -5,7 +5,6 @@ import static dk.mathmagicians.playground.confluent.eventing.adapter.kafka.Kafka
 import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures.envelope;
 import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures.offer;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -15,6 +14,7 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -32,7 +32,8 @@ class KafkaPublisherTest {
     @Test
     void sendsThePayloadMessageToItsTopicUnderTheKeyWithTheEnvelopeAsHeaders() {
         var envelope = envelope(offer());
-        when(template.send(any(ProducerRecord.class))).thenReturn(landed("test.offers", 4, 2));
+        when(template.send(ArgumentMatchers.<ProducerRecord<String, Message>>any()))
+                .thenReturn(landed("test.offers", 4, 2));
         var publisher = new KafkaPublisher(template, topics());
 
         publisher.publish(envelope);
@@ -48,7 +49,8 @@ class KafkaPublisherTest {
     @Test
     void answersAReceiptWithThePartitionAndOffsetTheMessageLandedOn() {
         var envelope = envelope(offer());
-        when(template.send(any(ProducerRecord.class))).thenReturn(landed("test.offers", 4, 2));
+        when(template.send(ArgumentMatchers.<ProducerRecord<String, Message>>any()))
+                .thenReturn(landed("test.offers", 4, 2));
         var publisher = new KafkaPublisher(template, topics());
 
         var receipt = publisher.publish(envelope).join();

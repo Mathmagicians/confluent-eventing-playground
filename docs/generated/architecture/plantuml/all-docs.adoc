@@ -1,0 +1,23 @@
+== ConfluentLoadGeneratorApplication
+plantuml::components.puml[,,format=svg]
+
+== Domain
+plantuml::module-eventing.domain.puml[,,format=svg]
+include::module-eventing.domain.adoc[]
+
+== Application
+plantuml::module-eventing.application.puml[,,format=svg]
+include::module-eventing.application.adoc[]
+
+== Cli
+plantuml::module-eventing.adapter.cli.puml[,,format=svg]
+include::module-eventing.adapter.cli.adoc[]
+
+== Kafka
+plantuml::module-eventing.adapter.kafka.puml[,,format=svg]
+include::module-eventing.adapter.kafka.adoc[]
+
+== Log
+plantuml::module-eventing.adapter.log.puml[,,format=svg]
+include::module-eventing.adapter.log.adoc[]
+

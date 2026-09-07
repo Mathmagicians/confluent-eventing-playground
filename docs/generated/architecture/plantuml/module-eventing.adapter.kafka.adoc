@@ -1,0 +1,9 @@
+[%autowidth.stretch, cols="h,a"]
+|===
+|Base package
+|`dk.mathmagicians.playground.confluent.eventing.adapter.kafka`
+|Spring components
+|_Configuration properties_
+
+* `d.m.p.c.e.a.k.Topics`
+|===

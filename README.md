@@ -61,6 +61,15 @@ in order, and the key picks the partition, so records with the same key stay in 
 
 ## Architecture
 
+<table>
+  <tr>
+    <td align="center"><img src="docs/generated/architecture/svg/hexagon.svg" width="100%" alt="The hexagon, generated from the code"></td>
+  </tr>
+  <tr>
+    <td align="center">Nobody drew this: the hexagon from the annotations in the code, <code>make arch-gen</code>, guarded by <code>make check</code> ... read how in <a href="architecture-discovery/architecture-discoverability.md">architecture-discoverability.md</a>. The picture is Alistair Cockburn's, <a href="https://alistair.cockburn.us/hexagonal-architecture/">Hexagonal Architecture</a>, 2005.</td>
+  </tr>
+</table>
+
 ### Services
 
 | Service           | Role                                                                                                                                  | Runs where                              |
@@ -113,6 +122,11 @@ jMolecules annotations, and `ArchitectureTest` runs `ensureHexagonal()` over the
 other use cases, and the domain only, a driving adapter reaches use cases only, a driven adapter reaches driven ports
 only, and nothing inside reaches an adapter.
 
+![The modules and their dependencies](docs/generated/architecture/svg/components.svg)
+
+Generated from the source: the annotations become the diagram with `make arch-gen`, and `make check` fails when
+the picture and the code disagree. How, and with what, is in `docs/architecture-discoverability.md`.
+
 ### Data flow
 
 ```
@@ -139,6 +153,7 @@ only, and nothing inside reaches an adapter.
 ├── build.gradle / settings.gradle
 ├── iac/                      Terraform: topics and schemas on the Confluent cluster, applied by Terraform Cloud
 ├── .github/workflows/        cicd.yaml, load-run.yaml, iac.yaml
+├── docs/                     architecture-discoverability.md; generated/architecture from the code, make arch-gen
 ├── common/                   Order domain, serialization, shared test fixtures
 │   ├── src/main/proto/       Protobuf schemas
 │   └── src/generated/        protoc output, committed, regenerated with make proto-gen
@@ -357,7 +372,7 @@ BDD with Cucumber:
 - The version is Gradle's, derived from git tags: `1.2.3` at tag `v1.2.3`, `1.2.4-SNAPSHOT` after it,
   `0.0.1-SNAPSHOT` before the first tag. `make version` and `make next-version` print them.
 - `cicd.yaml`, job `ci`, runs on pull requests to `main`, on pushes to `main`, and on `workflow_dispatch`:
-  proto-check, build with unit tests, container image, then publishes the build to
+  generated-check, arch-verify, build with unit tests, container image, then publishes the build to
   `ghcr.io/mathmagicians/confluent-eventing-playground` as a candidate tagged `sha-<short sha>`. A pull request
   adds `pr-<number>`, a push to `main` adds `latest`. Only `main` moves `latest`.
 - `cicd.yaml`, job `cd`, follows `ci`: it deploys to test by running the integration tests, `make bdd-published`,
@@ -409,6 +424,7 @@ BDD with Cucumber:
 - [x] Convert to hexagonal
 - [x] GitHub Actions `cicd.yaml`
 - [x] GitHub Actions `load-run.yaml`, hourly cron
+- [ ] Auto discover architecture, generate diagrams and module canvases
 
 ## License
 
