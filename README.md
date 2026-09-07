@@ -405,3 +405,7 @@ BDD with Cucumber:
 - [x] Convert to hexagonal
 - [x] GitHub Actions `cicd.yaml`
 - [x] GitHub Actions `load-run.yaml`, hourly cron
+
+## License
+
+MIT, see `LICENSE`.
