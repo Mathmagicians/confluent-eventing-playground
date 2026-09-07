@@ -1,12 +1,11 @@
 package dk.mathmagicians.playground.confluent;
 
-import dk.mathmagicians.playground.confluent.eventing.application.GenerateLoad;
-import dk.mathmagicians.playground.confluent.eventing.application.GenerateLoadService;
-import dk.mathmagicians.playground.confluent.eventing.application.PublishMessage;
-import dk.mathmagicians.playground.confluent.eventing.application.PublishMessageService;
-import dk.mathmagicians.playground.confluent.eventing.application.Publisher;
 import dk.mathmagicians.playground.confluent.eventing.adapter.cli.LoadProperties;
+import dk.mathmagicians.playground.confluent.eventing.application.GenerateLoad;
+import dk.mathmagicians.playground.confluent.eventing.application.PublishMessage;
+import dk.mathmagicians.playground.confluent.eventing.application.Publisher;
 import java.time.Clock;
+import java.util.concurrent.ThreadLocalRandom;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -15,17 +14,23 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 class UseCases {
 
-    /// The publisher is the profile's adapter, the log or Kafka.
+    /// Time is an input to the use cases; the system clock is wired once, here at the edge.
     @Bean
-    PublishMessage publishMessage(Publisher publisher) {
-        return new PublishMessageService(publisher);
+    Clock clock() {
+        return Clock.systemUTC();
     }
 
-    /// A generator stamps the region from its command line and the name of this application; the clock is wired
-    /// here, at the edge.
+    /// A generator publishes for the region on its command line, named after `spring.application.name`, through
+    /// the profile's publisher, drawing ids from the calling thread's random source.
     @Bean
-    GenerateLoad generateLoad(LoadProperties load, PublishMessage publishMessage,
-                              @Value("${spring.application.name}") String app) {
-        return new GenerateLoadService(load.region(), app, publishMessage, Clock.systemUTC());
+    PublishMessage publishMessage(LoadProperties load, Publisher publisher, Clock clock,
+                                  @Value("${spring.application.name}") String app) {
+        return new PublishMessage(load.region(), app, publisher, clock, ThreadLocalRandom::current);
+    }
+
+    /// The load runs its producers through the publishing use case.
+    @Bean
+    GenerateLoad generateLoad(PublishMessage publishMessage, Clock clock) {
+        return new GenerateLoad(publishMessage, clock);
     }
 }

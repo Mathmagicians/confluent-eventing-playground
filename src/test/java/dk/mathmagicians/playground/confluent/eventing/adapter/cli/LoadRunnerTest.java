@@ -4,12 +4,14 @@ import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixture
 import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures.publisher;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import dk.mathmagicians.playground.confluent.eventing.application.GenerateLoadService;
+import dk.mathmagicians.playground.confluent.eventing.application.GenerateLoad;
+import dk.mathmagicians.playground.confluent.eventing.application.PublishMessage;
 import dk.mathmagicians.playground.confluent.eventing.domain.Envelope;
 import dk.mathmagicians.playground.confluent.eventing.domain.Offer;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ThreadLocalRandom;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.DefaultApplicationArguments;
 
@@ -22,9 +24,10 @@ class LoadRunnerTest {
     @Test
     void publishesThePayloadTypeOfTheRun() {
         var published = new ConcurrentLinkedQueue<Envelope>();
-        var generateLoad =
-                new GenerateLoadService(OFFERS.region(), APP, publisher(published)::publish, Clock.systemUTC());
-        var runner = new LoadRunner(OFFERS, generateLoad);
+        var clock = Clock.systemUTC();
+        var publishMessage =
+                new PublishMessage(OFFERS.region(), APP, publisher(published), clock, ThreadLocalRandom::current);
+        var runner = new LoadRunner(OFFERS, new GenerateLoad(publishMessage, clock));
 
         runner.run(new DefaultApplicationArguments());
 

@@ -13,25 +13,35 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ThreadLocalRandom;
 import org.junit.jupiter.api.Test;
 
-class GenerateLoadServiceTest {
+class GenerateLoadTest {
 
     private static final int INTERVAL = 10;
     private static final Duration TTL = Duration.ofMillis(100);
     /// Scheduling slack on top of the last interval, for a loaded CI runner.
     private static final Duration SLACK = Duration.ofMillis(300);
 
-    /// Envelopes as the threads publish them.
+    /// Envelopes as the producers publish them.
     private final ConcurrentLinkedQueue<Envelope> published = new ConcurrentLinkedQueue<>();
-    private final GenerateLoadService useCase =
-            new GenerateLoadService(REGION, APP, publisher(published)::publish, Clock.systemUTC());
+    private final GenerateLoad useCase = new GenerateLoad(
+            new PublishMessage(REGION, APP, publisher(published), Clock.systemUTC(), ThreadLocalRandom::current),
+            Clock.systemUTC());
 
     @Test
     void returnsTheCountThePublisherReceived() {
         var produced = useCase.run(Order::random, 2, INTERVAL, TTL);
 
         assertThat(produced).isEqualTo(published.size()).isPositive();
+    }
+
+    @Test
+    void publishesPayloadsFromTheRecipe() {
+        useCase.run(Order::random, 1, INTERVAL, TTL);
+
+        assertThat(published).isNotEmpty().allSatisfy(envelope ->
+                assertThat(envelope.payload()).isInstanceOf(Order.class));
     }
 
     @Test
@@ -54,19 +64,6 @@ class GenerateLoadServiceTest {
         useCase.run(onThisThread, 3, INTERVAL, TTL);
 
         assertThat(threads).hasSize(3);
-    }
-
-    @Test
-    void stampsEveryEnvelopeWithRegionAppAndTheInstant() {
-        var before = Instant.now();
-
-        useCase.run(Order::random, 1, INTERVAL, TTL);
-
-        assertThat(published).isNotEmpty().allSatisfy(envelope -> {
-            assertThat(envelope.region()).isEqualTo(REGION);
-            assertThat(envelope.app()).isEqualTo(APP);
-            assertThat(envelope.at()).isBetween(before, Instant.now());
-        });
     }
 
     @Test

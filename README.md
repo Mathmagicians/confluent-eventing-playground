@@ -74,30 +74,28 @@ a use case knows the domain and its ports, the domain knows nothing outside itse
 ```
  driving side                                                                          driven side
 
- command line --> LoadRunner --> GenerateLoad   ] driving ports
-                                 PublishMessage ]
-                                       |
-                                 GenerateLoadService   ] application --> Publisher --> LoggingPublisher --> the log
-                                 PublishMessageService ]                 driven port  KafkaPublisher   --> Confluent Cloud
-                                       |
-                                     domain
-                     Payload records, Envelope, Receipt, Wonderland
+ command line --> LoadRunner --> GenerateLoad --> PublishMessage --> Publisher --> LoggingPublisher --> the log
+                                 use cases, the driving ports        driven port   KafkaPublisher   --> Confluent Cloud
+                                               |
+                                             domain
+                             Payload records, Envelope, Receipt, Wonderland
 ```
 
 | Ring             | What lives there                                                                                              | Package               | Stereotype          |
 |------------------|---------------------------------------------------------------------------------------------------------------|-----------------------|---------------------|
 | Domain           | `Payload` and its records, `Envelope`, `Receipt`, `Wonderland`: the data, the key rules, the random recipes.  | `domain`              | none                |
-| Driving ports    | The use cases, named in the features' words: `PublishMessage`, `GenerateLoad`. Interfaces.                    | `application`         | `@PrimaryPort`      |
-| Application      | One record behind each driving port: `PublishMessageService`, `GenerateLoadService`. Plain Java and SLF4J.    | `application`         | `@Application`      |
+| Use cases        | The driving ports, named in the features' words: `PublishMessage`, `GenerateLoad`. Records, plain Java and SLF4J. | `application`     | `@PrimaryPort`      |
 | Driven ports     | What the use cases need from the outside: `Publisher`. Interfaces.                                            | `application`         | `@SecondaryPort`    |
 | Driving adapters | What calls a use case: `LoadRunner`, the command line bound to `LoadProperties`.                              | `adapter/cli`         | `@PrimaryAdapter`   |
 | Driven adapters  | What implements a driven port: `LoggingPublisher` for `local`, `KafkaPublisher` with `Topics` and `Converter` for `test` and `prod`. | `adapter/log`, `adapter/kafka` | `@SecondaryAdapter` |
 | Composition root | `UseCases`, a `@Configuration` that builds each use case from its ports, the clock, and the random source.    | root                  | none                |
 
-Callers code to the port: the runner and the BDD driver see `PublishMessage`, never the record behind it, and
-Spring sees neither, since `UseCases` wires the records by hand. The stereotypes are jMolecules annotations, and
-`ArchitectureTest` runs `ensureHexagonal()` over them: the application reaches ports and domain only, a driving
-adapter reaches driving ports only, a driven adapter reaches driven ports only, and nothing inside reaches an adapter.
+A use case takes what the generator has, a payload, and the driven port takes what the wire carries, an envelope:
+`PublishMessage` makes the one from the other, and `GenerateLoad` publishes through it. Use cases are records Spring
+never sees: `UseCases` wires them by hand from their ports, the clock, and the random source. The stereotypes are
+jMolecules annotations, and `ArchitectureTest` runs `ensureHexagonal()` over them: a use case reaches driven ports,
+other use cases, and the domain only, a driving adapter reaches use cases only, a driven adapter reaches driven ports
+only, and nothing inside reaches an adapter.
 
 ### Data flow
 

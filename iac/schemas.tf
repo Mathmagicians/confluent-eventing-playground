@@ -36,6 +36,8 @@ resource "confluent_schema" "transaction" {
   subject_name = "${each.key}.transactions-value"
   format       = "PROTOBUF"
   schema       = file("${local.proto}/transaction.proto")
+  # the referenced versions are unknown while the plan creates them in the same run; the registry validates on apply
+  skip_validation_during_plan = true
 
   dynamic "schema_reference" {
     for_each = ["orders", "offers"]
