@@ -19,11 +19,11 @@ Reference implementation of a Kafka **load generator** and **stream consumer** r
 
 <table>
   <tr>
-    <td align="center"><img src="docs/confluent.png" width="420" alt="Terraform Cloud run creating the topics and schemas"></td>
-    <td align="center"><img src="docs/tf.png" width="420" alt="Terraform Cloud workspace with its 25 resources"></td>
+    <td align="center"><img src="docs/confluent.png" width="420" alt="Confluent Cloud"></td>
+    <td align="center"><img src="docs/tf.png" width="420" alt="Terraform Cloud"></td>
   </tr>
   <tr>
-    <td align="center">Powered by Confluent Cloud</td>
+    <td align="center">Powered by Confluent Cloud ...</td>
     <td align="center">... and Terraform Cloud</td>
   </tr>
 </table>
