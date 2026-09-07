@@ -34,7 +34,7 @@ DISCOVERY := architecture-discovery/gradlew -p architecture-discovery
 WITH_GH := GITHUB_ACTOR=$${GITHUB_ACTOR:-$$(gh api user -q .login)} GITHUB_TOKEN=$${GITHUB_TOKEN:-$$(gh auth token)}
 
 .DEFAULT_GOAL := build
-.PHONY: help check generated-check build test run run-tiny clean version next-version proto-gen proto-check arch-verify arch-gen arch-check discovery-build discovery-install discovery-publish docker-image docker-repo docker-publish docker-image-exists docker-run docker-smoke bdd bdd-published bdd-snippets up up-product up-offer up-order down tf-init tf-check tf-plan git-tag git-release gh-main-protection
+.PHONY: help check generated-check build test run run-tiny clean version next-version proto-gen proto-check arch-verify arch-gen arch-check discovery-build discovery-install discovery-publish changed docker-image docker-repo docker-publish docker-image-exists docker-run docker-smoke bdd bdd-published bdd-snippets up up-product up-offer up-order down tf-init tf-check tf-plan git-tag git-release gh-main-protection
 
 # sections are the ##@ lines, targets are the ## comments; the tab before each description is expanded to one column
 help:      ## this list
@@ -165,6 +165,11 @@ discovery-publish: ## the library to GitHub Packages, where CI takes it from
 	@$(WITH_GH) $(DISCOVERY) publish
 
 ##@ Repository, git tags and GitHub settings
+changed:   ## true when a file under PATHS changed between commit BASE and HEAD, false when not; an empty or unknown BASE is true
+	@if [ -z "$(BASE)" ] || ! git cat-file -e "$(BASE)" 2>/dev/null; then echo true; \
+	elif git diff --quiet "$(BASE)" HEAD -- $(PATHS); then echo false; \
+	else echo true; fi
+
 git-tag:   ## git tag v<RELEASE> on HEAD and push it; RELEASE defaults to Gradle's next version
 	@git tag -a v$(RELEASE) -m "release $(RELEASE)" && git push origin v$(RELEASE)
 

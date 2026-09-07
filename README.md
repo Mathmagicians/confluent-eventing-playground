@@ -3,6 +3,7 @@
 [![cicd](https://github.com/Mathmagicians/confluent-eventing-playground/actions/workflows/cicd.yaml/badge.svg?branch=main)](https://github.com/Mathmagicians/confluent-eventing-playground/actions/workflows/cicd.yaml)
 [![iac](https://github.com/Mathmagicians/confluent-eventing-playground/actions/workflows/iac.yaml/badge.svg?branch=main)](https://github.com/Mathmagicians/confluent-eventing-playground/actions/workflows/iac.yaml)
 [![load-run](https://github.com/Mathmagicians/confluent-eventing-playground/actions/workflows/load-run.yaml/badge.svg)](https://github.com/Mathmagicians/confluent-eventing-playground/actions/workflows/load-run.yaml)
+[![architecture-discovery](https://github.com/Mathmagicians/confluent-eventing-playground/actions/workflows/architecture-discovery.yaml/badge.svg?branch=main)](https://github.com/Mathmagicians/confluent-eventing-playground/actions/workflows/architecture-discovery.yaml)
 
 Reference implementation of a Kafka **load generator** and **stream consumer** running against **Confluent Cloud**.
 
@@ -384,13 +385,15 @@ BDD with Cucumber:
   generates load in production: the `latest` image with the `prod` profile, `make docker-smoke` when the arguments
   are empty and `make docker-run` otherwise, with the credentials of the `confluent-prod` environment. No `latest`
   image, no run.
-- `iac.yaml` runs on the same events as `cicd.yaml`: `make tf-check`, then `make tf-plan`, the speculative plan
+- `iac.yaml` runs on the same events as `cicd.yaml` and does its work when `iac/` changed, so it can be a required
+  check while a run with nothing to do is green in seconds: `make tf-check`, then `make tf-plan`, the speculative plan
   written to the job summary, with the credentials of the `terraform-cloud` environment. Terraform Cloud applies
   `iac/` on `main` through its GitHub connection.
-- `architecture-discovery.yaml` runs on the same events as `cicd.yaml`, for changes under `architecture-discovery/`
-  only: `make discovery-build`, then `make discovery-publish`, the library's snapshot to GitHub Packages, where
-  `ci` and `cd` resolve it.
-- `main` is protected: changes arrive by pull request with a green `ci` and `cd`, no force pushes, linear history.
+- `architecture-discovery.yaml` runs on the same events as `cicd.yaml` and does its work when
+  `architecture-discovery/` changed, the same way: `make discovery-build`, then `make discovery-publish`, the
+  library's snapshot to GitHub Packages, where `ci` and `cd` resolve it.
+- `main` is protected: changes arrive by pull request with a green `ci`, `cd`, `iac`, and `architecture-discovery`,
+  no force pushes, linear history.
   `.github/branch-protection.json` is the setting, `make gh-main-protection` applies it.
 
 ## Definition of done
