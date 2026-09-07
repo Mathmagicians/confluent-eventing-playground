@@ -1,22 +1,36 @@
 # Event Streaming Refresher
 
+[![cicd](https://github.com/Mathmagicians/confluent-eventing-playground/actions/workflows/cicd.yaml/badge.svg?branch=main)](https://github.com/Mathmagicians/confluent-eventing-playground/actions/workflows/cicd.yaml)
+[![iac](https://github.com/Mathmagicians/confluent-eventing-playground/actions/workflows/iac.yaml/badge.svg?branch=main)](https://github.com/Mathmagicians/confluent-eventing-playground/actions/workflows/iac.yaml)
+[![load-run](https://github.com/Mathmagicians/confluent-eventing-playground/actions/workflows/load-run.yaml/badge.svg)](https://github.com/Mathmagicians/confluent-eventing-playground/actions/workflows/load-run.yaml)
+
 Reference implementation of a Kafka **load generator** and **stream consumer** running against **Confluent Cloud**.
 
 ## Tech Stack
-- Java 25 - newest LTS, toolchain pinned in `build.gradle`, finalized features
+- Java 25 - newest LTS, finalized features
 - Spring Boot 4.1.1 + Gradle 9.7.1 (Groovy DSL) - micro service framework, Spring Framework 7, wrapper committed
-- Spring for Apache Kafka - producer and consumer, version from the Boot BOM
+- Spring for Apache Kafka - producer and consumer
 - Confluent Cloud - Kafka + Schema Registry
-- Cucumber BDD - for black box testing, JUnit Platform engine, version pinned in `build.gradle`
-- JUnit 5, AssertJ, Mockito - unit tests, versions from the Boot BOM
-- jMolecules + ArchUnit - hexagonal stereotypes on ports, adapters, and application services, and the rule that enforces them, versions pinned in `build.gradle`
-- Testcontainers - Kafka container for BDD, version from the Boot BOM
+- Cucumber BDD - for black box testing, JUnit Platform engine
+- JUnit 5, AssertJ, Mockito - unit tests
+- jMolecules + ArchUnit - hexagonal stereotypes on ports, adapters, and application services, and the rule that
+  enforces them
+- Testcontainers - runs the image under test in the BDD suite
 - Docker + Compose - starts the swarm of load generators and the consumer
 - GitHub Actions - CICD + publish to GH registry, and hourly load runs
 - Terraform + Terraform Cloud - topics and schemas on Confluent Cloud, provider `confluentinc/confluent`
 - Container image - deployment unit, built with `./gradlew bootBuildImage`
 
-! [Confluent Cloud](~/docs/confluent.png)
+<table>
+  <tr>
+    <td align="center"><img src="docs/confluent.png" width="420" alt="Confluent Cloud"></td>
+    <td align="center"><img src="docs/tf.png" width="420" alt="Terraform Cloud"></td>
+  </tr>
+  <tr>
+    <td align="center">Powered by Confluent Cloud ...</td>
+    <td align="center">... and Terraform Cloud</td>
+  </tr>
+</table>
 
 ## Purpose
 
@@ -166,19 +180,18 @@ CI gate.
 `test` and `prod` run against Confluent Cloud.
 
 #### Variables and secrets
+
 All environment-specific values come from environment variables, bound through `${...}` placeholders in the profile
-properties files. 
-Secrets are:
-- Sourced from .env.<NAME>.private, where '<NAME>' is either test or prod
-- Stored in GitHub environments `confluent-test` and `confluent-prod`
-- Configured in Terraform Cloud workspace variables
-See the file .env.private.sample for names and usage.
+properties files. `.env.private.sample` lists them. They live in three places:
 
-Secrets live in two GitHub environments, `confluent-test` and `confluent-prod`, the same Confluent cluster and API
-keys, one topic prefix each. Locally the same variables live in `.env.test.private` and `.env.prod.private`,
-git-ignored. `make` sources the file for `ENV`, default `test`, into the command it runs.
+- `.env.<ENV>.private`, `ENV` being `test` or `prod`, git-ignored. `make` sources the file for `ENV`, default
+  `test`, into the command it runs.
+- The GitHub environments `confluent-test` and `confluent-prod`: the endpoints as variables, the API keys as
+  secrets. One Confluent cluster serves both, one topic prefix each.
+- The Terraform Cloud workspace, as Terraform variables.
 
-# IaC
+#### IaC
+
 Terraform Cloud creates the topics and schemas from `iac/`, applied on every push to `main`. Its workspace holds
 the cluster, the Schema Registry, and their API keys as Terraform variables, declared in `iac/variables.tf`. The
 GitHub environment `terraform-cloud` holds `TF_API_TOKEN`, `TF_CLOUD_ORGANIZATION`, and `TF_WORKSPACE` for the plan
@@ -186,9 +199,8 @@ GitHub environment `terraform-cloud` holds `TF_API_TOKEN`, `TF_CLOUD_ORGANIZATIO
 and workspace names in `.env.test.private`.
 
 ## Play
-Application is containerized. 
-Start the message generators using compose,  see `compose.yaml`, and check out usage with  `make help`.
-You can start the container image on its own:
+The application is a container image. Start the message generators with compose, see `compose.yaml` and the Swarm
+section of `make help`, or start the image on its own:
 
 ```bash
 docker run --rm confluent-eventing-playground:$(make version)
@@ -266,9 +278,9 @@ A review finding cites the rule it breaks.
   `<topic>.DLT`, Spring's default name and partition, through `DeadLetterPublishingRecoverer`.
 - One serialization class per direction owns `byte[]` and serializer configuration. Business code works with
   `Envelope`.
-- Every message carries its envelope as record headers, `ce_id`, `ce_region`, `ce_source`, `ce_time`, and its
-  payload as the value, so a topic's value schema is its payload type and stream processing reads the topic
-  directly. The `Envelope` message in `envelope.proto` documents the thin-envelope alternative and stays off the
+- Every message carries its envelope as record headers (CloudEvents pattern), `ce_id`, `ce_region`, `ce_source`,
+  `ce_time`, and its payload as the value, so a topic's value schema is its payload type and stream processing
+  reads the topic directly. The `Envelope` message in `envelope.proto` documents the thin-envelope alternative and stays off the
   wire.
 - Schema evolution: `BACKWARD` compatibility, `TopicNameStrategy`, schemas checked in under
   `common/src/main/proto`, one file per payload, registered by `iac/` under its topic's `<topic>-value` subject,
@@ -307,8 +319,9 @@ BDD with Cucumber:
 - Test code follows the rules of its framework: `public` step classes for Cucumber, drivers as beans of the suite's
   context.
 - Steps are shared across features. Search for an existing step before writing one.
-- Tags: `@wip` (runs locally), `@slow`, `@cloud` (runs where credentials are present).
 - Features run through the JUnit Platform Suite engine as part of `make check`. A red feature blocks the build.
+  The report is `build/reports/cucumber/index.html`; the `cd` job prints the scenarios in its summary and uploads
+  the report as the artifact `cucumber-report`.
 
 ### Naming and structure
 
@@ -340,7 +353,7 @@ BDD with Cucumber:
 - Default branch `main`. Short-lived branches: `feat/<topic>`, `fix/<topic>`, `chore/<topic>`.
 - Conventional Commits: `feat:`, `fix:`, `test:`, `chore:`, `docs:`, `ci:`, `build:`. Imperative subject under 72
   characters. The body says why.
-- Every PR has a green `ci` and `cd` and a review before a human merges.
+- Every PR has a green `ci`, `cd`, and `iac`, and a review before a human merges.
 - The version is Gradle's, derived from git tags: `1.2.3` at tag `v1.2.3`, `1.2.4-SNAPSHOT` after it,
   `0.0.1-SNAPSHOT` before the first tag. `make version` and `make next-version` print them.
 - `cicd.yaml`, job `ci`, runs on pull requests to `main`, on pushes to `main`, and on `workflow_dispatch`:
@@ -369,7 +382,7 @@ BDD with Cucumber:
 ## Definition of done
 
 - Unit tests cover the new class or the changed branch.
-- `make check`, `make bdd` passes locally. You can start with `make run-tiny` .
+- `make check` passes locally, `make bdd` included. `make run-tiny` is the quick start.
 - Every new dependency is noted in the PR.
 - README updated if a standard, variable, or architectural decision changed.
 - Review findings above Nit are resolved or explicitly deferred with a reason.
@@ -392,7 +405,11 @@ BDD with Cucumber:
 - [x] Publish Ks of messages to Confluent Cloud
 - [ ] Stream consumer service
 - [x] Protobuf via Schema Registry
-- [ ] Split into modules, 
-- [x] convert to hexagonal
+- [ ] Split into modules
+- [x] Convert to hexagonal
 - [x] GitHub Actions `cicd.yaml`
 - [x] GitHub Actions `load-run.yaml`, hourly cron
+
+## License
+
+MIT, see `LICENSE`.
