@@ -1,15 +1,15 @@
 package dk.mathmagicians.playground.confluent.eventing.adapter.kafka;
 
 import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures.envelope;
-import static org.assertj.core.api.Assertions.*;
+import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures.offer;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.google.protobuf.Any;
-import com.google.protobuf.InvalidProtocolBufferException;
-import com.google.protobuf.Timestamp;
 import dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures;
 import dk.mathmagicians.playground.confluent.eventing.domain.Payload;
-import dk.mathmagicians.playground.eventing.EnvelopeDTO;
 import java.util.List;
+import org.apache.kafka.common.header.Header;
+import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -25,6 +25,7 @@ class ConverterTest {
     @MethodSource("payloads")
     void roundTripsThroughTheMessage(Payload payload) {
         var message = Converter.to(payload);
+
         assertThat(Converter.from(message)).isEqualTo(payload);
     }
 
@@ -32,7 +33,9 @@ class ConverterTest {
     @MethodSource("payloads")
     void roundTripsThroughBytes(Payload payload) throws Exception {
         var message = Converter.to(payload);
+
         var parsed = message.getParserForType().parseFrom(message.toByteArray());
+
         assertThat(Converter.from(parsed)).isEqualTo(payload);
     }
 
@@ -45,29 +48,27 @@ class ConverterTest {
 
     @ParameterizedTest
     @MethodSource("payloads")
-    void envelopeRoundTripsThroughTheMessage(Payload payload) {
-        var message = Converter.to(envelope(payload));
+    void envelopeRoundTripsThroughTheHeaders(Payload payload) {
+        var envelope = envelope(payload);
 
-        assertThat(Converter.from(message)).isEqualTo(envelope(payload));
+        var headers = new RecordHeaders(Converter.headers(envelope));
+
+        assertThat(Converter.envelope(headers, payload)).isEqualTo(envelope);
     }
 
-    @ParameterizedTest
-    @MethodSource("payloads")
-    void envelopeRoundTripsThroughBytes(Payload payload) throws InvalidProtocolBufferException {
-        var message = Converter.to(envelope(payload));
-
-        var parsed = EnvelopeDTO.Envelope.parseFrom(message.toByteArray());
-
-        assertThat(Converter.from(parsed)).isEqualTo(envelope(payload));
-    }
-
-    /// An envelope whose `Any` names a type outside `PAYLOADS`.
     @Test
-    void envelopeRejectsAnUnknownPayload() {
-        var stranger = EnvelopeDTO.Envelope.newBuilder().setPayload(Any.pack(Timestamp.getDefaultInstance())).build();
+    void headersCarryTheCloudEventsNames() {
+        var headers = Converter.headers(envelope());
 
-        assertThatThrownBy(() -> Converter.from(stranger))
+        assertThat(headers).extracting(Header::key).containsExactly("ce_id", "ce_region", "ce_source", "ce_time");
+    }
+
+    @Test
+    void rejectsARecordWithoutTheEnvelopeHeaders() {
+        var none = new RecordHeaders();
+
+        assertThatThrownBy(() -> Converter.envelope(none, offer()))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Timestamp");
+                .hasMessageContaining("ce_id");
     }
 }

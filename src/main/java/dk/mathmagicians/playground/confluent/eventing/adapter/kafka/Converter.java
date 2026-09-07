@@ -1,7 +1,7 @@
 package dk.mathmagicians.playground.confluent.eventing.adapter.kafka;
 
-import com.google.protobuf.Any;
-import com.google.protobuf.InvalidProtocolBufferException;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import com.google.protobuf.Message;
 import com.google.protobuf.Timestamp;
 import dk.mathmagicians.playground.confluent.eventing.domain.Envelope;
@@ -10,43 +10,47 @@ import dk.mathmagicians.playground.confluent.eventing.domain.Order;
 import dk.mathmagicians.playground.confluent.eventing.domain.Payload;
 import dk.mathmagicians.playground.confluent.eventing.domain.Product;
 import dk.mathmagicians.playground.confluent.eventing.domain.Transaction;
-import dk.mathmagicians.playground.eventing.EnvelopeDTO;
 import dk.mathmagicians.playground.eventing.OfferDTO;
 import dk.mathmagicians.playground.eventing.OrderDTO;
 import dk.mathmagicians.playground.eventing.ProductDTO;
 import dk.mathmagicians.playground.eventing.TransactionDTO;
 import java.time.Instant;
 import java.util.List;
+import org.apache.kafka.common.header.Header;
+import org.apache.kafka.common.header.Headers;
+import org.apache.kafka.common.header.internals.RecordHeader;
 
-/// The serialization boundary: each record to its generated message and back, one exhaustive switch per direction.
-/// `Instant` travels as `google.protobuf.Timestamp`, a nested record as a nested message, a list as a repeated field.
-/// An `Envelope` travels as `EnvelopeDTO.Envelope`, its payload packed as `google.protobuf.Any`.
+/// The wire format. The envelope's header fields travel as record headers, strings named as CloudEvents names them;
+/// the payload travels as the record value, each record to its generated message and back, one exhaustive switch
+/// per direction. `Instant` travels as `google.protobuf.Timestamp`, a nested record as a nested message.
 public final class Converter {
 
-    /// The message types an envelope may carry, the lookup for unpacking `Any`.
-    private static final List<Class<? extends Message>> PAYLOADS =
-            List.of(ProductDTO.Product.class, OfferDTO.Offer.class, OrderDTO.Order.class, TransactionDTO.Transaction.class);
+    public static final String ID = "ce_id";
+    public static final String SOURCE = "ce_source";
+    public static final String TIME = "ce_time";
+    /// A CloudEvents extension attribute, so it carries the same prefix.
+    public static final String REGION = "ce_region";
 
     private Converter() {
     }
 
-    public static EnvelopeDTO.Envelope to(Envelope envelope) {
-        return EnvelopeDTO.Envelope.newBuilder()
-                .setId(envelope.id())
-                .setRegion(envelope.region())
-                .setAppid(envelope.app())
-                .setTimestamp(to(envelope.at()))
-                .setPayload(Any.pack(to(envelope.payload())))
-                .build();
+    /// The envelope's header fields as record headers, UTF-8, the instant in ISO-8601.
+    public static List<Header> headers(Envelope envelope) {
+        return List.of(
+                header(ID, envelope.id()),
+                header(REGION, envelope.region()),
+                header(SOURCE, envelope.app()),
+                header(TIME, envelope.at().toString()));
     }
 
-    public static Envelope from(EnvelopeDTO.Envelope envelope) {
+    /// The envelope from a record's headers and its payload.
+    public static Envelope envelope(Headers headers, Payload payload) {
         return new Envelope(
-                envelope.getId(),
-                envelope.getRegion(),
-                envelope.getAppid(),
-                from(envelope.getTimestamp()),
-                from(envelope.getPayload()));
+                text(headers, ID),
+                text(headers, REGION),
+                text(headers, SOURCE),
+                Instant.parse(text(headers, TIME)),
+                payload);
     }
 
     public static Message to(Payload payload) {
@@ -151,21 +155,16 @@ public final class Converter {
         return Instant.ofEpochSecond(at.getSeconds(), at.getNanos());
     }
 
-    /// The payload type from `PAYLOADS` the type URL names, unpacked, then `from(Message)`.
-    private static Payload from(Any any) {
-        var type = PAYLOADS.stream()
-                .filter(any::is)
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("no payload for " + any.getTypeUrl()));
-        return from(unpack(any, type));
+    private static Header header(String name, String value) {
+        return new RecordHeader(name, value.getBytes(UTF_8));
     }
 
-    /// `Any.unpack` with its checked exception wrapped.
-    private static Message unpack(Any any, Class<? extends Message> type) {
-        try {
-            return any.unpack(type);
-        } catch (InvalidProtocolBufferException e) {
-            throw new IllegalArgumentException("payload does not parse as " + type.getSimpleName(), e);
+    /// The last value under the name, as a record with the envelope in its headers carries exactly one.
+    private static String text(Headers headers, String name) {
+        var header = headers.lastHeader(name);
+        if (header == null) {
+            throw new IllegalArgumentException("no header " + name);
         }
+        return new String(header.value(), UTF_8);
     }
 }
