@@ -22,7 +22,7 @@ TAG ?= latest
 # the minimum load, one producer and about one event; everything else is the image's own defaults
 MINIMUM := --load.concurrent=1 --load.interval=1000 --load.ttl=2
 # what the image reads, passed through to bdd, docker-run and docker-smoke
-CREDENTIALS := KAFKA_BOOTSTRAP_SERVERS KAFKA_API_KEY KAFKA_API_SECRET
+CREDENTIALS := KAFKA_BOOTSTRAP_SERVERS KAFKA_API_KEY KAFKA_API_SECRET SCHEMA_REGISTRY_REST_ENDPOINT SCHEMA_REGISTRY_API_KEY SCHEMA_REGISTRY_API_SECRET
 # locally they live in .env.<ENV>.private, sourced into the command's shell only, CI has them in the environment
 ENV ?= test
 ENV_FILE := .env.$(ENV).private

@@ -104,7 +104,7 @@ only, and nothing inside reaches an adapter.
           |                                   |
           v                                   v
    load-generator (EMEA)   ...   load-generator (region N)
-          |   key per topic, value = Envelope
+          |   key per topic, headers = envelope, value = payload
           v
    Confluent Cloud   topics: products, offers, orders, transactions, prefixed test. or prod.   (N partitions, fixed)
           |
@@ -169,7 +169,7 @@ properties files. Names are `UPPER_SNAKE`, prefixed by concern.
 |-----------------------------------------------------------|------------------|--------------------------------------------------------------------------|
 | `KAFKA_BOOTSTRAP_SERVERS`                                 | both services    | Confluent Cloud bootstrap endpoint                                       |
 | `KAFKA_API_KEY` / `KAFKA_API_SECRET`                      | both services    | SASL/PLAIN credentials                                                   |
-| `SCHEMA_REGISTRY_URL`                                     | both services    | Schema Registry endpoint                                                 |
+| `SCHEMA_REGISTRY_REST_ENDPOINT`                           | both services    | Schema Registry endpoint                                                 |
 | `SCHEMA_REGISTRY_API_KEY` / `SCHEMA_REGISTRY_API_SECRET`  | both services    | Schema Registry basic auth                                               |
 | `PRODUCT_CONCURRENT`, `OFFER_CONCURRENT`, `ORDER_CONCURRENT` | compose       | Producers per generator, default 10                                      |
 | `PRODUCT_INTERVAL`, `OFFER_INTERVAL`, `ORDER_INTERVAL`    | compose          | Milliseconds a producer sleeps between events, default 250               |
@@ -268,8 +268,10 @@ A review finding cites the rule it breaks.
   `<topic>.DLT`, Spring's default name and partition, through `DeadLetterPublishingRecoverer`.
 - One serialization class per direction owns `byte[]` and serializer configuration. Business code works with
   `Envelope`.
-- Every message on the wire is an `Envelope`, the payload packed as `google.protobuf.Any`. The envelope schema stays
-  the same when a payload type is added.
+- Every message carries its envelope as record headers, `ce_id`, `ce_region`, `ce_source`, `ce_time`, and its
+  payload as the value, so a topic's value schema is its payload type and stream processing reads the topic
+  directly. The `Envelope` message in `envelope.proto` documents the thin-envelope alternative and stays off the
+  wire.
 - Schema evolution: `BACKWARD` compatibility, `TopicNameStrategy`, schemas checked in under
   `common/src/main/proto`, one file per payload, registered by `iac/` under its topic's `<topic>-value` subject,
   imports as schema references. A producer runs with `auto.register.schemas=false` and `use.latest.version=true`.
