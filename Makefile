@@ -34,7 +34,7 @@ DISCOVERY := architecture-discovery/gradlew -p architecture-discovery
 WITH_GH := GITHUB_ACTOR=$${GITHUB_ACTOR:-$$(gh api user -q .login)} GITHUB_TOKEN=$${GITHUB_TOKEN:-$$(gh auth token)}
 
 .DEFAULT_GOAL := build
-.PHONY: help check generated-check build test run run-tiny clean version next-version proto-gen proto-check arch-verify arch-gen arch-check discovery-build discovery-install discovery-publish changed docker-image docker-repo docker-publish docker-image-exists docker-run docker-smoke bdd bdd-published bdd-snippets up up-product up-offer up-order down tf-init tf-check tf-plan git-tag git-release gh-main-protection
+.PHONY: help check generated-check build test run run-tiny clean version next-version proto-gen proto-check arch-verify arch-gen arch-check discovery-build discovery-install discovery-publish changed docker-image docker-repo docker-publish docker-image-exists docker-run docker-smoke bdd bdd-published bdd-snippets up up-product up-offer up-order down tf-init tf-check tf-plan tf-output git-tag git-release gh-main-protection
 
 # sections are the ##@ lines, targets are the ## comments; the tab before each description is expanded to one column
 help:      ## this list
@@ -137,6 +137,9 @@ tf-check: tf-init   ## formatting and validation of iac/
 
 tf-plan: tf-init   ## what Terraform Cloud would apply, a speculative plan, no colour for logs; settings from .env.<ENV>.private
 	@$(WITH_ENV) $(TF) plan -input=false -no-color
+
+tf-output: tf-init   ## the facts of the workspace: cluster, schema registry, topics, schemas; OUTPUT=<name> for one, as JSON
+	@$(WITH_ENV) $(TF) output $(if $(OUTPUT),-json $(OUTPUT))
 
 ##@ Architecture, the hexagon from the annotations in the code: verified by tests, documented under docs/generated/architecture
 arch-verify:   ## the hexagonal rule and the module boundaries, the two architecture tests alone

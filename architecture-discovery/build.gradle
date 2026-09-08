@@ -24,6 +24,8 @@ dependencies {
     api platform('org.springframework.modulith:spring-modulith-bom:2.1.1') // 2026-09-08
     api platform('org.jmolecules:jmolecules-bom:2025.0.2') // 2026-09-08
     api 'org.springframework.modulith:spring-modulith-core'
+    // the Modulith BOM's 1.4.2 has no isSealed and getPermittedSubclasses, the root build runs 1.5.0, 2026-09-08
+    api 'com.tngtech.archunit:archunit:1.5.0'
     api 'org.jmolecules.integrations:jmolecules-stereotype'
     // the stereotype catalog reader, optional in jmolecules-stereotype, required by HexagonDocumenter's default
     implementation 'com.jayway.jsonpath:json-path'

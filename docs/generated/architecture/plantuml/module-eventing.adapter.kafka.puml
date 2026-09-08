@@ -24,9 +24,9 @@ System_Boundary("ConfluentLoadGeneratorApplication_boundary", "ConfluentLoadGene
 
 }
 
+Rel(ConfluentLoadGeneratorApplication.ConfluentLoadGeneratorApplication.Application, ConfluentLoadGeneratorApplication.ConfluentLoadGeneratorApplication.Domain, "depends on", $techn="", $tags="", $link="")
 Rel(ConfluentLoadGeneratorApplication.ConfluentLoadGeneratorApplication.Kafka, ConfluentLoadGeneratorApplication.ConfluentLoadGeneratorApplication.Domain, "depends on", $techn="", $tags="", $link="")
 Rel(ConfluentLoadGeneratorApplication.ConfluentLoadGeneratorApplication.Kafka, ConfluentLoadGeneratorApplication.ConfluentLoadGeneratorApplication.Application, "depends on", $techn="", $tags="", $link="")
-Rel(ConfluentLoadGeneratorApplication.ConfluentLoadGeneratorApplication.Application, ConfluentLoadGeneratorApplication.ConfluentLoadGeneratorApplication.Domain, "depends on", $techn="", $tags="", $link="")
 
 SHOW_LEGEND(true)
 hide stereotypes

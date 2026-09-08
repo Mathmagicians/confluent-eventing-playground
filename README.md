@@ -67,7 +67,7 @@ in order, and the key picks the partition, so records with the same key stay in 
     <td align="center"><img src="docs/generated/architecture/svg/hexagon.svg" width="100%" alt="The hexagon, generated from the code"></td>
   </tr>
   <tr>
-    <td align="center">Nobody drew this: the hexagon from the annotations in the code, <code>make arch-gen</code>, guarded by <code>make check</code> ... read how in <a href="architecture-discovery/architecture-discoverability.md">architecture-discoverability.md</a>. The picture is owing to Alistair Cockburn's classic, <a href="https://alistair.cockburn.us/hexagonal-architecture/">Hexagonal Architecture</a>, 2005.</td>
+    <td align="center">Diagram was <a href="architecture-discovery/architecture-discoverability.md">automatically generated</a>, with kudos to Alistair Cockburn, original: <a href="https://alistair.cockburn.us/hexagonal-architecture/">Hexagonal Architecture</a></td>
   </tr>
 </table>
 

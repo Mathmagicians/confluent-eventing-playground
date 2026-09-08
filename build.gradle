@@ -42,8 +42,9 @@ repositories {
     }
 }
 
-// the library is a snapshot while it lives here: always take the newest
+// the library floats: its newest published version, and a re-published snapshot, are looked up on every build
 configurations.configureEach {
+    resolutionStrategy.cacheDynamicVersionsFor 0, 'seconds'
     resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
 }
 
@@ -55,6 +56,8 @@ dependencies {
     implementation platform('org.jmolecules:jmolecules-bom:2025.0.2') // not in the Boot BOM, 2026-09-07
     implementation 'org.jmolecules:jmolecules-hexagonal-architecture'
     implementation 'org.jmolecules:jmolecules-ddd' // @Module on the packages Spring Modulith documents
+    compileOnly platform('org.springframework.modulith:spring-modulith-bom:2.1.1') // not in the Boot BOM, 2026-09-08
+    compileOnly 'org.springframework.modulith:spring-modulith-api' // @Modulithic on the application class, read by the test suite, absent from the image
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation platform('io.cucumber:cucumber-bom:7.34.7') // not in the Boot BOM, 2026-09-03
@@ -69,7 +72,7 @@ dependencies {
     testImplementation 'com.tngtech.archunit:archunit-junit5:1.5.0' // not in the Boot BOM, 2026-09-07
     testImplementation platform('org.springframework.modulith:spring-modulith-bom:2.1.1') // not in the Boot BOM, 2026-09-08
     testImplementation 'org.springframework.modulith:spring-modulith-starter-test'
-    testImplementation 'dk.mathmagicians.playground:architecture-discovery:0.1.0-SNAPSHOT' // ours, see architecture-discovery/
+    testImplementation 'dk.mathmagicians.playground:architecture-discovery:latest.integration' // ours, the newest published, see architecture-discovery/
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 

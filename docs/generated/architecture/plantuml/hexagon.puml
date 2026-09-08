@@ -2,53 +2,98 @@
 ' the hexagon from the code: Spring Modulith modules placed by their jMolecules stereotypes
 skinparam shadowing false
 skinparam defaultTextAlignment left
+skinparam ranksep 24
+skinparam nodesep 24
+skinparam ArrowFontSize 10
+skinparam ArrowFontColor #666666
 <style>
 hexagon { HorizontalAlignment center }
 rectangle { HorizontalAlignment center }
 </style>
 
-rectangle "DRIVING ADAPTERS" as driving {
+rectangle "DRIVING ADAPTERS" as driving #line:transparent {
   hexagon "Cli" as m_Cli {
-    card "LoadRunner\n<size:10>«PrimaryAdapter»</size>" as m_Cli_LoadRunner
-  }
-}
-rectangle "APPLICATION" as core {
-  hexagon "Application" as m_Application {
-    card "GenerateLoad\n<size:10>«PrimaryPort»</size>" as m_Application_GenerateLoad
-    card "PublishMessage\n<size:10>«PrimaryPort»</size>" as m_Application_PublishMessage
-    card "Publisher\n<size:10>«SecondaryPort»</size>" as m_Application_Publisher
-    m_Application_GenerateLoad -[hidden]-> m_Application_PublishMessage
-    m_Application_PublishMessage -[hidden]-> m_Application_Publisher
-    hexagon "Domain" as m_Domain {
-      card "Wonderland\n<size:10>«Factory»</size>" as m_Domain_Wonderland
-      card "Envelope\n<size:10>«ValueObject»</size>" as m_Domain_Envelope
-      card "Offer\n<size:10>«ValueObject»</size>" as m_Domain_Offer
-      card "Order\n<size:10>«ValueObject»</size>" as m_Domain_Order
-      card "Payload\n<size:10>«ValueObject»</size>" as m_Domain_Payload
-      card "Product\n<size:10>«ValueObject»</size>" as m_Domain_Product
-      card "Receipt\n<size:10>«ValueObject»</size>" as m_Domain_Receipt
-      card "Transaction\n<size:10>«ValueObject»</size>" as m_Domain_Transaction
-      m_Domain_Wonderland -[hidden]-> m_Domain_Envelope
-      m_Domain_Envelope -[hidden]-> m_Domain_Offer
-      m_Domain_Offer -[hidden]-> m_Domain_Order
-      m_Domain_Order -[hidden]-> m_Domain_Payload
-      m_Domain_Payload -[hidden]-> m_Domain_Product
-      m_Domain_Product -[hidden]-> m_Domain_Receipt
-      m_Domain_Receipt -[hidden]-> m_Domain_Transaction
+    rectangle " " as m_Cli_in #line:transparent {
+      card "LoadRunner\n<size:10>«PrimaryAdapter»</size>" as m_Cli_LoadRunner
     }
   }
 }
-rectangle "DRIVEN ADAPTERS" as driven {
+rectangle "APPLICATION" as core #line:transparent {
+  hexagon "Application" as m_Application {
+    rectangle " " as m_Application_in #line:transparent {
+      card "GenerateLoad\n<size:10>«PrimaryPort»</size>" as m_Application_GenerateLoad
+      card "PublishMessage\n<size:10>«PrimaryPort»</size>" as m_Application_PublishMessage
+      card "Publisher\n<size:10>«SecondaryPort»</size>" as m_Application_Publisher
+      m_Application_GenerateLoad -[hidden]right-> m_Application_PublishMessage
+      hexagon "Domain" as m_Domain {
+        rectangle " " as m_Domain_in #line:transparent {
+          card "Wonderland\n<size:10>«Factory»</size>" as m_Domain_Wonderland
+          card "Envelope\n<size:10>«ValueObject»</size>" as m_Domain_Envelope
+          card "Payload\n<size:10>«ValueObject»</size>" as m_Domain_Payload
+          card "Offer\n<size:10>«ValueObject»</size>" as m_Domain_Offer
+          card "Order\n<size:10>«ValueObject»</size>" as m_Domain_Order
+          card "Product\n<size:10>«ValueObject»</size>" as m_Domain_Product
+          card "Transaction\n<size:10>«ValueObject»</size>" as m_Domain_Transaction
+          label "<size:1> </size>" as m_Domain_Payload_j
+          m_Domain_Offer .up. m_Domain_Payload_j
+          m_Domain_Order .up. m_Domain_Payload_j
+          m_Domain_Product .up. m_Domain_Payload_j
+          m_Domain_Transaction .up. m_Domain_Payload_j
+          m_Domain_Payload_j .up.|> m_Domain_Payload
+          card "Receipt\n<size:10>«ValueObject»</size>" as m_Domain_Receipt
+          m_Domain_Wonderland -[hidden]right-> m_Domain_Envelope
+          m_Domain_Wonderland -[hidden]down-> m_Domain_Offer
+          m_Domain_Envelope -[hidden]right-> m_Domain_Payload
+          m_Domain_Envelope -[hidden]down-> m_Domain_Order
+          m_Domain_Payload -[hidden]down-> m_Domain_Product
+          m_Domain_Offer -[hidden]right-> m_Domain_Order
+          m_Domain_Offer -[hidden]down-> m_Domain_Transaction
+          m_Domain_Order -[hidden]right-> m_Domain_Product
+          m_Domain_Order -[hidden]down-> m_Domain_Receipt
+          m_Domain_Transaction -[hidden]right-> m_Domain_Receipt
+        }
+      }
+      m_Application_GenerateLoad -[hidden]down-> m_Domain_Wonderland
+      m_Application_PublishMessage -[hidden]down-> m_Domain_Wonderland
+      m_Domain_Transaction -[hidden]down-> m_Application_Publisher
+      m_Domain_Receipt -[hidden]down-> m_Application_Publisher
+    }
+  }
+}
+rectangle "DRIVEN ADAPTERS" as driven #line:transparent {
   hexagon "Kafka" as m_Kafka {
-    card "KafkaPublisher\n<size:10>«SecondaryAdapter»</size>" as m_Kafka_KafkaPublisher
+    rectangle " " as m_Kafka_in #line:transparent {
+      card "KafkaPublisher\n<size:10>«SecondaryAdapter»</size>" as m_Kafka_KafkaPublisher
+    }
   }
   hexagon "Log" as m_Log {
-    card "LoggingPublisher\n<size:10>«SecondaryAdapter»</size>" as m_Log_LoggingPublisher
+    rectangle " " as m_Log_in #line:transparent {
+      card "LoggingPublisher\n<size:10>«SecondaryAdapter»</size>" as m_Log_LoggingPublisher
+    }
   }
-    m_Kafka -[hidden]-> m_Log
+  m_Kafka_KafkaPublisher -[hidden]down-> m_Log_LoggingPublisher
 }
 
-m_Cli_LoadRunner -right-> m_Application_GenerateLoad : uses
-m_Kafka_KafkaPublisher .left.> m_Application_Publisher : implements
-m_Log_LoggingPublisher .left.> m_Application_Publisher : implements
+m_Cli_LoadRunner -right-> m_Application_GenerateLoad
+m_Kafka_KafkaPublisher .left.|> m_Application_Publisher
+m_Log_LoggingPublisher .left.|> m_Application_Publisher
+
+rectangle "<size:10>legend</size>" as legend #line:BBBBBB;text:666666 {
+  label " " as l_uses_from
+  label " " as l_uses_to
+  l_uses_from -right-> l_uses_to : uses
+  label " " as l_implements_from
+  label " " as l_implements_to
+  l_implements_from .right.|> l_implements_to : implements
+  label " " as l_depends_on_from
+  label " " as l_depends_on_to
+  l_depends_on_from .right.> l_depends_on_to : depends on
+  l_uses_to -[hidden]right-> l_implements_from
+  l_implements_to -[hidden]right-> l_depends_on_from
+}
+m_Log_LoggingPublisher -[hidden]down-> l_uses_from
+m_Application_Publisher -[hidden]down-> l_uses_from
+legend right
+  ConfluentLoadGeneratorApplication
+endlegend
 @enduml
