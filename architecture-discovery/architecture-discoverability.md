@@ -32,9 +32,9 @@ hexagon's edges.
    one `.adoc` canvas per module, and `all-docs.adoc` linking them. Then it runs `HexagonDocumenter` from the
    `architecture-discovery` library into `hexagon.puml`: the modules as a hexagon, driving adapters left, driven
    adapters right, the application in the centre with the domain nested inside it, the application's own types
-   around the domain. Inside each module, every type with a stereotype is a card with its role, laid out in a
-   grid, the permitted types of a sealed type after it, implementing it. `HexagonDocumenter.Options` caps the
-   types listed per role, unlimited by default, an ellipsis line with the total beyond the cap.
+   in a row above the domain. Inside each module, every type with a stereotype is a card with its role, laid out
+   in a grid, the permitted types of a sealed type in a row under it, implementing it. `HexagonDocumenter.Options`
+   caps the types listed per role, unlimited by default, an ellipsis line with the total beyond the cap.
    The roles come from jMolecules' stereotype catalogs, the `META-INF/jmolecules-stereotypes.json` in each jar,
    read by `jmolecules-stereotype`.
 6. **Rendering.** The Gradle task `renderDiagrams` runs PlantUML over the `.puml` files and writes one `.svg` per

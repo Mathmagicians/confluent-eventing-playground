@@ -13,20 +13,21 @@ rectangle { HorizontalAlignment center }
 
 rectangle "DRIVING ADAPTERS" as driving #line:transparent {
   hexagon "Cli" as m_Cli {
-    rectangle " " as m_Cli_in #line:transparent {
+    rectangle "<size:1> </size>" as m_Cli_in #line:transparent {
       card "LoadRunner\n<size:10>«PrimaryAdapter»</size>" as m_Cli_LoadRunner
     }
   }
 }
 rectangle "APPLICATION" as core #line:transparent {
   hexagon "Application" as m_Application {
-    rectangle " " as m_Application_in #line:transparent {
+    rectangle "<size:1> </size>" as m_Application_in #line:transparent {
       card "GenerateLoad\n<size:10>«PrimaryPort»</size>" as m_Application_GenerateLoad
       card "PublishMessage\n<size:10>«PrimaryPort»</size>" as m_Application_PublishMessage
       card "Publisher\n<size:10>«SecondaryPort»</size>" as m_Application_Publisher
       m_Application_GenerateLoad -[hidden]right-> m_Application_PublishMessage
+      m_Application_PublishMessage -[hidden]right-> m_Application_Publisher
       hexagon "Domain" as m_Domain {
-        rectangle " " as m_Domain_in #line:transparent {
+        rectangle "<size:1> </size>" as m_Domain_in #line:transparent {
           card "Wonderland\n<size:10>«Factory»</size>" as m_Domain_Wonderland
           card "Envelope\n<size:10>«ValueObject»</size>" as m_Domain_Envelope
           card "Payload\n<size:10>«ValueObject»</size>" as m_Domain_Payload
@@ -42,38 +43,42 @@ rectangle "APPLICATION" as core #line:transparent {
           m_Domain_Payload_j .up.|> m_Domain_Payload
           card "Receipt\n<size:10>«ValueObject»</size>" as m_Domain_Receipt
           m_Domain_Wonderland -[hidden]right-> m_Domain_Envelope
-          m_Domain_Wonderland -[hidden]down-> m_Domain_Offer
           m_Domain_Envelope -[hidden]right-> m_Domain_Payload
-          m_Domain_Envelope -[hidden]down-> m_Domain_Order
-          m_Domain_Payload -[hidden]down-> m_Domain_Product
+          m_Domain_Payload -[hidden]right-> m_Domain_Receipt
           m_Domain_Offer -[hidden]right-> m_Domain_Order
-          m_Domain_Offer -[hidden]down-> m_Domain_Transaction
           m_Domain_Order -[hidden]right-> m_Domain_Product
-          m_Domain_Order -[hidden]down-> m_Domain_Receipt
-          m_Domain_Transaction -[hidden]right-> m_Domain_Receipt
+          m_Domain_Product -[hidden]right-> m_Domain_Transaction
+          m_Domain_Payload -[hidden]down-> m_Domain_Order
         }
       }
-      m_Application_GenerateLoad -[hidden]down-> m_Domain_Wonderland
-      m_Application_PublishMessage -[hidden]down-> m_Domain_Wonderland
-      m_Domain_Transaction -[hidden]down-> m_Application_Publisher
-      m_Domain_Receipt -[hidden]down-> m_Application_Publisher
+      m_Application_GenerateLoad -[hidden]down-> m_Domain_Envelope
+      m_Application_PublishMessage -[hidden]down-> m_Domain_Envelope
+      m_Application_Publisher -[hidden]down-> m_Domain_Envelope
     }
   }
 }
 rectangle "DRIVEN ADAPTERS" as driven #line:transparent {
   hexagon "Kafka" as m_Kafka {
-    rectangle " " as m_Kafka_in #line:transparent {
+    rectangle "<size:1> </size>" as m_Kafka_in #line:transparent {
       card "KafkaPublisher\n<size:10>«SecondaryAdapter»</size>" as m_Kafka_KafkaPublisher
     }
   }
   hexagon "Log" as m_Log {
-    rectangle " " as m_Log_in #line:transparent {
+    rectangle "<size:1> </size>" as m_Log_in #line:transparent {
       card "LoggingPublisher\n<size:10>«SecondaryAdapter»</size>" as m_Log_LoggingPublisher
     }
   }
   m_Kafka_KafkaPublisher -[hidden]down-> m_Log_LoggingPublisher
 }
 
+m_Application_GenerateLoad -right-> m_Application_PublishMessage
+m_Application_GenerateLoad ..> m_Domain_Payload
+m_Application_PublishMessage -right-> m_Application_Publisher
+m_Application_PublishMessage ..> m_Domain_Envelope
+m_Application_PublishMessage ..> m_Domain_Payload
+m_Application_PublishMessage ..> m_Domain_Receipt
+m_Application_Publisher ..> m_Domain_Envelope
+m_Application_Publisher ..> m_Domain_Receipt
 m_Cli_LoadRunner -right-> m_Application_GenerateLoad
 m_Kafka_KafkaPublisher .left.|> m_Application_Publisher
 m_Log_LoggingPublisher .left.|> m_Application_Publisher
@@ -92,7 +97,10 @@ rectangle "<size:10>legend</size>" as legend #line:BBBBBB;text:666666 {
   l_implements_to -[hidden]right-> l_depends_on_from
 }
 m_Log_LoggingPublisher -[hidden]down-> l_uses_from
-m_Application_Publisher -[hidden]down-> l_uses_from
+m_Domain_Offer -[hidden]down-> l_uses_from
+m_Domain_Order -[hidden]down-> l_uses_from
+m_Domain_Product -[hidden]down-> l_uses_from
+m_Domain_Transaction -[hidden]down-> l_uses_from
 legend right
   ConfluentLoadGeneratorApplication
 endlegend

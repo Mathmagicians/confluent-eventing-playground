@@ -30,7 +30,7 @@ class HexagonDocumenterTest {
         assertThat(uml)
                 .contains("rectangle \"DRIVING ADAPTERS\" as driving #line:transparent {")
                 .contains("hexagon \"Cli\" as m_Cli {")
-                .contains("rectangle \" \" as m_Cli_in #line:transparent {")
+                .contains("rectangle \"<size:1> </size>\" as m_Cli_in #line:transparent {")
                 .contains("rectangle \"APPLICATION\" as core #line:transparent {")
                 .contains("hexagon \"Application\" as m_Application {")
                 .contains("hexagon \"Domain\" as m_Domain {")
@@ -82,45 +82,44 @@ class HexagonDocumenterTest {
                 .doesNotContain(card("Circle", "ValueObject"));
     }
 
-    /// `Shape` permits `Circle` and `Square`: their cards follow the sealed type's, their lines meet at a junction
-    /// and one arrow goes from there to `Shape`, so the arrows have one head.
+    /// `Shape` permits `Circle` and `Square`: their cards come in a row under the domain's grid, hung from `Shape`
+    /// alone, their lines meet at a junction and one arrow goes from there to `Shape`, so the arrows have one head.
     @Test
-    void drawsThePermittedTypesAfterTheSealedTypeImplementingIt() {
-        var shape = uml.indexOf(card("Shape", "ValueObject"));
-        var circle = uml.indexOf(card("Circle", "ValueObject"));
-        var square = uml.indexOf(card("Square", "ValueObject"));
-
-        assertThat(shape).isPositive();
-        assertThat(circle).isGreaterThan(shape);
-        assertThat(square).isGreaterThan(circle);
+    void drawsThePermittedTypesUnderTheGridImplementingTheSealedType() {
         assertThat(uml)
+                .contains(card("Shape", "ValueObject"))
                 .contains("label \"<size:1> </size>\" as m_Domain_Shape_j")
                 .contains("m_Domain_Circle .up. m_Domain_Shape_j")
                 .contains("m_Domain_Square .up. m_Domain_Shape_j")
-                .contains("m_Domain_Shape_j .up.|> m_Domain_Shape");
+                .contains("m_Domain_Shape_j .up.|> m_Domain_Shape")
+                .contains("m_Domain_Circle -[hidden]right-> m_Domain_Square")
+                .contains("m_Domain_Shape -[hidden]down-> m_Domain_Circle")
+                .doesNotContain("m_Domain_Thing -[hidden]down-> m_Domain_Circle");
     }
 
-    /// The domain's cards near square, sixteen in four columns; the application's two ports around the domain,
-    /// one above, hung to the domain's first card, one below, hung from the domain's bottom row.
+    /// The domain's cards near square, fourteen in four columns; the application's two ports in one row above
+    /// the domain, each hung to the middle of the domain's first row.
     @Test
     void laysCardsOutInAGrid() {
         assertThat(uml)
                 .contains("m_Domain_Item0 -[hidden]right-> m_Domain_Item1")
                 .contains("m_Domain_Things -[hidden]down-> m_Domain_Item3")
-                .contains("m_Application_Publish -[hidden]down-> m_Domain_Things")
-                .contains("m_Domain_Shape -[hidden]down-> m_Application_Publisher")
-                .contains("m_Domain_Thing -[hidden]down-> m_Application_Publisher")
-                .doesNotContain("m_Application_Publish -[hidden]right-> m_Application_Publisher");
+                .contains("m_Application_Publish -[hidden]right-> m_Application_Publisher")
+                .contains("m_Application_Publish -[hidden]down-> m_Domain_Item0")
+                .contains("m_Application_Publisher -[hidden]down-> m_Domain_Item0");
     }
 
-    /// `Runner` holds a `Publish`, a type reference; `KafkaPublisher` implements `Publisher`, the port. Both ends
-    /// have cards, so the arrows join the cards, without a label: the legend draws each arrow with its relation, in
-    /// a row hung below the driven adapters and the application, and the text legend names the system.
+    /// `Runner` holds a `Publish`, a type reference; `KafkaPublisher` implements `Publisher`, the port; `Publish`
+    /// holds a `Publisher` and takes a `Thing`. Both ends have cards, so the arrows join the cards, without a
+    /// label: the legend draws each arrow with its relation, in a row hung below the driven adapters and the
+    /// domain, and the text legend names the system.
     @Test
     void drawsTheArrowsWithTheLegendAndNoLabels() {
         assertThat(uml)
                 .contains("m_Cli_Runner .right.> m_Application_Publish\n")
                 .contains("m_Kafka_KafkaPublisher .left.|> m_Application_Publisher\n")
+                .contains("m_Application_Publish -right-> m_Application_Publisher\n")
+                .contains("m_Application_Publish ..> m_Domain_Thing\n")
                 .contains("rectangle \"<size:10>legend</size>\" as legend #line:BBBBBB;text:666666 {")
                 .contains("l_implements_from .right.|> l_implements_to : implements")
                 .contains("l_uses_to -[hidden]right-> l_implements_from")
@@ -128,7 +127,7 @@ class HexagonDocumenterTest {
                 .doesNotContain("speaks")
                 .doesNotContain("-[dotted]->")
                 .contains("m_Kafka_KafkaPublisher -[hidden]down-> l_uses_from")
-                .contains("m_Application_Publisher -[hidden]down-> l_uses_from")
+                .contains("m_Domain_Square -[hidden]down-> l_uses_from")
                 .contains("legend right\n  fixture\nendlegend");
     }
 

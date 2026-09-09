@@ -37,12 +37,13 @@ import org.springframework.modulith.core.DependencyType;
 /// The hexagon of an application as PlantUML. Three columns, driving adapters, application, driven adapters, each
 /// holding the Spring Modulith application modules that belong there, placed by the jMolecules stereotypes of
 /// their types. Every module is a hexagon; modules without a hexagonal stereotype, the domain, nest inside the
-/// application module, centred, the application's own types around it, half above, half below. Inside a module,
-/// every type with a stereotype is a card, its role below its name, in a grid; the permitted types of a sealed type
-/// follow it and implement it, one arrowhead. Types of a non-hexagonal role are listed up to the options' maximum,
-/// then an ellipsis line carries the total. The arrows, drawn in the legend: from an adapter type into the
-/// application, `uses` where a Spring bean is injected, `implements` where the adapter implements a port,
-/// `depends on` for any other reference. Everything is sorted, so the same code gives the same text.
+/// application module, the application's own types in a row above it. Inside a module, every type with a
+/// stereotype is a card, its role below its name, in a grid; the permitted types of a sealed type sit in a row
+/// under the grid and implement it, one arrowhead. Types of a non-hexagonal role are listed up to the options'
+/// maximum, then an ellipsis line carries the total. The arrows, drawn in the legend: from an adapter type into
+/// the application and between the application's types and the domain's, `uses` where one holds the other,
+/// `implements` where one implements the other, `depends on` for any other reference. Everything is sorted, so the
+/// same code gives the same text.
 public final class HexagonDocumenter {
 
     /// Choices for the picture: how many types of one role a box lists before the ellipsis line. Unlimited by
@@ -80,9 +81,12 @@ public final class HexagonDocumenter {
     private static final String FRAME = "rectangle";
     /// A frame that groups without being seen: a column under its title, the padding inside a hexagon.
     private static final String UNSEEN = " #line:transparent";
-    /// A node too small to see, where the lines of several permitted types meet before the one arrow to their
-    /// sealed type.
-    private static final String JUNCTION = "label \"<size:1> </size>\" as ";
+    /// A text too small to see: the title of a padding frame, the node where the lines of several permitted types
+    /// meet before the one arrow to their sealed type.
+    private static final String UNSEEN_TEXT = "\"<size:1> </size>\"";
+    private static final String JUNCTION = "label " + UNSEEN_TEXT + " as ";
+    /// The permitted types of a sealed type in one line, two when there are more than this.
+    private static final int FAMILY_COLUMNS = 4;
 
     /// The rings. The three columns are written left to right; the domain ring nests inside the application.
     enum Ring {
@@ -132,17 +136,22 @@ public final class HexagonDocumenter {
     }
 
     /// A cell of a grid: the alias at its left edge and at its right edge, one and the same for a card, the two
-    /// ends of a sample arrow in the legend; and the cards along its bottom edge, the card itself, or the last row
-    /// of a grid, where something hung below the cell attaches.
-    record Cell(String left, String right, List<String> bottom) {
+    /// ends of a sample arrow in the legend; the alias at its top, the middle of a grid's first row, where the cell
+    /// hangs from what sits above; and the cards along its bottom edge, the card itself, or the last row of a grid,
+    /// where what hangs below attaches.
+    record Cell(String left, String right, String top, List<String> bottom) {
 
         static Cell of(String alias) {
-            return new Cell(alias, alias, List.of(alias));
+            return new Cell(alias, alias, alias, List.of(alias));
         }
 
         boolean isBox() {
             return !bottom.equals(List.of(left));
         }
+    }
+
+    /// A type's entry in a module: its card, and the cards of its permitted types when it is sealed.
+    record Entry(Cell card, List<Cell> family) {
     }
 
     private final ApplicationModules modules;
@@ -235,15 +244,16 @@ public final class HexagonDocumenter {
     /// One module: its hexagon, padded by an unseen frame, since PlantUML's hexagon cuts its corners through what
     /// sits there. Inside, the cards of its hexagonal types, grouped by role; then the types of every other role,
     /// up to the options' maximum and an ellipsis line beyond it; then the modules nested inside it, each a
-    /// hexagon of its own. Without nested modules the cards sit in a near-square grid. With them, the nested
-    /// modules take the middle and the module's own cards go around them, the first half in a row above, the rest
-    /// in a row below. Answers the module as a cell. An arrow ending on a hexagon's alias makes PlantUML show the
-    /// alias as its title, so the cell's ends are the module's first card, the hexagon itself when it has none.
+    /// hexagon of its own. The cards sit in a near-square grid, at least as wide as the widest family; each sealed
+    /// type's permitted types hang from it in a row of their own below the grid; the nested modules come last, and
+    /// above them the cards keep to one row. Answers the module as a cell. An arrow ending on a hexagon's alias
+    /// makes PlantUML show the alias as its title, so the cell's ends are the module's first card, the hexagon
+    /// itself when it has none.
     private Cell box(List<String> out, ApplicationModule module, String indent, List<ApplicationModule> nested,
                      Map<String, String> cards) {
         out.add(indent + MODULE + " \"" + module.getDisplayName() + "\" as " + alias(module) + " {");
         var inner = indent + INDENT;
-        out.add(inner + FRAME + " \" \" as " + alias(module) + "_in" + UNSEEN + " {");
+        out.add(inner + FRAME + " " + UNSEEN_TEXT + " as " + alias(module) + "_in" + UNSEEN + " {");
         var hexagonal = new TreeMap<String, List<JavaClass>>();
         var others = new TreeMap<String, List<JavaClass>>();
         var permitted = permittedTypes(module);
@@ -253,33 +263,34 @@ public final class HexagonDocumenter {
                     var group = stereotype.belongsToGroup(HEXAGONAL) ? hexagonal : others;
                     group.computeIfAbsent(role(stereotype), _ -> new ArrayList<>()).add(type);
                 }));
-        var own = new ArrayList<Cell>();
+        var entries = new ArrayList<Entry>();
         hexagonal.forEach((role, types) ->
-                types.forEach(type -> own.addAll(entry(out, inner, module, type, role, cards))));
+                types.forEach(type -> entries.add(entry(out, inner, module, type, role, cards))));
         others.forEach((role, types) -> {
             var shown = types.size() <= options.maxTypes() ? types : types.subList(0, options.maxTypes() - 1);
-            shown.forEach(type -> own.addAll(entry(out, inner, module, type, role, cards)));
+            shown.forEach(type -> entries.add(entry(out, inner, module, type, role, cards)));
             if (shown.size() < types.size()) {
-                own.add(Cell.of(
-                        card(out, inner, module, "... (" + types.size() + " total)", role, role + "_total")));
+                var total = card(out, inner, module, "... (" + types.size() + " total)", role, role + "_total");
+                entries.add(new Entry(Cell.of(total), List.of()));
             }
         });
+        var own = entries.stream().map(Entry::card).toList();
+        var families = entries.stream().filter(entry -> !entry.family().isEmpty()).toList();
         var rows = new ArrayList<Cell>();
-        if (nested.isEmpty()) {
-            if (!own.isEmpty()) {
-                rows.add(grid(out, inner, own, square(own.size())));
+        if (!own.isEmpty()) {
+            var widest = families.stream().mapToInt(entry -> columns(entry.family())).max().orElse(1);
+            var top = grid(out, inner, own, nested.isEmpty() ? Math.max(square(own.size()), widest) : own.size());
+            var bottom = new ArrayList<String>();
+            for (var entry : families) {
+                var family = grid(out, inner, entry.family(), columns(entry.family()));
+                out.add(inner + INDENT + entry.card().left() + " -[hidden]down-> " + family.top());
+                bottom.addAll(family.bottom());
             }
-        } else {
-            var above = own.subList(0, (own.size() + 1) / 2);
-            var below = own.subList(above.size(), own.size());
-            if (!above.isEmpty()) {
-                rows.add(grid(out, inner, above, above.size()));
-            }
-            var middle = nested.stream().map(child -> box(out, child, inner + INDENT, List.of(), cards)).toList();
-            rows.add(grid(out, inner, middle, middle.size()));
-            if (!below.isEmpty()) {
-                rows.add(grid(out, inner, below, below.size()));
-            }
+            rows.add(families.isEmpty() ? top : new Cell(top.left(), top.right(), top.top(), bottom));
+        }
+        if (!nested.isEmpty()) {
+            var children = nested.stream().map(child -> box(out, child, inner + INDENT, List.of(), cards)).toList();
+            rows.add(grid(out, inner, children, children.size()));
         }
         var cell = rows.isEmpty() ? Cell.of(alias(module)) : grid(out, inner, rows, 1);
         out.add(inner + "}");
@@ -287,16 +298,14 @@ public final class HexagonDocumenter {
         return cell;
     }
 
-    /// A card for the type. For a sealed type, the cards of its permitted types follow, implementing it: one
-    /// permitted type draws its arrow, several draw lines to a junction and the one arrow from there, so the
-    /// arrows meet in one head. Registers every card by type name. Answers the cells, the type's first.
-    private List<Cell> entry(List<String> out, String indent, ApplicationModule module, JavaClass type,
-                             String role, Map<String, String> cards) {
+    /// A card for the type. For a sealed type, cards for its permitted types as well, its family, implementing
+    /// it: one permitted type draws its arrow, several draw lines to a junction and the one arrow from there, so
+    /// the arrows meet in one head. Registers every card by type name.
+    private Entry entry(List<String> out, String indent, ApplicationModule module, JavaClass type, String role,
+                        Map<String, String> cards) {
         var alias = card(out, indent, module, type.getSimpleName(), role, type.getSimpleName());
         cards.put(type.getName(), alias);
-        var cells = new ArrayList<Cell>();
-        cells.add(Cell.of(alias));
-        var members = new ArrayList<String>();
+        var family = new ArrayList<Cell>();
         type.getPermittedSubclasses().orElse(Set.of()).stream()
                 .filter(member -> member.getPackageName().equals(type.getPackageName()))
                 .sorted(Comparator.comparing(JavaClass::getName))
@@ -304,18 +313,17 @@ public final class HexagonDocumenter {
                     var memberAlias = card(out, indent, module, member.getSimpleName(), role(stereotype),
                             member.getSimpleName());
                     cards.put(member.getName(), memberAlias);
-                    cells.add(Cell.of(memberAlias));
-                    members.add(memberAlias);
+                    family.add(Cell.of(memberAlias));
                 }));
-        if (members.size() == 1) {
-            out.add(indent + INDENT + members.getFirst() + " " + Kind.IMPLEMENTS.line("up") + " " + alias);
-        } else if (members.size() > 1) {
+        if (family.size() == 1) {
+            out.add(indent + INDENT + family.getFirst().left() + " " + Kind.IMPLEMENTS.line("up") + " " + alias);
+        } else if (family.size() > 1) {
             var junction = alias + "_j";
             out.add(indent + INDENT + JUNCTION + junction);
-            members.forEach(member -> out.add(indent + INDENT + member + " .up. " + junction));
+            family.forEach(member -> out.add(indent + INDENT + member.left() + " .up. " + junction));
             out.add(indent + INDENT + junction + " " + Kind.IMPLEMENTS.line("up") + " " + alias);
         }
-        return cells;
+        return new Entry(Cell.of(alias), family);
     }
 
     /// Writes the card, the type on the first line and its role in guillemets below in a smaller font. Answers the
@@ -332,9 +340,10 @@ public final class HexagonDocumenter {
     }
 
     /// Hidden arrows lay the cells out in a grid with the columns given: right between neighbours in a row, down
-    /// from the cards along a cell's bottom to the cell below it. Answers the grid as a cell: its first cell's
-    /// left, its first row's last right, and the cards along its bottom, those of the last row, and in a grid of
-    /// several columns those of every box, since a box in a row above may reach lower.
+    /// from the cards along a cell's bottom to the top of the cell below it. Answers the grid as a cell: its first
+    /// cell's left, its first row's last right, the top of the middle cell of its first row, and the cards along
+    /// its bottom, those of the last row, and in a grid of several columns those of every box, since a box in a
+    /// row above may reach lower.
     private static Cell grid(List<String> out, String indent, List<Cell> cells, int columns) {
         for (var i = 0; i < cells.size(); i++) {
             if ((i + 1) % columns != 0 && i + 1 < cells.size()) {
@@ -342,7 +351,7 @@ public final class HexagonDocumenter {
             }
             if (i + columns < cells.size()) {
                 for (var card : cells.get(i).bottom()) {
-                    out.add(indent + INDENT + card + " -[hidden]down-> " + cells.get(i + columns).left());
+                    out.add(indent + INDENT + card + " -[hidden]down-> " + cells.get(i + columns).top());
                 }
             }
         }
@@ -353,7 +362,9 @@ public final class HexagonDocumenter {
                 bottom.addAll(cells.get(i).bottom());
             }
         }
-        return new Cell(cells.getFirst().left(), cells.get(Math.min(columns, cells.size()) - 1).right(), bottom);
+        var firstRow = Math.min(columns, cells.size());
+        return new Cell(cells.getFirst().left(), cells.get(firstRow - 1).right(), cells.get((firstRow - 1) / 2).top(),
+                bottom);
     }
 
     /// About as many rows as columns, so a box stays near square whatever it holds.
@@ -361,9 +372,15 @@ public final class HexagonDocumenter {
         return Math.max(1, (int) Math.ceil(Math.sqrt(cells)));
     }
 
-    /// The arrows, sorted, one per pair of types: from each adapter type into the application type it depends
-    /// on, the strongest kind when there are several. A dependency on the domain from an adapter is not drawn:
-    /// the domain sits inside the application, and the nesting says it.
+    /// A family in one line, two when it is long.
+    private static int columns(List<Cell> family) {
+        return Math.min(family.size(), FAMILY_COLUMNS);
+    }
+
+    /// The arrows, sorted, one per pair of types, the strongest kind when there are several. From each adapter
+    /// type into the application type it depends on; a dependency on the domain from an adapter is not drawn, the
+    /// domain sits inside the application and the nesting says it. And from each application type with a card
+    /// to the application and domain types it refers to, sideways within the row, down into the domain.
     private void arrows(List<String> out, Map<Ring, List<ApplicationModule>> rings, Map<String, String> cards) {
         var core = rings.getOrDefault(Ring.CORE, List.of());
         var lines = new TreeMap<String, Kind>();
@@ -378,6 +395,22 @@ public final class HexagonDocumenter {
                                     Kind::strongest);
                         });
             }
+        }
+        var inside = Stream.concat(core.stream(), rings.getOrDefault(Ring.DOMAIN, List.of()).stream())
+                .flatMap(HexagonDocumenter::types)
+                .map(JavaClass::getName)
+                .filter(cards::containsKey)
+                .collect(toCollection(TreeSet::new));
+        for (var module : core) {
+            types(module).filter(type -> cards.containsKey(type.getName())).forEach(source ->
+                    source.getDirectDependenciesFromSelf().stream()
+                            .map(dependency -> topLevel(dependency.getTargetClass()))
+                            .filter(target -> !target.equals(source) && inside.contains(target.getName()))
+                            .forEach(target -> {
+                                var sideways = target.getPackageName().equals(source.getPackageName());
+                                lines.merge(cards.get(source.getName()) + "\t" + cards.get(target.getName()) + "\t"
+                                        + (sideways ? "right" : ""), kind(source, target), Kind::strongest);
+                            }));
         }
         lines.forEach((key, kind) -> {
             var parts = key.split("\t", -1);
@@ -394,7 +427,7 @@ public final class HexagonDocumenter {
                 + ";text:" + LEGEND_TEXT + " {");
         var samples = new ArrayList<Cell>();
         for (var kind : Kind.values()) {
-            var sample = new Cell(kind.alias() + "_from", kind.alias() + "_to", List.of());
+            var sample = new Cell(kind.alias() + "_from", kind.alias() + "_to", kind.alias() + "_from", List.of());
             out.add(INDENT + "label \" \" as " + sample.left());
             out.add(INDENT + "label \" \" as " + sample.right());
             out.add(INDENT + sample.left() + " " + kind.line("right") + " " + sample.right() + " : " + kind.relation);
@@ -442,6 +475,17 @@ public final class HexagonDocumenter {
         }
         return dependency.getSourceType().isAssignableTo(dependency.getTargetType().getName())
                 ? Kind.IMPLEMENTS
+                : Kind.DEPENDS_ON;
+    }
+
+    /// Between two types of the hexagon: `implements` when the source is one of the target's kind, `uses` when it
+    /// holds one in a field, a record component, `depends on` for a reference in a signature or a body.
+    private static Kind kind(JavaClass source, JavaClass target) {
+        if (source.isAssignableTo(target.getName())) {
+            return Kind.IMPLEMENTS;
+        }
+        return source.getFields().stream().anyMatch(field -> field.getRawType().equals(target))
+                ? Kind.USES
                 : Kind.DEPENDS_ON;
     }
 
