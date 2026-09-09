@@ -23,8 +23,6 @@ provider "confluent" {
   schema_registry_api_key       = var.schema_registry_api_key
   schema_registry_api_secret    = var.schema_registry_api_secret
 
-  flink_api_key    = var.flink_api_key
-  flink_api_secret = var.flink_api_secret
   cloud_api_key    = var.cloud_api_key
   cloud_api_secret = var.cloud_api_secret
 }

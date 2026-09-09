@@ -1,5 +1,5 @@
 -- Customer spend, a materialized table over transactions, per environment; ${env} is the prefix, test or prod.
--- The query alone: the table's name, key, buckets, changelog mode, and format are the resource's arguments in
+-- query: the table's name, key, buckets, changelog mode, and format are the resource's arguments in
 -- iac/flink.tf, and Flink registers the table's schema from these four columns. One row per customer, updated by
 -- every transaction; upsert mode keeps the latest row per key on the compacted topic, the materialized view.
 SELECT

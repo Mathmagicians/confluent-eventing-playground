@@ -17,6 +17,7 @@ is the trigger to extract, and the question before writing anything is: where do
 | Kafka client settings | the `kafka` profile, `application-kafka.properties` | the app, the admin client, the consumer, the registry client, through `KafkaProperties` |
 | Topic per payload | `topics.*` in the profile | `Topics`, features by the plain word, `ParameterTypes` resolves it |
 | The schema | the proto file under `src/main/proto` | protoc, Terraform, the BDD comparison |
+| Stream processing | the SQL under `src/main/flink` | Terraform submits it, `${env}` the one template variable |
 | The version | the git tag | Gradle, `make version`, the image tag, the release |
 | How anything runs | the Makefile | humans, every workflow step, compose, the README's commands |
 | Environments and names | `locals` in `iac/` | every `for_each`, never a second list |
