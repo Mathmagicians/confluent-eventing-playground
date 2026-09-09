@@ -1,19 +1,6 @@
 # Each service topic carries the schema of its payload, the message's proto file registered under the topic's
 # subject, TopicNameStrategy: order.proto on test.orders-value. Keys are plain strings and have no subject;
 # dead-letter topics carry the bytes and their schema id unchanged and need none either.
-locals {
-  proto = "${path.module}/../src/main/proto"
-  # the schema of each topic; transactions is below, its imports are references to these
-  schemas = {
-    products = "product.proto"
-    offers   = "offer.proto"
-    orders   = "order.proto"
-  }
-  # test.orders => order.proto
-  subjects = {
-    for pair in setproduct(local.environments, keys(local.schemas)) : "${pair[0]}.${pair[1]}" => local.schemas[pair[1]]
-  }
-}
 
 # BACKWARD is Confluent's default; pinned here so a change to it is a reviewed change
 resource "confluent_schema_registry_cluster_config" "main" {

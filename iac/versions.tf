@@ -13,9 +13,6 @@ terraform {
 }
 
 provider "confluent" {
-  cloud_api_key    = var.cloud_api_key
-  cloud_api_secret = var.cloud_api_secret
-
   kafka_id            = var.kafka_id
   kafka_rest_endpoint = var.kafka_rest_endpoint
   kafka_api_key       = var.kafka_api_key
@@ -25,4 +22,9 @@ provider "confluent" {
   schema_registry_rest_endpoint = var.schema_registry_rest_endpoint
   schema_registry_api_key       = var.schema_registry_api_key
   schema_registry_api_secret    = var.schema_registry_api_secret
+
+  flink_api_key    = var.flink_api_key
+  flink_api_secret = var.flink_api_secret
+  cloud_api_key    = var.cloud_api_key
+  cloud_api_secret = var.cloud_api_secret
 }
