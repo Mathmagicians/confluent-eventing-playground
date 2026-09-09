@@ -87,3 +87,11 @@ variable "flink_api_secret" {
   type      = string
   sensitive = true
 }
+
+variable "flink_compute_pool_id" {
+  type = string
+  validation {
+    condition     = startswith(var.flink_compute_pool_id, "fcp-")
+    error_message = "The Flink compute pool id must start with 'fcp-'."
+  }
+}

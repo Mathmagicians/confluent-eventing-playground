@@ -17,7 +17,7 @@ data "confluent_kafka_cluster" "main" {
 }
 
 data "confluent_flink_compute_pool" "main" {
-  display_name = var.flink_compute_pool_name
+  id = var.flink_compute_pool_id
   environment {
     id = data.confluent_environment.main.id
   }
