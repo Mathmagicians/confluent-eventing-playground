@@ -135,6 +135,9 @@ tf-check: tf-init   ## formatting and validation of iac/
 	@$(TF) fmt -check -diff -recursive
 	@$(TF) validate
 
+tf-format: tf-init   ## format iac/ in place
+	@$(TF) fmt -recursive
+
 tf-plan: tf-init   ## what Terraform Cloud would apply, a speculative plan, no colour for logs; settings from .env.<ENV>.private
 	@$(WITH_ENV) $(TF) plan -input=false -no-color
 

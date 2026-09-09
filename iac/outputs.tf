@@ -28,14 +28,20 @@ output "schemas" {
 
 # information about Flink compute pools, from data sources, not resources
 output "compute_pool" {
-  value =  {
+  value = {
     environment = data.confluent_environment.main.id
-    id        = data.confluent_flink_compute_pool.main.id
-    name           = data.confluent_flink_compute_pool.main.display_name
-    endpoint       = local.flink_rest_endpoint
+    id          = data.confluent_flink_compute_pool.main.id
+    name        = data.confluent_flink_compute_pool.main.display_name
+    endpoint    = local.flink_rest_endpoint
   }
 }
 
+# what runs on the pool, per environment: the settle statement and the customer spend table
 output "flink" {
-  value = null # FIXME per environment: settle statement name and status, customer spend table name and status
+  value = {
+    for env in local.environments : env => {
+      settle         = confluent_flink_statement.settle_sql[env].statement_name
+      customer_spend = confluent_flink_materialized_table.customer_spend[env].display_name
+    }
+  }
 }

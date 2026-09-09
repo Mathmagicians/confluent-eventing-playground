@@ -26,9 +26,13 @@ locals {
   }
 
   # --- flink ----------------------------------------------------------------------------------------------------
-  flink_rest_endpoint = data.confluent_flink_region.main.rest_endpoint
-  organization = data.confluent_organization.main.id
+  # the statements are source, next to the proto files; templatefile reads them with the environment prefix
+  flink_settle_sql_file         = "${path.module}/../src/main/flink/settle.sql"
+  flink_customer_spend_sql_file = "${path.module}/../src/main/flink/customer_spend.sql"
+  flink_rest_endpoint           = data.confluent_flink_region.main.rest_endpoint
+  organization                  = data.confluent_organization.main.id
 
-  # FIXME flink_sql: { env => { env = env } } over local.environments, the templatefile variables
-  # FIXME flink_properties: sql.current-catalog and sql.current-database from the two display names in data.tf
+  flink_sql = { for env in local.environments : env => { env = env } }
+
+  confluent_environment = data.confluent_environment.main.id
 }
