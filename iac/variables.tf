@@ -58,7 +58,14 @@ variable "cloud_api_secret" {
   sensitive = true
 }
 
-
+# --- the environment in Confluent
+variable "environment_id" {
+  type = string
+  validation {
+    condition     = startswith(var.environment_id, "env-")
+    error_message = "The environment id must start with 'env-'."
+  }
+}
 
 # --- Flink: the pool by name, the principal the statements run as, the key of scope Flink region ------------------
 variable "flink_compute_pool_name" {

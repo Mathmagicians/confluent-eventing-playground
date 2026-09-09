@@ -27,7 +27,7 @@ output "schemas" {
 }
 
 # information about Flink compute pools, from data sources, not resources
-output "compute_pools" {
+output "compute_pool" {
   value =  {
     environment = data.confluent_environment.main.id
     id        = data.confluent_flink_compute_pool.main.id
