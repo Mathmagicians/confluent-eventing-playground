@@ -67,10 +67,8 @@ variable "environment_id" {
   }
 }
 
-# --- Flink: the pool by name, the principal the statements run as, the key of scope Flink region ------------------
-variable "flink_compute_pool_name" {
-  type = string
-}
+# --- Flink: the principal the statements run as, the key of scope Flink region ------------------
+
 
 variable "flink_principal_id" {
   type = string
