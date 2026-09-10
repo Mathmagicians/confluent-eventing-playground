@@ -13,7 +13,7 @@ public record Order(String id, String customerId, String productId, Instant crea
     public static Order random(RandomGenerator random, Instant at) {
         return new Order(
                 Payload.id(ID_PREFIX, random),
-                Wonderland.CHARACTERS.next(random),
+                Wonderland.characterId(Wonderland.CHARACTERS.next(random)),
                 Product.id(Wonderland.THINGS.next(random)),
                 at);
     }

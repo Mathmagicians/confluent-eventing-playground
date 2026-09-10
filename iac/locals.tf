@@ -34,5 +34,12 @@ locals {
 
   flink_sql = { for env in local.environments : env => { env = env } }
 
+  # the tables that get their record headers as a column: the sources read them, virtual; the sink writes them
+  flink_headers_sql_file = "${path.module}/../src/main/flink/headers.sql"
+  flink_headers = {
+    for pair in setproduct(local.environments, ["orders", "offers", "transactions"]) :
+    "${pair[0]}.${pair[1]}" => { table = "${pair[0]}.${pair[1]}", virtual = pair[1] == "transactions" ? "" : " VIRTUAL" }
+  }
+
   confluent_environment = data.confluent_environment.main.id
 }

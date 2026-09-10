@@ -7,7 +7,7 @@ import java.util.random.RandomGenerator;
 
 /// Vocabulary for generated events, Alice likes games. Every draw is a function of the generator passed in.
 @Factory
-enum Wonderland {
+public enum Wonderland {
 
     CHARACTERS("Alice",
             "White Rabbit",
@@ -70,5 +70,13 @@ THINGS(
 
     String next(RandomGenerator random) {
         return words.get(random.nextInt(words.size()));
+    }
+
+    /// The id of a character, its key on the wire: `Mad Hatter` is `MAD_HATTER`. Not a character, not an id.
+    public static String characterId(String name) {
+        if (!CHARACTERS.words.contains(name)) {
+            throw new IllegalArgumentException(name + " is not in Wonderland");
+        }
+        return name.toUpperCase().replace(' ', '_');
     }
 }

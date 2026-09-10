@@ -14,8 +14,10 @@ import dk.mathmagicians.playground.eventing.OfferDTO;
 import dk.mathmagicians.playground.eventing.OrderDTO;
 import dk.mathmagicians.playground.eventing.ProductDTO;
 import dk.mathmagicians.playground.eventing.TransactionDTO;
+
 import java.time.Instant;
 import java.util.List;
+
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.header.internals.RecordHeader;
@@ -25,6 +27,8 @@ import org.apache.kafka.common.header.internals.RecordHeader;
 /// per direction. `Instant` travels as `google.protobuf.Timestamp`, a nested record as a nested message.
 public final class Converter {
 
+    public static final String SPECVERSION = "ce_specversion"; //always 1.0
+    public static final String TYPE = "ce_type"; // the payload's message full name, to(payload).getDescriptorForType().getFullName(),
     public static final String ID = "ce_id";
     public static final String SOURCE = "ce_source";
     public static final String TIME = "ce_time";
@@ -40,7 +44,9 @@ public final class Converter {
                 header(ID, envelope.id()),
                 header(REGION, envelope.region()),
                 header(SOURCE, envelope.app()),
-                header(TIME, envelope.at().toString()));
+                header(TIME, envelope.at().toString()),
+                header(SPECVERSION, "1.0"),
+                header(TYPE, to(envelope.payload()).getDescriptorForType().getFullName()));
     }
 
     /// The envelope from a record's headers and its payload.

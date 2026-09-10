@@ -29,7 +29,7 @@ public record Product(
         var place = Wonderland.PLACES.next(random);
         var quote = Wonderland.QUOTES.next(random);
         return new Product(
-                person.toUpperCase(),
+                Wonderland.characterId(person),
                 id(product),
                 product,
                 Wonderland.DESCRIPTIONS.next(random).formatted(product, place, person, quote),

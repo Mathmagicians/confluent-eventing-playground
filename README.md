@@ -51,13 +51,13 @@ in order, and the key picks the partition, so records with the same key stay in 
 
  ordered per product          ordered per product in a region    ordered per region
 
- transactions   key = region + product + customer
+ transactions   key = customer
 
- p0 | EMEA/P-POCK/C-01 EMEA/P-POCK/C-01
- p1 | APAC/P-POCK/C-07
- p2 | EMEA/P-FANN/C-01
+ p0 | C-01 C-01 C-01
+ p1 | C-07
+ p2 | C-02 C-02
 
- ordered per customer, per product in a region
+ ordered per customer, a ledger
 ```
 
 ## Architecture
@@ -88,7 +88,11 @@ payload.
 - **The key picks the partition**, one key per topic as shown under Purpose. The default partitioner (murmur2 over
   the serialized key) maps a key to a partition by partition count, so the partition count of a topic is fixed at
   topic creation.
-- A `Transaction` takes region and product for its key from the offer it settles, the customer id from itself.
+- A `Transaction` is keyed by its customer id, so a customer's transactions stay in order. Region and product ride
+  in the headers and the payload, where stream processing reads them.
+- **Keys are for ordering, headers are for stream processing.** A key is the partition contract and nothing else.
+  What a query filters or joins on, region, id, source, type, time, travels in the CloudEvents headers, which Flink
+  reads and writes as a metadata column.
 - Serialization: Protobuf via Confluent Schema Registry.
 
 ### Hexagon
@@ -290,10 +294,11 @@ A review finding cites the rule it breaks.
   `<topic>.DLT`, Spring's default name and partition, through `DeadLetterPublishingRecoverer`.
 - One serialization class per direction owns `byte[]` and serializer configuration. Business code works with
   `Envelope`.
-- Every message carries its envelope as record headers (CloudEvents pattern), `ce_id`, `ce_region`, `ce_source`,
-  `ce_time`, and its payload as the value, so a topic's value schema is its payload type and stream processing
-  reads the topic directly. The `Envelope` message in `envelope.proto` documents the thin-envelope alternative and stays off the
-  wire.
+- Every message carries its envelope as record headers, CloudEvents binary mode: `ce_specversion`, `ce_id`,
+  `ce_source`, `ce_type`, the message's full name, `ce_time` in RFC 3339, and the extension `ce_region`; its payload
+  is the value, so a topic's value schema is its payload type and stream processing reads the topic directly. A
+  statement that writes a topic writes the same headers. The `Envelope` message in `envelope.proto` documents the
+  thin-envelope alternative and stays off the wire.
 - Schema evolution: `BACKWARD` compatibility, `TopicNameStrategy`, schemas checked in under
   `common/src/main/proto`, one file per payload, registered by `iac/` under its topic's `<topic>-value` subject,
   imports as schema references. A producer runs with `auto.register.schemas=false` and `use.latest.version=true`.

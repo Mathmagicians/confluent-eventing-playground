@@ -19,7 +19,7 @@ public record Offer(String offerId, String productId, double price, String selle
                 Payload.id(ID_PREFIX, random),
                 Product.id(Wonderland.THINGS.next(random)),
                 cents / 100.0,
-                Wonderland.CHARACTERS.next(random),
+                Wonderland.characterId(Wonderland.CHARACTERS.next(random)),
                 at);
     }
 }

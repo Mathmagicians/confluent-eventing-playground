@@ -1,5 +1,6 @@
 package dk.mathmagicians.playground.confluent.eventing.bdd;
 
+import dk.mathmagicians.playground.confluent.eventing.domain.Wonderland;
 import io.cucumber.java.ParameterType;
 import org.springframework.core.env.Environment;
 
@@ -21,5 +22,12 @@ public class ParameterTypes {
 
     private String named(String payload) {
         return environment.getRequiredProperty("topics." + payload);
+    }
+
+    /// A wonderlander as the features name one, `Alice`, `White Rabbit`, `Queen of Hearts`: a character in
+    /// Wonderland, which answers with the key on the wire, `WHITE_RABBIT`, and refuses anyone else.
+    @ParameterType("[A-Z][a-z]+(?: (?:of|[A-Z][a-z]+))*")
+    public String wonderlander(String name) {
+        return Wonderland.characterId(name);
     }
 }

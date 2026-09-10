@@ -30,7 +30,40 @@ resource "confluent_flink_statement" "settle_sql" {
     "sql.current-database" = data.confluent_kafka_cluster.main.display_name
   }
   statement  = templatefile(local.flink_settle_sql_file, local.flink_sql[each.key])
-  depends_on = [confluent_schema.transaction]
+  depends_on = [confluent_schema.transaction, confluent_flink_statement.headers]
+}
+
+# the record headers as a table column, one-shot per table: virtual on the sources the join reads, persisted on the
+# sink it writes, see headers.sql
+resource "confluent_flink_statement" "headers" {
+  for_each = local.flink_headers
+  organization {
+    id = data.confluent_organization.main.id
+  }
+  environment {
+    id = local.confluent_environment
+  }
+  compute_pool {
+    id = data.confluent_flink_compute_pool.main.id
+  }
+
+  principal {
+    id = var.flink_principal_id
+  }
+
+  rest_endpoint = local.flink_rest_endpoint
+
+  credentials {
+    key    = var.flink_api_key
+    secret = var.flink_api_secret
+  }
+
+  properties = {
+    "sql.current-catalog"  = data.confluent_environment.main.display_name
+    "sql.current-database" = data.confluent_kafka_cluster.main.display_name
+  }
+  statement  = templatefile(local.flink_headers_sql_file, each.value)
+  depends_on = [confluent_kafka_topic.topic, confluent_schema.topic, confluent_schema.transaction]
 }
 
 # the table declares its own topic and subject, so neither appears in topics.tf or schemas.tf
