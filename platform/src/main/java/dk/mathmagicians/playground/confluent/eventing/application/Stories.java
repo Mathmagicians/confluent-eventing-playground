@@ -3,9 +3,11 @@ package dk.mathmagicians.playground.confluent.eventing.application;
 import java.util.Collection;
 import java.util.Set;
 import java.util.TreeMap;
+import org.jmolecules.ddd.annotation.Service;
 
 /// The stories on the classpath, and the one this process plays, `--story=<name>`. Two stories of one name are
 /// a configuration error, and so is a name nobody answers to: both fail the start with the names known.
+@Service
 public final class Stories {
 
     private final TreeMap<String, Story> byName = new TreeMap<>();

@@ -29,18 +29,18 @@ System_Boundary("EventingPlatform_boundary", "EventingPlatform", $tags="") {
 
 }
 
-Rel(EventingPlatform.EventingPlatform.Cli, EventingPlatform.EventingPlatform.Application, "uses", $techn="", $tags="", $link="")
-Rel(EventingPlatform.EventingPlatform.Kafkaconsumer, EventingPlatform.EventingPlatform.Domain, "depends on", $techn="", $tags="", $link="")
-Rel(EventingPlatform.EventingPlatform.Kafkaconsumer, EventingPlatform.EventingPlatform.Application, "uses", $techn="", $tags="", $link="")
-Rel(EventingPlatform.EventingPlatform.Kafkapublisher, EventingPlatform.EventingPlatform.Domain, "depends on", $techn="", $tags="", $link="")
-Rel(EventingPlatform.EventingPlatform.Kafkapublisher, EventingPlatform.EventingPlatform.Application, "depends on", $techn="", $tags="", $link="")
-Rel(EventingPlatform.EventingPlatform.Log, EventingPlatform.EventingPlatform.Domain, "depends on", $techn="", $tags="", $link="")
-Rel(EventingPlatform.EventingPlatform.Log, EventingPlatform.EventingPlatform.Application, "depends on", $techn="", $tags="", $link="")
-Rel(EventingPlatform.EventingPlatform.Loadstory, EventingPlatform.EventingPlatform.Domain, "depends on", $techn="", $tags="", $link="")
-Rel(EventingPlatform.EventingPlatform.Loadstory, EventingPlatform.EventingPlatform.Application, "uses", $techn="", $tags="", $link="")
 Rel(EventingPlatform.EventingPlatform.Application, EventingPlatform.EventingPlatform.Domain, "depends on", $techn="", $tags="", $link="")
 Rel(EventingPlatform.EventingPlatform.Teapartystory, EventingPlatform.EventingPlatform.Domain, "depends on", $techn="", $tags="", $link="")
 Rel(EventingPlatform.EventingPlatform.Teapartystory, EventingPlatform.EventingPlatform.Application, "uses", $techn="", $tags="", $link="")
+Rel(EventingPlatform.EventingPlatform.Loadstory, EventingPlatform.EventingPlatform.Domain, "depends on", $techn="", $tags="", $link="")
+Rel(EventingPlatform.EventingPlatform.Loadstory, EventingPlatform.EventingPlatform.Application, "uses", $techn="", $tags="", $link="")
+Rel(EventingPlatform.EventingPlatform.Cli, EventingPlatform.EventingPlatform.Application, "uses", $techn="", $tags="", $link="")
+Rel(EventingPlatform.EventingPlatform.Log, EventingPlatform.EventingPlatform.Domain, "depends on", $techn="", $tags="", $link="")
+Rel(EventingPlatform.EventingPlatform.Log, EventingPlatform.EventingPlatform.Application, "depends on", $techn="", $tags="", $link="")
+Rel(EventingPlatform.EventingPlatform.Kafkapublisher, EventingPlatform.EventingPlatform.Domain, "depends on", $techn="", $tags="", $link="")
+Rel(EventingPlatform.EventingPlatform.Kafkapublisher, EventingPlatform.EventingPlatform.Application, "depends on", $techn="", $tags="", $link="")
+Rel(EventingPlatform.EventingPlatform.Kafkaconsumer, EventingPlatform.EventingPlatform.Domain, "depends on", $techn="", $tags="", $link="")
+Rel(EventingPlatform.EventingPlatform.Kafkaconsumer, EventingPlatform.EventingPlatform.Application, "uses", $techn="", $tags="", $link="")
 
 SHOW_LEGEND(true)
 hide stereotypes

@@ -157,8 +157,8 @@ if (project != rootProject || subprojects.isEmpty()) {
         // the architecture documents under docs/generated/architecture, -ParchitectureDocs for another place: the
         // tagged test writes the PlantUML sources and the canvases, PlantUML renders the diagrams to SVG with its
         // built-in layout engine, so no Graphviz is needed
-        def docs = layout.projectDirectory.dir(providers.gradleProperty('architectureDocs')
-                .getOrElse('docs/generated/architecture'))
+        // findProperty, not providers.gradleProperty: the latter does not see a subproject's gradle.properties
+        def docs = layout.projectDirectory.dir(findProperty('architectureDocs') ?: 'docs/generated/architecture')
 
         configurations {
             plantuml

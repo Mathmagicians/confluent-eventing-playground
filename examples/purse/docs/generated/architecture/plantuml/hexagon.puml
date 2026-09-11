@@ -30,8 +30,10 @@ rectangle "APPLICATION" as core #line:transparent {
       card "PublishMessage\n<size:10>«PrimaryPort»</size>" as m_Application_PublishMessage
       card "Story\n<size:10>«PrimaryPort»</size>" as m_Application_Story
       card "Publisher\n<size:10>«SecondaryPort»</size>" as m_Application_Publisher
+      card "Stories\n<size:10>«Service»</size>" as m_Application_Stories
       m_Application_PublishMessage -[hidden]right-> m_Application_Story
       m_Application_Story -[hidden]right-> m_Application_Publisher
+      m_Application_Publisher -[hidden]right-> m_Application_Stories
       hexagon "Domain" as m_Domain {
         rectangle "<size:1> </size>" as m_Domain_in #line:transparent {
           card "Wonderland\n<size:10>«Factory»</size>" as m_Domain_Wonderland
@@ -60,6 +62,7 @@ rectangle "APPLICATION" as core #line:transparent {
       m_Application_PublishMessage -[hidden]down-> m_Domain_Envelope
       m_Application_Story -[hidden]down-> m_Domain_Envelope
       m_Application_Publisher -[hidden]down-> m_Domain_Envelope
+      m_Application_Stories -[hidden]down-> m_Domain_Envelope
     }
   }
   hexagon "Purse story" as m_Purse_story {
@@ -92,11 +95,12 @@ m_Application_PublishMessage ..> m_Domain_Payload
 m_Application_PublishMessage ..> m_Domain_Receipt
 m_Application_Publisher ..> m_Domain_Envelope
 m_Application_Publisher ..> m_Domain_Receipt
+m_Application_Stories -right-> m_Application_Story
 m_Application_Story ..> m_Domain_Envelope
 m_Application_Story ..> m_Domain_Payload
-m_Cli_StoryRunner -right-> m_Application
+m_Cli_StoryRunner -right-> m_Application_Stories
 m_Cli_StoryRunner .right.> m_Application_Story
-m_Kafka_consumer_StoryListener -right-> m_Application
+m_Kafka_consumer_StoryListener -right-> m_Application_Stories
 m_Kafka_consumer_StoryListener .right.> m_Application_Story
 m_Kafka_publisher_KafkaPublisher .left.|> m_Application_Publisher
 m_Log_LoggingPublisher .left.|> m_Application_Publisher
