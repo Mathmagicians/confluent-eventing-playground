@@ -28,11 +28,7 @@ resource "confluent_flink_statement" "products_headers" {
     "sql.current-catalog"  = data.confluent_environment.main.display_name
     "sql.current-database" = data.confluent_kafka_cluster.main.display_name
   }
-
-  lifecycle {
-    ignore_changes       = [statement] # an edit of headers.sql never re-runs the ALTER against an existing column
-    replace_triggered_by = [confluent_kafka_topic.topic["${each.key}.products"]]
-  }
+  
   depends_on = [confluent_schema.topic]
 }
 
