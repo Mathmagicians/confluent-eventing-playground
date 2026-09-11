@@ -27,19 +27,11 @@ locals {
 
   # --- flink ----------------------------------------------------------------------------------------------------
   # the statements are source, next to the proto files; templatefile reads them with the environment prefix
-  flink_settle_sql_file         = "${path.module}/../src/main/flink/settle.sql"
-  flink_customer_spend_sql_file = "${path.module}/../src/main/flink/customer_spend.sql"
-  flink_rest_endpoint           = data.confluent_flink_region.main.rest_endpoint
-  organization                  = data.confluent_organization.main.id
+  flink_product_catalog_sql_file = "${path.module}/../src/main/flink/product_catalog.sql"
+  flink_rest_endpoint            = data.confluent_flink_region.main.rest_endpoint
+  organization                   = data.confluent_organization.main.id
 
   flink_sql = { for env in local.environments : env => { env = env } }
-
-  # the tables that get their record headers as a column: the sources read them, virtual; the sink writes them
-  flink_headers_sql_file = "${path.module}/../src/main/flink/headers.sql"
-  flink_headers = {
-    for pair in setproduct(local.environments, ["orders", "offers", "transactions"]) :
-    "${pair[0]}.${pair[1]}" => { table = "${pair[0]}.${pair[1]}", virtual = pair[1] == "transactions" ? "" : " VIRTUAL" }
-  }
 
   confluent_environment = data.confluent_environment.main.id
 }

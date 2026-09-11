@@ -1,0 +1,33 @@
+@startuml
+title <size:24>Kafka publisher</size>
+
+set separator none
+top to bottom direction
+
+<style>
+  root {
+    BackgroundColor: #ffffff
+    FontColor: #444444
+  }
+</style>
+
+!include <C4/C4>
+!include <C4/C4_Context>
+!include <C4/C4_Component>
+
+System_Boundary("EventingPlatform_boundary", "EventingPlatform", $tags="") {
+  Container_Boundary("EventingPlatform.EventingPlatform_boundary", "EventingPlatform", $tags="") {
+    Component(EventingPlatform.EventingPlatform.Domain, "Domain", $techn="Module", $descr="", $tags="", $link="")
+    Component(EventingPlatform.EventingPlatform.Application, "Application", $techn="Module", $descr="", $tags="", $link="")
+    Component(EventingPlatform.EventingPlatform.Kafkapublisher, "Kafka publisher", $techn="Module", $descr="", $tags="", $link="")
+  }
+
+}
+
+Rel(EventingPlatform.EventingPlatform.Kafkapublisher, EventingPlatform.EventingPlatform.Domain, "depends on", $techn="", $tags="", $link="")
+Rel(EventingPlatform.EventingPlatform.Kafkapublisher, EventingPlatform.EventingPlatform.Application, "depends on", $techn="", $tags="", $link="")
+Rel(EventingPlatform.EventingPlatform.Application, EventingPlatform.EventingPlatform.Domain, "depends on", $techn="", $tags="", $link="")
+
+SHOW_LEGEND(true)
+hide stereotypes
+@enduml

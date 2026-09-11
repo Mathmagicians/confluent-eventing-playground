@@ -33,15 +33,18 @@ output "compute_pool" {
     id          = data.confluent_flink_compute_pool.main.id
     name        = data.confluent_flink_compute_pool.main.display_name
     endpoint    = local.flink_rest_endpoint
+    principal   = var.flink_principal_id
+    # where a statement resolves unqualified table names: the environment as the catalog, the cluster as the database
+    catalog  = data.confluent_environment.main.display_name
+    database = data.confluent_kafka_cluster.main.display_name
   }
 }
 
-# what runs on the pool, per environment: the settle statement and the customer spend table
+# the tables on the pool, per environment; make flink-verify reads them
 output "flink" {
   value = {
     for env in local.environments : env => {
-      settle         = confluent_flink_statement.settle_sql[env].statement_name
-      customer_spend = confluent_flink_materialized_table.customer_spend[env].display_name
+      product_catalog = confluent_flink_materialized_table.product_catalog[env].display_name
     }
   }
 }

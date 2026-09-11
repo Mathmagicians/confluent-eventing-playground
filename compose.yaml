@@ -1,5 +1,6 @@
-# The swarm: one generator per event type. `make up` starts all three, `make up-<type>` starts one, against ENV.
-# Defaults live here; override with environment variables, e.g. OFFER_CONCURRENT=50 TTL=300 make up-offer.
+# The flock: one generator per event type, and the tea party that settles their orders. `make up` starts the
+# generators, `make up-<type>` starts one, `make up-tea-party` the tea party, against ENV. Defaults live here;
+# override with environment variables, e.g. OFFER_CONCURRENT=50 TTL=300 make up-offer.
 name: confluent-eventing-playground
 
 x-generator: &generator
@@ -41,3 +42,12 @@ services:
       - --load.interval=${ORDER_INTERVAL:-250}
       - --load.region=${REGION:-EMEA}
       - --load.ttl=${TTL:-60}
+
+  # the same image playing another story: reads the region's offers and orders, publishes its transactions,
+  # runs until stopped; not part of `make up`, see the tea-party profile
+  tea-party:
+    <<: *generator
+    profiles: [tea-party]
+    command:
+      - --story=tea-party
+      - --tea-party.region=${REGION:-EMEA}

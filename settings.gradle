@@ -1,1 +1,7 @@
 rootProject.name = 'confluent-eventing-playground'
+
+// the substrate, the stories it runs in this repository, and the distribution that puts them in one image
+include 'platform'
+include 'stories:load'
+include 'stories:tea-party'
+include 'app'

@@ -1,0 +1,13 @@
+-- The product catalog, a materialized table over the products stream, per environment; ${env} is the prefix.
+-- Every product record is a new version of the same thing: the name stays, the description and the producer are
+-- fresh. The catalog keeps each product once, as it was last described, and counts its versions. The query alone:
+-- the table's name, key, buckets, changelog mode, and format are the resource's arguments in iac/flink.tf.
+--
+-- FIXME two window functions over the same partition, each product's records in record-time order:
+-- FIXME   ROW_NUMBER() OVER (PARTITION BY product_id ORDER BY `$rowtime` DESC) AS rn, 1 for the latest version
+-- FIXME   COUNT(*)     OVER (PARTITION BY product_id)                            AS versions
+-- FIXME an outer query keeps rn = 1: product_id, product_name, producer_id, product_description, versions,
+-- FIXME   and `$rowtime` AS updated_at, the time the latest version arrived
+-- FIXME Flink recognises the rn = 1 filter over ROW_NUMBER as deduplication and keeps one row per product in
+-- FIXME   upsert mode; without the ORDER BY DESC it would keep the first version instead of the latest
+-- FIXME no trailing semicolon, the resource submits the query as is

@@ -34,7 +34,7 @@ unit tests, README prose. They drive.
 
 ### The human owns these (review and propose; edit when told "you do it")
 
-- Everything under `src/main/java` that is not configuration wiring
+- Everything under a project's `src/main/java` that is not configuration wiring: the platform's, a story's
 - Gherkin feature files. Review them for language and structure. Write scenarios when asked.
 - Step-definition bodies and test drivers
 - Unit tests for their production code. Point at the gap. Draft a test when asked.

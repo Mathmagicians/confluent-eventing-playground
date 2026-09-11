@@ -4,8 +4,10 @@
 [![iac](https://github.com/Mathmagicians/confluent-eventing-playground/actions/workflows/iac.yaml/badge.svg?branch=main)](https://github.com/Mathmagicians/confluent-eventing-playground/actions/workflows/iac.yaml)
 [![load-run](https://github.com/Mathmagicians/confluent-eventing-playground/actions/workflows/load-run.yaml/badge.svg)](https://github.com/Mathmagicians/confluent-eventing-playground/actions/workflows/load-run.yaml)
 [![architecture-discovery](https://github.com/Mathmagicians/confluent-eventing-playground/actions/workflows/architecture-discovery.yaml/badge.svg?branch=main)](https://github.com/Mathmagicians/confluent-eventing-playground/actions/workflows/architecture-discovery.yaml)
+[![cicd-client-example](https://github.com/Mathmagicians/confluent-eventing-playground/actions/workflows/cicd-client-example.yaml/badge.svg?branch=main)](https://github.com/Mathmagicians/confluent-eventing-playground/actions/workflows/cicd-client-example.yaml)
 
-Reference implementation of a Kafka **load generator** and **stream consumer** running against **Confluent Cloud**.
+Reference implementation of an **eventing platform**, a proof of concept, that plays **stories**, a Kafka load
+generator and stream consumers, against **Confluent Cloud**.
 
 ## Tech Stack
 - Java 25 - newest LTS, finalized features
@@ -17,7 +19,7 @@ Reference implementation of a Kafka **load generator** and **stream consumer** r
 - jMolecules + ArchUnit - hexagonal stereotypes on ports, adapters, and application services, and the rule that
   enforces them
 - Testcontainers - runs the image under test in the BDD suite
-- Docker + Compose - starts the swarm of load generators and the consumer
+- Docker + Compose - starts the flock: the load generators and the stories that read them
 - GitHub Actions - CICD + publish to GH registry, and hourly load runs
 - Terraform + Terraform Cloud - topics and schemas on Confluent Cloud, provider `confluentinc/confluent`
 - Container image - deployment unit, built with `./gradlew bootBuildImage`
@@ -75,10 +77,12 @@ in order, and the key picks the partition, so records with the same key stay in 
 
 | Service           | Role                                                                                                                                  | Runs where                              |
 |-------------------|---------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------|
-| `load-generator`  | Produces one payload type to its topic. One codebase, many instances distinguished by type and region (`EMEA`, `AMER`, `APAC`, ...). | Compose swarm, GitHub Actions cron      |
-| `stream-consumer` | Consumes the topics, verifies ordering per key, exposes counters.                                                                     | Compose swarm                           |
+| `load`            | The generator: produces one payload type to its topic. One image, many instances distinguished by type and region (`EMEA`, `AMER`, `APAC`, ...). | Compose flock, GitHub Actions cron |
+| `tea-party`       | Reads a region's offers and orders, settles an order at the latest offer, publishes the transaction.                                | Compose flock                           |
+| `purse`           | Reads the transactions, keeps what its owner has left. The example of a story built outside, `examples/purse/`.                     | Its own image                           |
 
-Both are Spring Boot applications. Actuator health and metrics are the endpoints they expose.
+All are stories of one Spring Boot application, the platform, one story per process, `--story=<name>`. Actuator
+health and metrics are the endpoints it exposes.
 
 ### Domain
 
@@ -97,32 +101,36 @@ payload.
 
 ### Hexagon
 
-The load generator is one hexagon. The domain sits in the centre, the use cases around it, and every technology, the
-command line, the log, Kafka, Spring, in an adapter at the rim. Dependencies point inward: an adapter knows its port,
-a use case knows the domain and its ports, the domain knows nothing outside itself.
+The platform is one hexagon, and every story a hexagon of its own beside it. The domain sits in the centre, the use
+cases around it, and every technology, the command line, the log, Kafka, Spring, in an adapter at the rim.
+Dependencies point inward: an adapter knows its port, a use case knows the domain and its ports, the domain knows
+nothing outside itself.
 
 ```
- driving side                                                                          driven side
+ driving side                                                                            driven side
 
- command line --> LoadRunner --> GenerateLoad --> PublishMessage --> Publisher --> LoggingPublisher --> the log
-                                 use cases, the driving ports        driven port   KafkaPublisher   --> Confluent Cloud
-                                               |
-                                             domain
-                             Payload records, Envelope, Receipt, Wonderland
+ command line    --> StoryRunner   --> Story --> PublishMessage --> Publisher --> LoggingPublisher --> the log
+ Confluent Cloud --> StoryListener -->   |       use case           driven port   KafkaPublisher   --> Confluent Cloud
+                                         |
+                    GenerateLoad, SettleAtTheTeaParty, KnowWhatIsLeft: the stories, driving ports of their own
+                                         |
+                                       domain
+                       Payload records, Envelope, Receipt, Wonderland
 ```
 
 | Ring             | What lives there                                                                                              | Package               | Stereotype          |
 |------------------|---------------------------------------------------------------------------------------------------------------|-----------------------|---------------------|
 | Domain           | `Payload` and its records, `Envelope`, `Receipt`, `Wonderland`: the data, the key rules, the random recipes.  | `domain`              | none                |
-| Use cases        | The driving ports, named in the features' words: `PublishMessage`, `GenerateLoad`. Records, plain Java and SLF4J. | `application`     | `@PrimaryPort`      |
+| Use cases        | The driving ports, named in the features' words: `Story`, the contract every story implements, and `PublishMessage`; the stories `GenerateLoad`, `SettleAtTheTeaParty`, `KnowWhatIsLeft`, one jar each. Records, plain Java and SLF4J. | `application`, `stories/*` | `@PrimaryPort` |
 | Driven ports     | What the use cases need from the outside: `Publisher`. Interfaces.                                            | `application`         | `@SecondaryPort`    |
-| Driving adapters | What calls a use case: `LoadRunner`, the command line bound to `LoadProperties`.                              | `adapter/cli`         | `@PrimaryAdapter`   |
-| Driven adapters  | What implements a driven port: `LoggingPublisher` for `local`, `KafkaPublisher` with `Topics` and `Converter` for `test` and `prod`. | `adapter/log`, `adapter/kafka` | `@SecondaryAdapter` |
-| Composition root | `UseCases`, a `@Configuration` that builds each use case from its ports, the clock, and the random source.    | root                  | none                |
+| Driving adapters | What calls a use case: `StoryRunner`, the command line starting the story `--story` names; `StoryListener`, the consumer feeding it the topics it listens to. | `adapter/cli`, `adapter/kafka/consumer` | `@PrimaryAdapter` |
+| Driven adapters  | What implements a driven port: `LoggingPublisher` for `local`, `KafkaPublisher` with `Topics` and `Converter` for `test` and `prod`. | `adapter/log`, `adapter/kafka/publisher` | `@SecondaryAdapter` |
+| Composition root | `UseCases`, a `@Configuration` that wires the clock and picks the story; each story's auto-configuration builds the story from its settings, its ports, the clock, and the random source. | root, `stories/*` | none |
 
 A use case takes what the generator has, a payload, and the driven port takes what the wire carries, an envelope:
-`PublishMessage` makes the one from the other, and `GenerateLoad` publishes through it. Use cases are records Spring
-never sees: `UseCases` wires them by hand from their ports, the clock, and the random source. The stereotypes are
+`PublishMessage` makes the one from the other, and a story publishes through it. Use cases are records Spring never
+sees: a story's auto-configuration wires them by hand from their ports, the clock, and the random source, and
+`UseCases` picks the story `--story` names. The stereotypes are
 jMolecules annotations, and `ArchitectureTest` runs `ensureHexagonal()` over them: a use case reaches driven ports,
 other use cases, and the domain only, a driving adapter reaches use cases only, a driven adapter reaches driven ports
 only, and nothing inside reaches an adapter.
@@ -133,13 +141,16 @@ only, and nothing inside reaches an adapter.
  GitHub Actions cron (hourly)          developer machine
           |                                   |
           v                                   v
-   load-generator (EMEA)   ...   load-generator (region N)
+   load story (EMEA)   ...   load story (region N)
           |   key per topic, headers = envelope, value = payload
           v
    Confluent Cloud   topics: products, offers, orders, transactions, prefixed test. or prod.   (N partitions, fixed)
+          |                                                      ^
+          v                                                      |
+   tea-party story (EMEA) ... (region N)   an order meets an offer, the transaction goes back up
           |
           v
-   stream-consumer   per-partition ordering checks, metrics
+   purse story   what its owner has left
 ```
 
 
@@ -148,24 +159,26 @@ only, and nothing inside reaches an adapter.
 ```
 .
 ├── README.md                 this file: project and coding standards
-├── Makefile                  single entry point for humans and CI
-├── compose.yaml              the swarm: load generators per region, the consumer
+├── Makefile                  the entry point for humans and CI: what only this repository has
+├── platform.mk               the make targets every build on the platform shares, included by the Makefile and a story's own
+├── platform.gradle           the Gradle conventions every build on the platform shares, applied by build.gradle and a story's own
+├── compose.yaml              the flock: generators per region, the tea party
 ├── build.gradle / settings.gradle
+├── platform/                 the eventing platform: domain, the Story contract, the adapters; its test fixtures are the shared BDD
+├── stories/                  the stories of this repository, one jar each: load, tea-party
+├── app/                      the distribution: the platform and the stories in one image, the architecture tests
+├── examples/purse/           a story built as a client builds one, against the published platform, see its README
+├── src/main/proto/           Protobuf schemas, registered by iac/; the generated code is committed under platform/src/generated
 ├── iac/                      Terraform: topics and schemas on the Confluent cluster, applied by Terraform Cloud
-├── .github/workflows/        cicd.yaml, load-run.yaml, iac.yaml, architecture-discovery.yaml
-├── architecture-discovery/   the library behind the hexagon diagram: its own build, its own workflow, published to GitHub Packages
-├── docs/                     architecture-discoverability.md; generated/architecture from the code, make arch-gen
-├── common/                   Order domain, serialization, shared test fixtures
-│   ├── src/main/proto/       Protobuf schemas
-│   └── src/generated/        protoc output, committed, regenerated with make proto-gen
-├── load-generator/           producer service
-└── stream-consumer/          consumer service
+├── .github/workflows/        cicd.yaml, load-run.yaml, iac.yaml, architecture-discovery.yaml, cicd-client-example.yaml
+├── architecture-discovery/   the library behind the hexagon diagram, and architecture-discoverability.md: its own build, its own workflow, published to GitHub Packages
+└── docs/                     generated/architecture from the code, make arch-gen
 ```
 
-Root package: `dk.mathmagicians.playground.confluent`. Packages by ring inside a service: `domain` in the centre,
-`application` around it, and `adapter` at the edge with one package per technology, `cli`, `log`, `kafka`, see
-Hexagon under Architecture. The domain is one package, so a sealed type and its records stay package-private
-neighbours.
+Root package: `dk.mathmagicians.playground.confluent`. Packages by ring inside the platform: `domain` in the
+centre, `application` around it, and `adapter` at the edge with one package per technology, `cli`, `log`,
+`kafka/publisher`, `kafka/consumer`, see Hexagon under Architecture. A story is one package under `stories`. The
+domain is one package, so a sealed type and its records stay package-private neighbours.
 
 Tests live next to what they test:
 
@@ -215,15 +228,17 @@ GitHub environment `terraform-cloud` holds `TF_API_TOKEN`, `TF_CLOUD_ORGANIZATIO
 and workspace names in `.env.test.private`.
 
 ## Play
-The application is a container image. Start the message generators with compose, see `compose.yaml` and the Swarm
-section of `make help`, or start the image on its own:
+The application is a container image that plays one story per process, `--story=<name>`, `load` by default. Start
+the flock with compose, see `compose.yaml` and the Flock section of `make help`, or start the image on its own:
 
 ```bash
 docker run --rm confluent-eventing-playground:$(make version)
 docker run --rm confluent-eventing-playground:$(make version) --load.type=order --load.concurrent=20 --load.interval=100 --load.region=APAC --load.ttl=120
 docker run --rm ghcr.io/mathmagicians/confluent-eventing-playground:latest --load.type=product
+docker run --rm ghcr.io/mathmagicians/confluent-eventing-playground:latest --story=tea-party --tea-party.region=EMEA
 ```
-You can customize the load generator with the following arguments:
+A story's settings are the bundle of its name. The tea party takes `--tea-party.region`, default `EMEA`, and reads
+until stopped. The load story takes:
 
 | Argument            | Values                    | Default |
 |---------------------|---------------------------|---------|
@@ -288,7 +303,7 @@ A review finding cites the rule it breaks.
 - Topics and their schemas are created by Terraform Cloud from `iac/`. Test containers auto-create.
 - Topic names are `<env>.<topic>`, the environment `test` or `prod` first: `test.orders`. The dot is the only
   separator.
-- Consumer group id is explicit and named after the service. Offset management stays on Spring defaults until a
+- Consumer group id is explicit and named after the story. Offset management stays on Spring defaults until a
   scenario needs otherwise.
 - Listener exceptions propagate to Spring's `DefaultErrorHandler`, which publishes to the dead-letter topic
   `<topic>.DLT`, Spring's default name and partition, through `DeadLetterPublishingRecoverer`.
@@ -300,7 +315,7 @@ A review finding cites the rule it breaks.
   statement that writes a topic writes the same headers. The `Envelope` message in `envelope.proto` documents the
   thin-envelope alternative and stays off the wire.
 - Schema evolution: `BACKWARD` compatibility, `TopicNameStrategy`, schemas checked in under
-  `common/src/main/proto`, one file per payload, registered by `iac/` under its topic's `<topic>-value` subject,
+  `src/main/proto`, one file per payload, registered by `iac/` under its topic's `<topic>-value` subject,
   imports as schema references. A producer runs with `auto.register.schemas=false` and `use.latest.version=true`.
 - Confluent Cloud clients use `SASL_SSL` with `PLAIN`. Every other setting stays at the Confluent-recommended default
   until a measurement justifies a change.
@@ -374,15 +389,17 @@ BDD with Cucumber:
 - The version is Gradle's, derived from git tags: `1.2.3` at tag `v1.2.3`, `1.2.4-SNAPSHOT` after it,
   `0.0.1-SNAPSHOT` before the first tag. `make version` and `make next-version` print them.
 - `cicd.yaml`, job `ci`, runs on pull requests to `main`, on pushes to `main`, and on `workflow_dispatch`:
-  generated-check, arch-verify, build with unit tests, container image, then publishes the build to
+  generated-check, arch-verify, build with unit tests, the platform, its test fixtures, and the stories as a
+  snapshot to GitHub Packages, container image, then publishes the build to
   `ghcr.io/mathmagicians/confluent-eventing-playground` as a candidate tagged `sha-<short sha>`. A pull request
   adds `pr-<number>`, a push to `main` adds `latest`. Only `main` moves `latest`.
 - `cicd.yaml`, job `cd`, follows `ci`: it deploys to test by running the integration tests, `make bdd-published`,
   against the candidate, with the credentials of the `confluent-test` environment. A green `cd` on a pull request
   is what says the build can be promoted.
 - `cicd.yaml`, job `tag`, follows `cd` on `main`: `make git-release` puts a git tag `v<version>` on the tested
-  commit and the same version on the candidate image in the registry. `make git-tag` is the git part alone. The
-  version is Gradle's next, or the `workflow_dispatch` input, e.g. `0.1.0`.
+  commit and the same version on the candidate image in the registry, and the platform's jars go to GitHub
+  Packages under it, the same bytes `ci` built. `make git-tag` is the git part alone. The version is Gradle's next,
+  or the `workflow_dispatch` input, e.g. `0.1.0`.
 - A minor or major version is a `workflow_dispatch` of `cicd.yaml` on `main` with the version. The merge before
   it would tag the next patch by itself, so pause the workflow around the merge: `gh workflow disable cicd.yaml`,
   merge, `gh workflow enable cicd.yaml`, then `gh workflow run cicd.yaml --ref main -f version=<version>`.
@@ -397,8 +414,11 @@ BDD with Cucumber:
 - `architecture-discovery.yaml` runs on the same events as `cicd.yaml` and does its work when
   `architecture-discovery/` changed, the same way: `make discovery-build`, then `make discovery-publish`, the
   library's snapshot to GitHub Packages, where `ci` and `cd` resolve it.
-- `main` is protected: changes arrive by pull request with a green `ci`, `cd`, `iac`, and `architecture-discovery`,
-  no force pushes, linear history.
+- `cicd-client-example.yaml` runs on the same events as `cicd.yaml` and does its work when `examples/purse/` or the
+  shared build files changed, the same way: the example's build, its image, its features against the test cluster,
+  and its image to the registry, as a client's own cicd would.
+- `main` is protected: changes arrive by pull request with a green `ci`, `cd`, `iac`, `architecture-discovery`,
+  and `cicd-client-example`, no force pushes, linear history.
   `.github/branch-protection.json` is the setting, `make gh-main-protection` applies it.
 
 ## Definition of done
@@ -415,17 +435,19 @@ BDD with Cucumber:
 - [x] Hello world
 - [x] Gradle script builds and runs the unit test
 - [x] Makefile with `build`, `test`, `bdd`, `run`, `check`
-- [x] Local docker compose spins up a swarm of workers
+- [x] Local docker compose spins up a flock of workers
 - [x] workers can generate load, and convert it to protobuf
 - [x] Topics, dead-letter topics, and schemas created by Terraform Cloud from `iac/`
 - [x] workers can publish against test.* kafka topics
-- [x] Prod docker swarm works against prod.* kafka topics
+- [x] Prod docker flock works against prod.* kafka topics
 - [x] Cucumber wired into the build (JUnit Platform Suite, Testcontainers for workers, Confluent test.* topics)
 - [x] BDD feature: I can publish messages
 - [ ] BDD feature: same key ends up in the same partition
 - [x] Partition key strategy defined per payload type
 - [x] Publish Ks of messages to Confluent Cloud
-- [ ] Stream consumer service
+- [x] Stories: a business process as a jar the platform plays, `--story=<name>`, one consumer group each
+- [x] A story built outside the repository against the published platform, `examples/purse/`
+- [ ] Stream consumer service: the tea party settles, the purse counts
 - [x] Protobuf via Schema Registry
 - [x] Split into modules
 - [x] Convert to hexagonal
