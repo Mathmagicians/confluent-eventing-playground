@@ -40,7 +40,7 @@ docker-smoke:   ## from the registry image TAG against ENV
 	@$(MAKE) docker-run ARGS="$(MINIMUM)"
 
 ##@ Flock, docker compose plays the image many times against ENV, default test; settings are environment variables, e.g. OFFER_CONCURRENT=50 TTL=300 make up-offer
-up: docker-image   ## all generators
+up: docker-image   ## the flock: every generator and the tea party, for TTL seconds, default 60
 	@$(COMPOSE) up
 
 up-product: docker-image   ## one generator
@@ -52,13 +52,13 @@ up-offer: docker-image   ## one generator
 up-order: docker-image   ## one generator
 	@$(COMPOSE) up order-generator
 
-up-tea-party: docker-image   ## the tea party of REGION, default EMEA, until stopped
-	@$(COMPOSE) --profile tea-party up tea-party
+up-tea-party: docker-image   ## the tea party of REGION, default EMEA, for TTL seconds; TTL=0 until stopped
+	@$(COMPOSE) up tea-party
 
 down:      ## stop the flock
-	@$(COMPOSE) --profile tea-party down
+	@$(COMPOSE) down
 
-##@ Infrastructure, Terraform Cloud creates the topics and schemas from iac/, applied on main
+##@ Infrastructure, Terraform Cloud creates the topics, schemas, and Flink tables from iac/, applied on main
 # the workspace: TF_CLOUD_ORGANIZATION TF_WORKSPACE; the cluster, the registry, and their keys are its variables;
 # the token: `terraform login` once on a developer machine, TF_TOKEN_app_terraform_io in CI
 tf-init:   ## download the provider and connect the workspace
@@ -87,6 +87,7 @@ confluent-lookup:   ## the ids the workspace variables want, from the management
 	  lookup "api keys, with their scope" "/iam/v2/api-keys" '.data[] | [.id, .spec.resource.kind, .spec.resource.id, .spec.owner.id] | @tsv'; \
 	  lookup "flink regions" "/fcpm/v2/regions?cloud=GCP" '.data[] | [.id, .region_name, .http_endpoint] | @tsv'
 
+##@ Flink, the experiment beside the stories: tables over the generator's topics, declared in iac/ with their SQL under src/main/flink, read here through the statements API with the Flink key
 flink-statements: tf-init   ## the Flink statements of ENVIRONMENT_ID: name, phase, the reason when one failed
 	@$(WITH_ENV) org=$$(curl -sS --fail-with-body -u "$$CLOUD_API_KEY:$$CLOUD_API_SECRET" $(CONFLUENT_API)/org/v2/organizations | jq -r '.data[0].id'); \
 	  endpoint=$$($(TF) output -json compute_pool | jq -r .endpoint); \
@@ -95,7 +96,7 @@ flink-statements: tf-init   ## the Flink statements of ENVIRONMENT_ID: name, pha
 
 # SQL reaches the recipe through the environment, so its backticks are not the shell's
 export SQL
-flink-query: tf-init   ## run SQL, a bounded query, where our tables run, the pool, principal, catalog and database of tf output compute_pool; rows as TSV. e.g. SQL='SELECT * FROM `test.product_catalog` LIMIT 5'
+flink-query: tf-init   ## run SQL, a bounded query, where our tables run, the pool, principal, catalog and database of tf output compute_pool; rows as TSV. e.g. SQL='SELECT * FROM `test.products.lvs` LIMIT 5'
 	@$(WITH_ENV) pool=$$($(TF) output -json compute_pool); \
 	  org=$$(curl -sS --fail-with-body -u "$$CLOUD_API_KEY:$$CLOUD_API_SECRET" $(CONFLUENT_API)/org/v2/organizations | jq -r '.data[0].id'); \
 	  url="$$(echo "$$pool" | jq -r .endpoint)/sql/v1/organizations/$$org/environments/$${ENVIRONMENT_ID:?set ENVIRONMENT_ID in $(ENV_FILE)}/statements"; \

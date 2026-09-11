@@ -21,6 +21,7 @@ class TeaPartyStory {
     SettleAtTheTeaParty teaParty(TeaPartyProperties teaParty, Publisher publisher, Clock clock,
                                  @Value("${spring.application.name}") String app) {
         var publish = new PublishMessage(teaParty.region(), app, publisher, clock, ThreadLocalRandom::current);
-        return new SettleAtTheTeaParty(teaParty.region(), publish, clock, ThreadLocalRandom::current);
+        return new SettleAtTheTeaParty(
+                teaParty.region(), publish, clock, ThreadLocalRandom::current, teaParty.ttl());
     }
 }

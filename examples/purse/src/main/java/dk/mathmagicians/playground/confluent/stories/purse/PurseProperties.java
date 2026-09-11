@@ -1,17 +1,23 @@
 package dk.mathmagicians.playground.confluent.stories.purse;
 
 import dk.mathmagicians.playground.confluent.eventing.domain.Wonderland;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.TreeSet;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.bind.DefaultValue;
+import org.springframework.boot.convert.DurationUnit;
 
 /// The settings of the purse story, `purse.*`: the purses at this table, `--purse.owners="Alice:1000,White
 /// Rabbit:500"`, one entry per purse, the owner as the features name a character of Wonderland and the coins the
-/// purse starts with. Every value has a default, so the bundle binds at every start whatever the story; a wrong
-/// value fails startup with the entry in the message.
+/// purse starts with; and how long the table sits, `--purse.ttl` seconds, zero for until stopped. Every value has
+/// a default, so the bundle binds at every start whatever the story; a wrong value fails startup with the entry in
+/// the message.
 @ConfigurationProperties("purse")
-public record PurseProperties(@DefaultValue("Alice:1000") List<String> owners) {
+public record PurseProperties(
+        @DefaultValue("Alice:1000") List<String> owners,
+        @DefaultValue("0") @DurationUnit(ChronoUnit.SECONDS) Duration ttl) {
 
     /// A purse as it opens: whose, by the id on the wire, and with how many coins.
     public record Opening(String ownerId, double coins) {
@@ -29,6 +35,9 @@ public record PurseProperties(@DefaultValue("Alice:1000") List<String> owners) {
             if (!seen.add(opening.ownerId())) {
                 throw new IllegalArgumentException("purse.owners names " + opening.ownerId() + " twice");
             }
+        }
+        if (ttl == null || ttl.isNegative()) {
+            throw new IllegalArgumentException("purse.ttl must be seconds, zero for until stopped, was " + ttl);
         }
     }
 

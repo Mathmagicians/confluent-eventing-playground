@@ -50,6 +50,12 @@ public record GenerateLoad(
         log.info("Produced {} events for {}", run(), publishMessage.region());
     }
 
+    /// The load plays for its ttl inside `start()`, so nothing is left for the substrate to wait.
+    @Override
+    public Duration ttl() {
+        return ttl;
+    }
+
     /// Starts the producers, waits for all of them, answers the number of messages published.
     public long run() {
         var deadline = clock.instant().plus(ttl);

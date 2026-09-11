@@ -7,6 +7,7 @@ import dk.mathmagicians.playground.confluent.eventing.domain.Offer;
 import dk.mathmagicians.playground.confluent.eventing.domain.Order;
 import dk.mathmagicians.playground.confluent.eventing.domain.Payload;
 import java.time.Clock;
+import java.time.Duration;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.random.RandomGenerator;
@@ -24,7 +25,8 @@ public record SettleAtTheTeaParty(
         String region,
         PublishMessage publishMessage,
         Clock clock,
-        Supplier<RandomGenerator> random) implements Story {
+        Supplier<RandomGenerator> random,
+        Duration ttl) implements Story {
 
     public static final String NAME = "tea-party";
 
@@ -33,6 +35,12 @@ public record SettleAtTheTeaParty(
     @Override
     public String name() {
         return NAME;
+    }
+
+    /// How long the party sits, from the settings; zero is until stopped.
+    @Override
+    public Duration ttl() {
+        return ttl;
     }
 
     @Override

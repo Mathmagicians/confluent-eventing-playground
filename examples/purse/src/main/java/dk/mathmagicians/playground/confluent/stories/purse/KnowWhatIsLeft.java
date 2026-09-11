@@ -4,6 +4,7 @@ import dk.mathmagicians.playground.confluent.eventing.application.Story;
 import dk.mathmagicians.playground.confluent.eventing.domain.Envelope;
 import dk.mathmagicians.playground.confluent.eventing.domain.Payload;
 import dk.mathmagicians.playground.confluent.eventing.domain.Transaction;
+import java.time.Duration;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -26,15 +27,23 @@ public final class KnowWhatIsLeft implements Story {
     // FIXME a domain record Purse(ownerId, coins): in(price), out(price), left(), isEmpty(), owes(), pure
     // FIXME functions answering a new purse; this map then holds a Purse per owner id
     private final TreeMap<String, Double> purses = new TreeMap<>();
+    private final Duration ttl;
 
-    /// The purses at this table, by owner id, with the coins each opens with.
-    public KnowWhatIsLeft(Map<String, Double> openings) {
+    /// The purses at this table, by owner id, with the coins each opens with, and how long the table sits.
+    public KnowWhatIsLeft(Map<String, Double> openings, Duration ttl) {
         purses.putAll(openings);
+        this.ttl = ttl;
     }
 
     @Override
     public String name() {
         return NAME;
+    }
+
+    /// How long the table sits, from the settings; zero is until stopped.
+    @Override
+    public Duration ttl() {
+        return ttl;
     }
 
     /// The story's name and the owners, sorted: `purse-ALICE-WHITE_RABBIT`.

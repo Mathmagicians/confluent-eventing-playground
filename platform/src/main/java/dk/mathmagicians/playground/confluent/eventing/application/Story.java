@@ -2,6 +2,7 @@ package dk.mathmagicians.playground.confluent.eventing.application;
 
 import dk.mathmagicians.playground.confluent.eventing.domain.Envelope;
 import dk.mathmagicians.playground.confluent.eventing.domain.Payload;
+import java.time.Duration;
 import java.util.Set;
 import org.jmolecules.architecture.hexagonal.PrimaryPort;
 
@@ -34,5 +35,11 @@ public interface Story {
 
     /// Once, when the substrate is up. A story that acts on its own does its work here.
     default void start() {
+    }
+
+    /// How long the story plays, `<name>.ttl`, counted from before `start()`: the substrate ends the process when
+    /// it has passed. Zero, the default, is until stopped, what a consumer wants in production.
+    default Duration ttl() {
+        return Duration.ZERO;
     }
 }

@@ -12,6 +12,7 @@ import static org.assertj.core.api.Assertions.within;
 
 import dk.mathmagicians.playground.confluent.eventing.domain.Envelope;
 import dk.mathmagicians.playground.confluent.eventing.domain.Transaction;
+import java.time.Duration;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
@@ -23,8 +24,9 @@ class KnowWhatIsLeftTest {
     private static final String HATTER = character("Mad Hatter");
     private static final String CAT = character("Cheshire Cat");
     private static final double CENT = 0.005;
+    private static final Duration TTL = Duration.ofSeconds(30);
 
-    private final KnowWhatIsLeft table = new KnowWhatIsLeft(Map.of(ALICE, 100.0, RABBIT, 50.0));
+    private final KnowWhatIsLeft table = new KnowWhatIsLeft(Map.of(ALICE, 100.0, RABBIT, 50.0), TTL);
 
     /// A settled trade: the customer pays the seller the price.
     private static Envelope trade(String customer, String seller, double price) {
@@ -35,6 +37,7 @@ class KnowWhatIsLeftTest {
     void isThePurseStoryListeningToTransactions() {
         assertThat(table.name()).isEqualTo("purse");
         assertThat(table.listensTo()).containsExactly(Transaction.class);
+        assertThat(table.ttl()).isEqualTo(TTL);
     }
 
     @Test

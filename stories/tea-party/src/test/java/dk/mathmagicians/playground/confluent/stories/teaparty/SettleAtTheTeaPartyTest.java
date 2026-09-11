@@ -18,6 +18,7 @@ import dk.mathmagicians.playground.confluent.eventing.domain.Offer;
 import dk.mathmagicians.playground.confluent.eventing.domain.Order;
 import dk.mathmagicians.playground.confluent.eventing.domain.Transaction;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,6 +28,7 @@ import org.junit.jupiter.api.Test;
 class SettleAtTheTeaPartyTest {
 
     private static final Clock CLOCK = Clock.fixed(AT, ZoneOffset.UTC);
+    private static final Duration TTL = Duration.ofSeconds(30);
     private static final String TOP_HAT = thing("Top Hat");
     private static final String TARTS = thing("Tarts");
     private static final String ALICE = character("Alice");
@@ -40,7 +42,8 @@ class SettleAtTheTeaPartyTest {
             REGION,
             new PublishMessage(REGION, APP, publisher(published), CLOCK, () -> dice()),
             CLOCK,
-            () -> dice());
+            () -> dice(),
+            TTL);
 
     private static Envelope offered(String offerId, String productId, double price, String seller) {
         return envelope(new Offer(offerId, productId, price, seller, AT));
@@ -58,6 +61,7 @@ class SettleAtTheTeaPartyTest {
     void isTheTeaPartyStoryListeningToOffersAndOrders() {
         assertThat(teaParty.name()).isEqualTo("tea-party");
         assertThat(teaParty.listensTo()).containsExactlyInAnyOrder(Offer.class, Order.class);
+        assertThat(teaParty.ttl()).isEqualTo(TTL);
     }
 
     @Test

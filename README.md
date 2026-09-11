@@ -13,7 +13,7 @@ generator and stream consumers, against **Confluent Cloud**.
 - Java 25 - newest LTS, finalized features
 - Spring Boot 4.1.1 + Gradle 9.7.1 (Groovy DSL) - micro service framework, Spring Framework 7, wrapper committed
 - Spring for Apache Kafka - producer and consumer
-- Confluent Cloud - Kafka + Schema Registry
+- Confluent Cloud - Kafka + Schema Registry + Flink
 - Cucumber BDD - for black box testing, JUnit Platform engine
 - JUnit 5, AssertJ, Mockito - unit tests
 - jMolecules + ArchUnit - hexagonal stereotypes on ports, adapters, and application services, and the rule that
@@ -21,7 +21,7 @@ generator and stream consumers, against **Confluent Cloud**.
 - Testcontainers - runs the image under test in the BDD suite
 - Docker + Compose - starts the flock: the load generators and the stories that read them
 - GitHub Actions - CICD + publish to GH registry, and hourly load runs
-- Terraform + Terraform Cloud - topics and schemas on Confluent Cloud, provider `confluentinc/confluent`
+- Terraform + Terraform Cloud - topics, schemas, and Flink tables on Confluent Cloud, provider `confluentinc/confluent`
 - Container image - deployment unit, built with `./gradlew bootBuildImage`
 
 <table>
@@ -169,7 +169,8 @@ only, and nothing inside reaches an adapter.
 ├── app/                      the distribution: the platform and the stories in one image, the architecture tests
 ├── examples/purse/           a story built as a client builds one, against the published platform, see its README
 ├── src/main/proto/           Protobuf schemas, registered by iac/; the generated code is committed under platform/src/generated
-├── iac/                      Terraform: topics and schemas on the Confluent cluster, applied by Terraform Cloud
+├── src/main/flink/           Flink SQL, one file per table, declared by iac/
+├── iac/                      Terraform: topics, schemas, and Flink tables on the Confluent cluster, applied by Terraform Cloud
 ├── .github/workflows/        cicd.yaml, load-run.yaml, iac.yaml, architecture-discovery.yaml, cicd-client-example.yaml
 ├── architecture-discovery/   the library behind the hexagon diagram, and architecture-discoverability.md: its own build, its own workflow, published to GitHub Packages
 └── docs/                     generated/architecture from the code, make arch-gen
@@ -191,7 +192,7 @@ src/test/java/.../bdd/           step definitions and test drivers
 ## Getting started
 
 Prerequisites: JDK 25, Docker, the `gh` CLI for pipeline work, Terraform for `iac/`, Confluent Cloud API keys for
-Kafka and Schema Registry.
+Kafka, Schema Registry, and Flink, and a Cloud API key for the lookups of `make confluent-lookup`.
 
 The Makefile is the entry point for humans and CI. `make help` lists the targets by section, `make check` is the
 CI gate.
@@ -216,13 +217,16 @@ properties files. `.env.private.sample` lists them. They live in three places:
 - `.env.<ENV>.private`, `ENV` being `test` or `prod`, git-ignored. `make` sources the file for `ENV`, default
   `test`, into the command it runs.
 - The GitHub environments `confluent-test` and `confluent-prod`: the endpoints as variables, the API keys as
-  secrets. One Confluent cluster serves both, one topic prefix each.
+  secrets. One Confluent cluster serves both, one topic prefix each. `confluent-test` also holds the environment
+  id as a variable and the Flink and Cloud API keys as secrets, for the Flink feature.
 - The Terraform Cloud workspace, as Terraform variables.
 
 #### IaC
 
-Terraform Cloud creates the topics and schemas from `iac/`, applied on every push to `main`. Its workspace holds
-the cluster, the Schema Registry, and their API keys as Terraform variables, declared in `iac/variables.tf`. The
+Terraform Cloud creates the topics, the schemas, and the Flink tables from `iac/`, applied on every push to
+`main`. A table's SQL lives under `src/main/flink`, and `make flink-verify` reads the tables back. The workspace
+holds the cluster, the Schema Registry, the environment, the compute pool, the Flink principal, and their API keys
+as Terraform variables, declared in `iac/variables.tf`. The
 GitHub environment `terraform-cloud` holds `TF_API_TOKEN`, `TF_CLOUD_ORGANIZATION`, and `TF_WORKSPACE` for the plan
 `iac.yaml` runs on every pull request. A developer machine runs `terraform login` once and keeps the organization
 and workspace names in `.env.test.private`.
@@ -237,8 +241,9 @@ docker run --rm confluent-eventing-playground:$(make version) --load.type=order 
 docker run --rm ghcr.io/mathmagicians/confluent-eventing-playground:latest --load.type=product
 docker run --rm ghcr.io/mathmagicians/confluent-eventing-playground:latest --story=tea-party --tea-party.region=EMEA
 ```
-A story's settings are the bundle of its name. The tea party takes `--tea-party.region`, default `EMEA`, and reads
-until stopped. The load story takes:
+A story's settings are the bundle of its name, and every story takes `--<name>.ttl`, the seconds it plays before
+the process ends; `0` is until stopped, the consumers' default. The tea party takes `--tea-party.region`, default
+`EMEA`. The load story takes:
 
 | Argument            | Values                    | Default |
 |---------------------|---------------------------|---------|
@@ -300,7 +305,8 @@ A review finding cites the rule it breaks.
 - Producer: `acks=all`, `enable.idempotence=true`, compression `lz4` or `zstd`, explicit `linger.ms` and `batch.size`.
   All of it through Spring properties, each tuning value with a comment.
 - Every record has a key.
-- Topics and their schemas are created by Terraform Cloud from `iac/`. Test containers auto-create.
+- Topics, their schemas, and the Flink tables are created by Terraform Cloud from `iac/`. Test containers
+  auto-create.
 - Topic names are `<env>.<topic>`, the environment `test` or `prod` first: `test.orders`. The dot is the only
   separator.
 - Consumer group id is explicit and named after the story. Offset management stays on Spring defaults until a
@@ -351,6 +357,7 @@ BDD with Cucumber:
 - Test code follows the rules of its framework: `public` step classes for Cucumber, drivers as beans of the suite's
   context.
 - Steps are shared across features. Search for an existing step before writing one.
+- The Flink feature's oracle is what the generator published in the scenario: the table must say what was sent.
 - Features run through the JUnit Platform Suite engine as part of `make check`. A red feature blocks the build.
   The report is `build/reports/cucumber/index.html`; the `cd` job prints the scenarios in its summary and uploads
   the report as the artifact `cucumber-report`.
@@ -448,6 +455,7 @@ BDD with Cucumber:
 - [x] Stories: a business process as a jar the platform plays, `--story=<name>`, one consumer group each
 - [x] A story built outside the repository against the published platform, `examples/purse/`
 - [ ] Stream consumer service: the tea party settles, the purse counts
+- [ ] Flink beside the stories: the product catalog, a materialized table over the products topic, from `iac/`
 - [x] Protobuf via Schema Registry
 - [x] Split into modules
 - [x] Convert to hexagonal

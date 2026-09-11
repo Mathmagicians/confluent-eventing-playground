@@ -38,6 +38,7 @@ class GenerateLoadTest {
     void isTheLoadStory() {
         assertThat(load(Order::random, 1).name()).isEqualTo("load");
         assertThat(load(Order::random, 1).listensTo()).isEmpty();
+        assertThat(load(Order::random, 1).ttl()).isEqualTo(TTL);
     }
 
     @Test

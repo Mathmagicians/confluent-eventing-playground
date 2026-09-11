@@ -22,6 +22,11 @@ class StoryTest {
     }
 
     @Test
+    void playsUntilStoppedByDefault() {
+        assertThat(quiet.ttl()).isZero();
+    }
+
+    @Test
     void refusesAMessageWhenItListensToNothing() {
         var envelope = envelope();
 

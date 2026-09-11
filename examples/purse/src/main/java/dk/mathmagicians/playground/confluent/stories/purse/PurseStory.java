@@ -15,6 +15,7 @@ class PurseStory {
 
     @Bean
     KnowWhatIsLeft purse(PurseProperties purse) {
-        return new KnowWhatIsLeft(purse.openings().stream().collect(toMap(Opening::ownerId, Opening::coins)));
+        return new KnowWhatIsLeft(
+                purse.openings().stream().collect(toMap(Opening::ownerId, Opening::coins)), purse.ttl());
     }
 }
