@@ -9,9 +9,8 @@ import java.util.function.Supplier;
 import java.util.random.RandomGenerator;
 import org.jmolecules.architecture.hexagonal.PrimaryPort;
 
-/// Use case, the feature's words: a generator in a region publishes a payload in an envelope and receives where the
-/// message landed. Randomness and time are inputs: the id comes from the supplied generator, the instant from the
-/// clock.
+/// The use case of `i_can_generate_events.feature`, what every story publishes through. Randomness and time are
+/// inputs: the id comes from the supplied generator, the instant from the clock.
 @PrimaryPort
 public record PublishMessage(
         String region,

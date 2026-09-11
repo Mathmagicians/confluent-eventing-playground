@@ -9,8 +9,8 @@ import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 
-/// How the load story joins a distribution: an auto-configuration Boot finds through `META-INF/spring`, the way
-/// any jar adds its beans. It binds the story's settings and wires the story from what the platform offers.
+/// Joins a distribution as every story does, an auto-configuration listed in `META-INF/spring`: the settings
+/// bound, the load wired from what the platform offers.
 @AutoConfiguration
 @EnableConfigurationProperties(LoadProperties.class)
 class LoadStory {

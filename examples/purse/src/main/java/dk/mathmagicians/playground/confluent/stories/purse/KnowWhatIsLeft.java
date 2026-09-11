@@ -12,11 +12,9 @@ import org.jmolecules.architecture.hexagonal.PrimaryPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/// The purse story, the feature's words: a purse holds coins for its owner and reads the stream of transactions.
-/// When the owner sold, the price goes in; when the owner bought, it comes out; the others' trades pass by. The
-/// purse knows what is left, and when it is empty and the owner shops on, it says what she owes, where a human
-/// will look. One table holds one purse per owner. An owner's sales are keyed by whoever bought, so a table reads
-/// the whole stream: its consumer group is its own, the story's name and the owners, one instance per table.
+/// The purse story, `alices_purse_knows_what_is_left.feature`. One table holds one purse per owner. An owner's
+/// sales are keyed by whoever bought, so a table reads the whole stream: its consumer group is its own, the
+/// story's name and the owners, one instance per table.
 @PrimaryPort
 public final class KnowWhatIsLeft implements Story {
 

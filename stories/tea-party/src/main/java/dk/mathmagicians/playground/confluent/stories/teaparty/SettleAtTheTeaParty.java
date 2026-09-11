@@ -15,11 +15,9 @@ import org.jmolecules.architecture.hexagonal.PrimaryPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/// The tea party story, the feature's words: the tea party reads offers and keeps the latest offer for each
-/// thing, the market price; it reads orders, and every order for a thing on offer is settled at once, a
-/// transaction from the order's customer to the offer's seller at the market price, published through
-/// `PublishMessage`. An order for a thing nobody offers waits at the table until someone does. One instance
-/// serves one region; its consumer group is the story's name, so the instances of a region share its partitions.
+/// The tea party story, `at_the_tea_party_an_order_meets_an_offer.feature`. One instance serves one region and
+/// publishes its transactions through `PublishMessage`; its consumer group is the story's name, so the instances
+/// of a region share its partitions.
 @PrimaryPort
 public record SettleAtTheTeaParty(
         String region,

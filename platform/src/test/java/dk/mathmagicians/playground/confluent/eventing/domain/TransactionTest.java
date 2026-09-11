@@ -19,7 +19,7 @@ class TransactionTest {
     private static final String TARTS = thing("Tarts");
 
     static Stream<Transaction> transactions() {
-        return sample(Transaction::random);
+        return sample(EventFixtures::transaction);
     }
 
     @Test

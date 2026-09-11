@@ -17,10 +17,10 @@ import org.jmolecules.architecture.hexagonal.PrimaryPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/// The load story: `concurrent` producers, each publishing one payload from the recipe every `interval`
-/// milliseconds until the TTL has passed. Producers are virtual threads, each with its own `ThreadLocalRandom`,
-/// reading the clock, publishing through `PublishMessage`. The story listens to nothing; it starts, runs, and the
-/// process ends with it.
+/// The load story, `i_can_generate_events.feature`: `concurrent` producers, each publishing one payload from the
+/// recipe every `interval` milliseconds until the ttl has passed. Producers are virtual threads, each with its own
+/// `ThreadLocalRandom`, reading the clock, publishing through `PublishMessage`. The story listens to nothing; it
+/// starts, runs, and the process ends with it.
 @PrimaryPort
 public record GenerateLoad(
         PublishMessage publishMessage,

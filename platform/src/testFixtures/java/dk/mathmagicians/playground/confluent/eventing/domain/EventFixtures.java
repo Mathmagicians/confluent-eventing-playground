@@ -49,7 +49,16 @@ public final class EventFixtures {
     }
 
     public static Transaction transaction() {
-        return Transaction.random(dice(), AT);
+        return transaction(dice(), AT);
+    }
+
+    /// A settlement, the one way the domain mints a transaction: an offer drawn from the generator, and an order
+    /// for the offer's thing drawn from it too.
+    public static Transaction transaction(RandomGenerator random, Instant at) {
+        var offer = Offer.random(random, at);
+        var order = Order.random(random, at);
+        var sameThing = new Order(order.id(), order.customerId(), offer.productId(), order.createdAt());
+        return Transaction.settle(sameThing, offer, random, at);
     }
 
     /// One fixture per record `Payload` permits.

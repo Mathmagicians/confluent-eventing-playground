@@ -4,6 +4,7 @@ import org.jmolecules.ddd.annotation.ValueObject;
 
 import java.time.Instant;
 import java.util.random.RandomGenerator;
+
 @ValueObject
 public record Transaction(
         String transactionId,
@@ -16,16 +17,11 @@ public record Transaction(
 
     static final String ID_PREFIX = "TX";
 
-    /// A transaction composed from `Order.random` and `Offer.random`, customer, seller, and price copied from them.
-    public static Transaction random(RandomGenerator random, Instant at) {
-        var order = Order.random(random, at);
-        var offer = Offer.random(random, at);
-        return settle(order, offer, random, at);
-    }
-
     /// A settlement: the order's customer pays the offer's seller the offer's price, for the thing both name.
     public static Transaction settle(Order order, Offer offer, RandomGenerator random, Instant at) {
-        // FIXME refuse an order and an offer for different things, the message naming both product ids
+        if (!order.productId().equals(offer.productId())) {
+            throw new IllegalArgumentException("Cannot settle order and offer for different products: " + order.productId() + " vs " + offer.productId());
+        }
         return new Transaction(
                 Payload.id(ID_PREFIX, random), order, offer, order.customerId(), offer.sellerId(), offer.price(), at);
     }
