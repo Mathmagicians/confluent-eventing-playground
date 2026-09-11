@@ -18,12 +18,3 @@ SELECT region, product_id,
            FROM `${env}.products`
        )
    GROUP BY region, product_id
-
--- FIXME two window functions over the same partition, each product's records in record-time order:
--- FIXME   ROW_NUMBER() OVER (PARTITION BY product_id ORDER BY `$rowtime` DESC) AS rn, 1 for the latest version
--- FIXME   COUNT(*)     OVER (PARTITION BY product_id)                            AS versions
--- FIXME an outer query keeps rn = 1: product_id, product_name, producer_id, product_description, versions,
--- FIXME   and `$rowtime` AS updated_at, the time the latest version arrived
--- FIXME Flink recognises the rn = 1 filter over ROW_NUMBER as deduplication and keeps one row per product in
--- FIXME   upsert mode; without the ORDER BY DESC it would keep the first version instead of the latest
--- FIXME no trailing semicolon, the resource submits the query as is
