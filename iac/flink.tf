@@ -26,7 +26,7 @@ resource "confluent_flink_materialized_table" "product_catalog" {
     secret = var.flink_api_secret
   }
 
-  display_name = "${each.key}.product_catalog"
+  display_name = "${each.key}.products.lvs"
   kafka_cluster {
     id = var.kafka_id
   }
@@ -34,7 +34,7 @@ resource "confluent_flink_materialized_table" "product_catalog" {
   # one row per product, its latest version kept on the compacted topic; the same partition count as the topics
   distribution {
     kind         = "HASH"
-    keys         = ["product_id"]
+    keys         = ["region", "product_id"]
     bucket_count = local.partitions
   }
   table_options = {

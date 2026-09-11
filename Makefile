@@ -81,7 +81,8 @@ confluent-lookup:   ## the ids the workspace variables want, from the management
 	@$(WITH_ENV) lookup() { printf '\n== %s\n' "$$1"; curl -sS --fail-with-body -u "$$CLOUD_API_KEY:$$CLOUD_API_SECRET" "$(CONFLUENT_API)$$2" | jq -r "$$3"; }; \
 	  lookup organizations "/org/v2/organizations" '.data[] | [.id, .display_name] | @tsv'; \
 	  lookup environments "/org/v2/environments" '.data[] | [.id, .display_name] | @tsv'; \
-	  lookup "compute pools" "/fcpm/v2/compute-pools?environment=$${ENVIRONMENT_ID:?set ENVIRONMENT_ID in $(ENV_FILE)}" '.data[] | [.id, .spec.display_name, .spec.cloud, .spec.region] | @tsv'; \
+	  lookup "clusters, the Flink database is the name" "/cmk/v2/clusters?environment=$${ENVIRONMENT_ID:?set ENVIRONMENT_ID in $(ENV_FILE)}" '.data[] | [.id, .spec.display_name, .spec.kafka_bootstrap_endpoint] | @tsv'; \
+	  lookup "compute pools" "/fcpm/v2/compute-pools?environment=$$ENVIRONMENT_ID" '.data[] | [.id, .spec.display_name, .spec.cloud, .spec.region] | @tsv'; \
 	  lookup users "/iam/v2/users" '.data[] | [.id, .email] | @tsv'; \
 	  lookup "api keys, with their scope" "/iam/v2/api-keys" '.data[] | [.id, .spec.resource.kind, .spec.resource.id, .spec.owner.id] | @tsv'; \
 	  lookup "flink regions" "/fcpm/v2/regions?cloud=GCP" '.data[] | [.id, .region_name, .http_endpoint] | @tsv'
