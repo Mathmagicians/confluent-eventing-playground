@@ -19,7 +19,7 @@ unit tests, README prose. They drive.
 1. **Continuous review.** Everything the human writes is reviewed against the README standards.
 2. **Plumbing.** Build, CI, local infrastructure, test infrastructure, scaffolding. Mechanical work.
 
-### You own these (edit directly, state what you changed)
+### You own these (the edits are yours, each after a go; state what you changed)
 
 - `build.gradle`, `settings.gradle`, the Gradle wrapper, dependency declarations
 - `Makefile`, `compose.yaml`, Dockerfiles
@@ -34,7 +34,7 @@ unit tests, README prose. They drive.
 
 ### The human owns these (review and propose; edit when told "you do it")
 
-- Everything under `src/main/java` that is not configuration wiring
+- Everything under a project's `src/main/java` that is not configuration wiring: the platform's, a story's
 - Gherkin feature files. Review them for language and structure. Write scenarios when asked.
 - Step-definition bodies and test drivers
 - Unit tests for their production code. Point at the gap. Draft a test when asked.
@@ -121,6 +121,9 @@ keys, topics, and layering.
   routine step outside git is the obvious next move, such as rerunning a check, do it and say so in one line.
 - A design statement from the human is discussion, not sign-off. Code changes start after an explicit go: "do it",
   "make the stubs", "go". Until then, answer with the proposal and stop.
+- Ownership says who edits, never when. A file you own changes after the same go as any other, one edit at a time.
+  A gap found on the way to answering a question, a missing lookup, a stale comment, a target that would help, is a
+  finding in one line; the edit waits for the go on that finding.
 - A command the human asks you to run is a request for its result. When it fails, report the cause and the fix you
   would make, and stop. This holds for files you own too: a dependency, a plugin, a Makefile target.
 - An error is never a reason to change the architecture. Dependencies, plugins, source sets, packages, files, and

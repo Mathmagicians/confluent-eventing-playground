@@ -1,0 +1,20 @@
+// The distribution: the platform and the stories of this repository in one image, the one compose, load-run, and
+// the BDD suites use. No code of its own; platform.gradle names the main class, the image, and the architecture
+// documents, written to the repository's docs, see gradle.properties.
+
+plugins {
+    id 'org.springframework.boot'
+}
+
+description = 'the distribution: the platform with the load and tea party stories'
+
+dependencies {
+    implementation project(':platform')
+    implementation project(':stories:load')
+    implementation project(':stories:tea-party')
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+
+    // the shared BDD and the architecture tests' tools come with the platform's test fixtures
+    testImplementation testFixtures(project(':platform'))
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}

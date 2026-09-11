@@ -1,0 +1,198 @@
+// The platform's Gradle conventions, shared by every build that plays stories on it: this repository's projects,
+// and a story's own build. A story's build declares the Boot and dependency-management plugins, applies this
+// file, and lists its dependencies:
+//
+//   plugins {
+//       id 'org.springframework.boot' version '4.1.1'
+//       id 'io.spring.dependency-management' version '1.1.7'
+//   }
+//   apply from: "${findProperty('platformGradle') ?: '../../platform.gradle'}"
+//
+// with springBootVersion=4.1.1 in its gradle.properties, the one version named twice. What it gives: the version
+// from git tags, the repositories, the Java toolchain, the Boot BOM, the test and bdd tasks, publishing for
+// libraries, and for the project that builds the image: the main class, the image name, and the architecture
+// documents.
+
+// version from git tags: at v1.2.3 it is 1.2.3, after it 1.2.4-SNAPSHOT, with no tag 0.0.1-SNAPSHOT
+def describe = providers.exec {
+    commandLine 'git', 'describe', '--tags', '--match', 'v*', '--long', '--always'
+}.standardOutput.asText.get().trim()
+def tagged = describe =~ /^v(\d+)\.(\d+)\.(\d+)-(\d+)-g[0-9a-f]+$/
+def (major, minor, patch, commits) = tagged.matches() ? (1..4).collect { tagged[0][it] as int } : [0, 0, 0, 1]
+def nextVersion = "${major}.${minor}.${patch + 1}"
+version = commits == 0 ? "${major}.${minor}.${patch}" : "${nextVersion}-SNAPSHOT"
+def ourGroup = 'dk.mathmagicians.playground'
+group = ourGroup
+
+tasks.register('version') {
+    description = 'Prints the version.'
+    group = 'help'
+    def current = project.version
+    doLast { println current }
+}
+
+tasks.register('nextVersion') {
+    description = 'Prints the next version, the SNAPSHOT without its suffix.'
+    group = 'help'
+    def next = nextVersion
+    doLast { println next }
+}
+
+// our own libraries live on GitHub Packages, which needs a token even to read: GITHUB_ACTOR and GITHUB_TOKEN from
+// the environment, CI's or gh's; the same repository resolves them and receives them
+def githubPackages = {
+    name = 'GitHubPackages'
+    url = 'https://maven.pkg.github.com/mathmagicians/confluent-eventing-playground'
+    credentials {
+        username = System.getenv('GITHUB_ACTOR')
+        password = System.getenv('GITHUB_TOKEN')
+    }
+}
+
+// the rest is for a project with code: a subproject here, the root of a story's build
+if (project != rootProject || subprojects.isEmpty()) {
+    apply plugin: 'java'
+    apply plugin: 'io.spring.dependency-management'
+
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(25)
+        }
+    }
+
+    repositories {
+        mavenCentral()
+        maven { url = 'https://packages.confluent.io/maven/' } // the Schema Registry client and the Protobuf serializer
+        // our own libraries: the developer loop installs them locally, make platform-install and discovery-install,
+        // taken first; CI publishes them to GitHub Packages
+        mavenLocal {
+            content { includeGroup ourGroup }
+        }
+        maven {
+            githubPackages.delegate = delegate
+            githubPackages()
+            content { includeGroup ourGroup }
+        }
+    }
+
+    // versions come from the Spring Boot BOM; the Boot plugin's version, applied by the build that applies this file
+    dependencyManagement {
+        imports {
+            mavenBom "org.springframework.boot:spring-boot-dependencies:${springBootVersion}"
+        }
+    }
+
+    // our libraries float: the newest published version, and a re-published snapshot, are looked up on every build
+    configurations.configureEach {
+        resolutionStrategy.cacheDynamicVersionsFor 0, 'seconds'
+        resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
+    }
+
+    // the Cucumber runner runs from bdd, not from test; the writer of the architecture documents from arch-gen
+    def cucumberRunner = '**/RunCucumberTest.class'
+    def architectureGenTag = 'architecture-gen'
+
+    tasks.named('test') {
+        useJUnitPlatform {
+            excludeTags architectureGenTag
+        }
+        exclude cucumberRunner
+    }
+
+    // the features of the project, against the image under test; a project without features has nothing to run
+    tasks.register('bdd', Test) {
+        description = 'Runs the Cucumber features. -PdryRun prints snippets for undefined steps without executing.'
+        group = 'verification'
+        testClassesDirs = sourceSets.test.output.classesDirs
+        classpath = sourceSets.test.runtimeClasspath
+        useJUnitPlatform()
+        include cucumberRunner
+        failOnNoDiscoveredTests = false
+        if (providers.gradleProperty('dryRun').isPresent()) {
+            systemProperty 'cucumber.execution.dry-run', 'true'
+        }
+        // the image under test, -Pimage=<repo>:<tag>; default is the local build from bootBuildImage
+        systemProperty 'bdd.image',
+                providers.gradleProperty('image').getOrElse("${rootProject.name}:${project.version}")
+        testLogging.showStandardStreams = true
+        outputs.upToDateWhen { false }
+    }
+
+    // a library goes to GitHub Packages, where other builds resolve it
+    plugins.withId('maven-publish') {
+        publishing {
+            publications {
+                maven(MavenPublication) {
+                    from components.java
+                }
+            }
+            repositories {
+                maven {
+                    githubPackages.delegate = delegate
+                    githubPackages()
+                }
+            }
+        }
+    }
+
+    // the project that builds the image: a distribution of the platform and its stories
+    plugins.withId('org.springframework.boot') {
+        springBoot {
+            mainClass = 'dk.mathmagicians.playground.confluent.EventingPlatform'
+        }
+
+        tasks.named('bootBuildImage') {
+            // the image name is the Makefile's, -Pimage=<name>:<tag>; the build's name when Gradle runs alone
+            imageName = providers.gradleProperty('image').getOrElse("${rootProject.name}:${project.version}")
+            // launch environment of the image, inherited by compose, docker run, and the integration tests
+            environment = ['BPE_BPL_JAVA_NMT_ENABLED': 'false']
+            // the image is no file, so a build record is the output; with it Gradle skips the task while the jar
+            // and the image name are unchanged
+            def record = layout.buildDirectory.file("image/${project.version}.txt")
+            def image = imageName
+            outputs.file(record)
+            doLast { record.get().asFile.text = "${image.get()}\n" }
+        }
+
+        // the architecture documents under docs/generated/architecture, -ParchitectureDocs for another place: the
+        // tagged test writes the PlantUML sources and the canvases, PlantUML renders the diagrams to SVG with its
+        // built-in layout engine, so no Graphviz is needed
+        // findProperty, not providers.gradleProperty: the latter does not see a subproject's gradle.properties
+        def docs = layout.projectDirectory.dir(findProperty('architectureDocs') ?: 'docs/generated/architecture')
+
+        configurations {
+            plantuml
+        }
+
+        dependencies {
+            plantuml 'net.sourceforge.plantuml:plantuml-mit:1.2026.8' // not in the Boot BOM, 2026-09-08
+        }
+
+        tasks.register('generateArchitecture', Test) {
+            description = 'Verifies the application modules and writes their PlantUML diagrams and canvases.'
+            group = 'documentation'
+            testClassesDirs = sourceSets.test.output.classesDirs
+            classpath = sourceSets.test.runtimeClasspath
+            useJUnitPlatform {
+                includeTags architectureGenTag
+            }
+            exclude cucumberRunner
+            systemProperty 'architecture.docs', docs.asFile.path
+            outputs.upToDateWhen { false }
+        }
+
+        tasks.register('renderDiagrams', JavaExec) {
+            description = 'Renders the PlantUML diagrams written by generateArchitecture to SVG.'
+            group = 'documentation'
+            dependsOn tasks.named('generateArchitecture')
+            def sources = docs.dir('plantuml')
+            def rendered = docs.dir('svg')
+            inputs.files(fileTree(sources) { include '*.puml' })
+            outputs.dir(rendered)
+            classpath = configurations.plantuml
+            mainClass = 'net.sourceforge.plantuml.Run'
+            jvmArgs '-Djava.awt.headless=true'
+            args '-tsvg', '-Playout=smetana', '-o', rendered.asFile.path, "${sources.asFile}/*.puml"
+        }
+    }
+}

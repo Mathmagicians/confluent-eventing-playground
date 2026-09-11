@@ -1,0 +1,19 @@
+# The purse's flock: the story's image against ENV, one player. `make up` starts it, `make down` stops it.
+# Defaults live here; override with environment variables, e.g. OWNERS="Alice:1000,White Rabbit:500" TTL=300 make up.
+name: purse
+
+services:
+  purse:
+    image: purse:${VERSION:?set by make, the version is Gradle's}   # make docker-image
+    # the profile is the environment; make sources what the image reads from .env.<ENV>.private
+    environment:
+      SPRING_PROFILES_ACTIVE: ${ENV:?set by make, test or prod}
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:?from .env.<ENV>.private}
+      KAFKA_API_KEY: ${KAFKA_API_KEY:?from .env.<ENV>.private}
+      KAFKA_API_SECRET: ${KAFKA_API_SECRET:?from .env.<ENV>.private}
+      SCHEMA_REGISTRY_REST_ENDPOINT: ${SCHEMA_REGISTRY_REST_ENDPOINT:?from .env.<ENV>.private}
+      SCHEMA_REGISTRY_API_KEY: ${SCHEMA_REGISTRY_API_KEY:?from .env.<ENV>.private}
+      SCHEMA_REGISTRY_API_SECRET: ${SCHEMA_REGISTRY_API_SECRET:?from .env.<ENV>.private}
+    command:
+      - --purse.owners=${OWNERS:-Alice:1000}
+      - --purse.ttl=${TTL:-60}

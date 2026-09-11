@@ -40,8 +40,10 @@ jobs:
         run: make generated-check
       - name: architecture verified, the hexagonal rule and the module boundaries
         run: make arch-verify
-      - name: compile, unit tests, jar
+      - name: compile, unit tests, jars
         run: make build
+      - name: publish the platform, its test fixtures, and the stories as a snapshot to GitHub Packages, where a story's build takes them from
+        run: make platform-publish
       - name: container image
         run: make docker-image
       - name: tags, every build is a candidate under its sha; a pull request adds pr-<number>, main adds latest
@@ -83,6 +85,12 @@ jobs:
       SCHEMA_REGISTRY_REST_ENDPOINT: ${{ vars.SCHEMA_REGISTRY_REST_ENDPOINT }}
       SCHEMA_REGISTRY_API_KEY: ${{ secrets.SCHEMA_REGISTRY_API_KEY }}
       SCHEMA_REGISTRY_API_SECRET: ${{ secrets.SCHEMA_REGISTRY_API_SECRET }}
+      # the Flink steps: the statements API with the Flink key, the organization and the key's region looked up with the Cloud key
+      ENVIRONMENT_ID: ${{ vars.ENVIRONMENT_ID }}
+      CLOUD_API_KEY: ${{ secrets.CLOUD_API_KEY }}
+      CLOUD_API_SECRET: ${{ secrets.CLOUD_API_SECRET }}
+      FLINK_API_KEY: ${{ secrets.FLINK_API_KEY }}
+      FLINK_API_SECRET: ${{ secrets.FLINK_API_SECRET }}
       # the test classpath holds the architecture-discovery library, from GitHub Packages
       GITHUB_ACTOR: ${{ github.actor }}
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -109,13 +117,13 @@ jobs:
         if: ${{ !cancelled() && steps.bdd.outcome != 'skipped' }}
         run: |
           printf '### Tested\n\n| Image | Result |\n|---|---|\n| `%s:%s` | %s |\n\n' "$(make docker-repo)" "${{ needs.ci.outputs.tag }}" "${{ steps.bdd.outcome }}" >> "$GITHUB_STEP_SUMMARY"
-          { printf '```\n'; cat build/reports/cucumber/pretty.txt; printf '```\n'; } >> "$GITHUB_STEP_SUMMARY"
-      - name: the Cucumber report as an artifact
+          { printf '```\n'; cat $(find . -path '*/build/reports/cucumber/pretty.txt' | sort); printf '```\n'; } >> "$GITHUB_STEP_SUMMARY"
+      - name: the Cucumber reports as an artifact, one folder per project with features
         if: ${{ !cancelled() && steps.bdd.outcome != 'skipped' }}
         uses: actions/upload-artifact@v7
         with:
           name: cucumber-report
-          path: build/reports/cucumber
+          path: '**/build/reports/cucumber'
 
   tag:
     needs: [ci, cd]
@@ -152,5 +160,10 @@ jobs:
         run: echo "version=${INPUT_VERSION:-$(make next-version)}" >> "$GITHUB_OUTPUT"
       - name: release the tested candidate, git tag and registry tag with the version
         run: make git-release TAG=${{ needs.ci.outputs.tag }} RELEASE=${{ steps.release.outputs.version }}
+      - name: publish the platform, its test fixtures, and the stories under the release version, the tag now on HEAD, the same bytes ci built
+        run: make platform-publish
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: the release into the job summary
         run: printf '### Released\n\n| Git tag | Image |\n|---|---|\n| `v%s` | `%s:%s` |\n' "${{ steps.release.outputs.version }}" "$(make docker-repo)" "${{ steps.release.outputs.version }}" >> "$GITHUB_STEP_SUMMARY"

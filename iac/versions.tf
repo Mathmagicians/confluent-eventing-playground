@@ -22,4 +22,7 @@ provider "confluent" {
   schema_registry_rest_endpoint = var.schema_registry_rest_endpoint
   schema_registry_api_key       = var.schema_registry_api_key
   schema_registry_api_secret    = var.schema_registry_api_secret
+
+  cloud_api_key    = var.cloud_api_key
+  cloud_api_secret = var.cloud_api_secret
 }
