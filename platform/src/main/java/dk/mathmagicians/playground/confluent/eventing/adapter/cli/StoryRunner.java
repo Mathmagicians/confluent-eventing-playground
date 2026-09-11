@@ -12,10 +12,10 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.stereotype.Component;
 
 /// Driving adapter: the command line. The process plays the story `--story` names, and this runner starts it once
-/// the context is up. A story with a ttl plays that long, counted from before its start: the runner waits for what
-/// is left of it after the start returns, then closes the context, which stops the consumer and ends the process.
-/// Without one, a story that acts on its own ends the process when its start returns, and a story that listens
-/// lives on until stopped. A record: Spring injects the canonical constructor.
+/// the context is up. A story that acts on its own ends the process when its start returns. A story that listens
+/// is kept alive by its consumer: with a ttl, counted from before its start, the runner waits for what is left of
+/// it after the start returns, then closes the context, which stops the consumer and ends the process; without
+/// one it lives on until stopped. A record: Spring injects the canonical constructor.
 @PrimaryAdapter
 @Component
 public record StoryRunner(Stories stories, Clock clock, ConfigurableApplicationContext context)
@@ -27,8 +27,9 @@ public record StoryRunner(Stories stories, Clock clock, ConfigurableApplicationC
     public void run(ApplicationArguments args) throws InterruptedException {
         var story = stories.selected();
         var ttl = story.ttl();
-        if (ttl.isZero()) {
-            log.info("Playing {} until stopped, of {}", story.name(), stories.names());
+        var consumer = !story.listensTo().isEmpty();
+        if (ttl.isZero() || !consumer) {
+            log.info("Playing {}{}, of {}", story.name(), consumer ? " until stopped" : "", stories.names());
             story.start();
             return;
         }

@@ -7,12 +7,13 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
 import org.springframework.boot.convert.DurationUnit;
 
 /// The settings of the tea party story, `tea-party.*`: the region whose orders and offers it reads,
-/// `--tea-party.region`, and how long it sits, `--tea-party.ttl` seconds, zero for until stopped. Every value has
-/// a default, so the bundle binds at every start whatever the story; a wrong value fails startup.
+/// `--tea-party.region`, and how long it sits, `--tea-party.ttl` seconds, five minutes by default, zero for until
+/// stopped. Every value has a default, so the bundle binds at every start whatever the story; a wrong value fails
+/// startup.
 @ConfigurationProperties("tea-party")
 public record TeaPartyProperties(
         @DefaultValue("EMEA") String region,
-        @DefaultValue("0") @DurationUnit(ChronoUnit.SECONDS) Duration ttl) {
+        @DefaultValue("300") @DurationUnit(ChronoUnit.SECONDS) Duration ttl) {
 
     public TeaPartyProperties {
         if (region == null || region.isBlank()) {

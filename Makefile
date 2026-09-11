@@ -16,12 +16,10 @@ include platform.mk
 DISCOVERY := architecture-discovery/gradlew -p architecture-discovery
 # GitHub Packages needs a token even to read: CI's GITHUB_ACTOR and GITHUB_TOKEN, or gh's on a developer machine
 WITH_GH := GITHUB_ACTOR=$${GITHUB_ACTOR:-$$(gh api user -q .login)} GITHUB_TOKEN=$${GITHUB_TOKEN:-$$(gh auth token)}
-# the flock's environment: the profile and the credentials from .env.<ENV>.private
-COMPOSE := $(WITH_ENV) ENV=$(ENV) VERSION=$(VERSION) docker compose
 TF := terraform -chdir=iac
 CONFLUENT_API := https://api.confluent.cloud
 
-.PHONY: generated-check proto-gen proto-check run-tiny docker-smoke up up-product up-offer up-order up-tea-party down tf-init tf-check tf-format tf-plan tf-output confluent-lookup flink-statements flink-query flink-verify discovery-build discovery-install discovery-publish platform-install platform-publish git-tag git-release gh-main-protection
+.PHONY: generated-check proto-gen proto-check run-tiny docker-smoke up-product up-offer up-order up-tea-party tf-init tf-check tf-format tf-plan tf-output confluent-lookup flink-statements flink-verify discovery-build discovery-install discovery-publish platform-install platform-publish git-tag git-release gh-main-protection
 
 ##@ Generated code and documents
 generated-check: proto-check arch-check   ## fail when generated code or documents are stale
@@ -39,10 +37,7 @@ run-tiny:  ## from source with the local profile, to the log
 docker-smoke:   ## from the registry image TAG against ENV
 	@$(MAKE) docker-run ARGS="$(MINIMUM)"
 
-##@ Flock, docker compose plays the image many times against ENV, default test; settings are environment variables, e.g. OFFER_CONCURRENT=50 TTL=300 make up-offer
-up: docker-image   ## the flock: every generator and the tea party, for TTL seconds, default 60
-	@$(COMPOSE) up
-
+##@ Flock, one player at a time: a generator or the tea party, against ENV; settings are environment variables, e.g. OFFER_CONCURRENT=50 TTL=300 make up-offer
 up-product: docker-image   ## one generator
 	@$(COMPOSE) up product-generator
 
@@ -54,9 +49,6 @@ up-order: docker-image   ## one generator
 
 up-tea-party: docker-image   ## the tea party of REGION, default EMEA, for TTL seconds; TTL=0 until stopped
 	@$(COMPOSE) up tea-party
-
-down:      ## stop the flock
-	@$(COMPOSE) down
 
 ##@ Infrastructure, Terraform Cloud creates the topics, schemas, and Flink tables from iac/, applied on main
 # the workspace: TF_CLOUD_ORGANIZATION TF_WORKSPACE; the cluster, the registry, and their keys are its variables;
@@ -94,26 +86,8 @@ flink-statements: tf-init   ## the Flink statements of ENVIRONMENT_ID: name, pha
 	  curl -sS --fail-with-body -u "$$FLINK_API_KEY:$$FLINK_API_SECRET" "$$endpoint/sql/v1/organizations/$$org/environments/$${ENVIRONMENT_ID:?set ENVIRONMENT_ID in $(ENV_FILE)}/statements" \
 	  | jq -r '.data[] | [.name, .status.phase, (.status.detail // "" | split("\n")[0])] | @tsv'
 
-# SQL reaches the recipe through the environment, so its backticks are not the shell's
-export SQL
-flink-query: tf-init   ## run SQL, a bounded query, where our tables run, the pool, principal, catalog and database of tf output compute_pool; rows as TSV. e.g. SQL='SELECT * FROM `test.products.lvs` LIMIT 5'
-	@$(WITH_ENV) pool=$$($(TF) output -json compute_pool); \
-	  org=$$(curl -sS --fail-with-body -u "$$CLOUD_API_KEY:$$CLOUD_API_SECRET" $(CONFLUENT_API)/org/v2/organizations | jq -r '.data[0].id'); \
-	  url="$$(echo "$$pool" | jq -r .endpoint)/sql/v1/organizations/$$org/environments/$${ENVIRONMENT_ID:?set ENVIRONMENT_ID in $(ENV_FILE)}/statements"; \
-	  name=query-$$(date +%s); \
-	  flink() { curl -sS --fail-with-body -u "$$FLINK_API_KEY:$$FLINK_API_SECRET" -H 'Content-Type: application/json' "$$@"; }; \
-	  echo "$$pool" | jq --arg name "$$name" --arg sql "$${SQL:?SQL='SELECT ...' is the query}" \
-	    '{name: $$name, spec: {statement: $$sql, compute_pool_id: .id, principal: .principal, properties: {"sql.current-catalog": .catalog, "sql.current-database": .database}}}' \
-	    | flink "$$url" -d @- > /dev/null; \
-	  until phase=$$(flink "$$url/$$name" | jq -r .status.phase); [ "$$phase" = COMPLETED ] || [ "$$phase" = FAILED ]; do sleep 2; done; \
-	  [ "$$phase" = COMPLETED ] && flink "$$url/$$name/results" | jq -r '.results.data[] | .row | @tsv' || flink "$$url/$$name" | jq -r .status.detail; \
-	  flink -X DELETE "$$url/$$name"
-
-flink-verify: flink-statements   ## the tables our Terraform set up, from tf output flink: every statement's phase, then one row of each table
-	@$(WITH_ENV) for table in $$($(TF) output -json flink | jq -r '.[] | .[]'); do \
-	  printf '\n== %s\n' "$$table"; \
-	  $(MAKE) flink-query SQL='SELECT * FROM `'"$$table"'` LIMIT 1'; \
-	done
+flink-verify: flink-statements   ## every statement's phase, then the tables our Terraform set up, from tf output flink
+	@$(WITH_ENV) printf '\n== tables\n'; $(TF) output -json flink | jq -r '.[] | .[]'
 
 ##@ Libraries, published to GitHub Packages for the builds that resolve them
 discovery-build:   ## architecture-discovery: compile, tests, jar

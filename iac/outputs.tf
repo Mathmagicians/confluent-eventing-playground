@@ -40,7 +40,7 @@ output "compute_pool" {
   }
 }
 
-# the tables on the pool, per environment; make flink-verify reads them
+# the tables on the pool, per environment; make flink-verify lists them
 output "flink" {
   value = {
     for env in local.environments : env => {

@@ -224,7 +224,7 @@ properties files. `.env.private.sample` lists them. They live in three places:
 #### IaC
 
 Terraform Cloud creates the topics, the schemas, and the Flink tables from `iac/`, applied on every push to
-`main`. A table's SQL lives under `src/main/flink`, and `make flink-verify` reads the tables back. The workspace
+`main`. A table's SQL lives under `src/main/flink`, and `make flink-statements` shows every statement's phase. The workspace
 holds the cluster, the Schema Registry, the environment, the compute pool, the Flink principal, and their API keys
 as Terraform variables, declared in `iac/variables.tf`. The
 GitHub environment `terraform-cloud` holds `TF_API_TOKEN`, `TF_CLOUD_ORGANIZATION`, and `TF_WORKSPACE` for the plan
@@ -242,8 +242,8 @@ docker run --rm ghcr.io/mathmagicians/confluent-eventing-playground:latest --loa
 docker run --rm ghcr.io/mathmagicians/confluent-eventing-playground:latest --story=tea-party --tea-party.region=EMEA
 ```
 A story's settings are the bundle of its name, and every story takes `--<name>.ttl`, the seconds it plays before
-the process ends; `0` is until stopped, the consumers' default. The tea party takes `--tea-party.region`, default
-`EMEA`. The load story takes:
+the process ends; `0` is until stopped. The tea party takes `--tea-party.region`, default `EMEA`, and sits for
+`300` seconds by default. The load story takes:
 
 | Argument            | Values                    | Default |
 |---------------------|---------------------------|---------|

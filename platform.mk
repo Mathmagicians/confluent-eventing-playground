@@ -30,9 +30,11 @@ ENV ?= test
 ENV_DIR ?= .
 ENV_FILE := $(ENV_DIR)/.env.$(ENV).private
 WITH_ENV := test ! -f $(ENV_FILE) || { set -a; . $(ENV_FILE); set +a; };
+# the flock's environment: the profile and the credentials from .env.<ENV>.private
+COMPOSE := $(WITH_ENV) ENV=$(ENV) VERSION=$(VERSION) docker compose
 
 .DEFAULT_GOAL := build
-.PHONY: help check build test run clean version next-version docker-image docker-repo docker-publish docker-image-exists docker-run bdd bdd-published bdd-snippets arch-verify arch-gen arch-check changed
+.PHONY: help check build test run clean version next-version docker-image docker-repo docker-publish docker-image-exists docker-run bdd bdd-published bdd-snippets up down arch-verify arch-gen arch-check changed
 
 # sections are the ##@ lines, targets the ## comments, this file's first
 HELP_FILES := $(lastword $(MAKEFILE_LIST)) $(filter-out $(lastword $(MAKEFILE_LIST)),$(MAKEFILE_LIST))
@@ -77,6 +79,13 @@ docker-image-exists:   ## exit 0 when the registry has a latest image
 
 docker-run:   ## the registry image TAG with profile ENV, default test; ARGS pick the story and its settings, e.g. ARGS="--story=tea-party --tea-party.region=APAC"
 	@$(WITH_ENV) docker run --rm --pull always -e SPRING_PROFILES_ACTIVE=$(ENV) $(addprefix -e ,$(CREDENTIALS)) $(REPO):$(TAG) $(ARGS)
+
+##@ Flock, docker compose plays the image from compose.yaml against ENV, default test; settings are environment variables, e.g. TTL=0 make up
+up: docker-image   ## every player in compose.yaml, for TTL seconds, default 60; TTL=0 until stopped
+	@$(COMPOSE) up
+
+down:      ## stop the flock
+	@$(COMPOSE) down
 
 ##@ Features, Cucumber runs the image against the Confluent test cluster: the platform's features and every story's
 bdd: docker-image   ## against the local image, built first when stale
