@@ -56,7 +56,7 @@ public final class Converter {
     public static ProductDTO.Product to(Product product) {
         return ProductDTO.Product.newBuilder()
                 .setProducerId(product.producerId())
-                .setProductId(product.productId())
+                .setProductId(product.id())
                 .setProductName(product.productName())
                 .setProductDescription(product.productDescription())
                 .setCreatedAt(to(product.createdAt()))
@@ -65,7 +65,7 @@ public final class Converter {
 
     public static OfferDTO.Offer to(Offer offer) {
         return OfferDTO.Offer.newBuilder()
-                .setOfferId(offer.offerId())
+                .setOfferId(offer.id())
                 .setProductId(offer.productId())
                 .setPrice(offer.price())
                 .setSellerId(offer.sellerId())
@@ -84,7 +84,7 @@ public final class Converter {
 
     public static TransactionDTO.Transaction to(Transaction transaction) {
         return TransactionDTO.Transaction.newBuilder()
-                .setTransactionId(transaction.transactionId())
+                .setTransactionId(transaction.id())
                 .setOrderRef(to(transaction.orderRef()))
                 .setOfferRef(to(transaction.offerRef()))
                 .setCustomerId(transaction.customerId())

@@ -1,5 +1,5 @@
 # The purse's flock: the story's image against ENV, one player. `make up` starts it, `make down` stops it.
-# Defaults live here; override with environment variables, e.g. OWNERS="Alice:1000,White Rabbit:500" TTL=0 make up.
+# Defaults live here; override with environment variables, e.g. OWNERS="Alice:1000,White Rabbit:500" TTL=300 make up.
 name: purse
 
 services:

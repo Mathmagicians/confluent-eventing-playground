@@ -2,16 +2,14 @@ package dk.mathmagicians.playground.confluent.stories.teaparty;
 
 import dk.mathmagicians.playground.confluent.eventing.application.PublishMessage;
 import dk.mathmagicians.playground.confluent.eventing.application.Story;
-import dk.mathmagicians.playground.confluent.eventing.domain.Envelope;
-import dk.mathmagicians.playground.confluent.eventing.domain.Offer;
-import dk.mathmagicians.playground.confluent.eventing.domain.Order;
-import dk.mathmagicians.playground.confluent.eventing.domain.Payload;
+import dk.mathmagicians.playground.confluent.eventing.domain.*;
+
 import java.time.Clock;
 import java.time.Duration;
-import java.util.Set;
-import java.util.function.Supplier;
-import java.util.random.RandomGenerator;
+import java.util.*;
+
 import org.jmolecules.architecture.hexagonal.PrimaryPort;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,26 +17,35 @@ import org.slf4j.LoggerFactory;
 /// publishes its transactions through `PublishMessage`; its consumer group is the story's name, so the instances
 /// of a region share its partitions.
 @PrimaryPort
-public record SettleAtTheTeaParty(
-        String region,
-        PublishMessage publishMessage,
-        Clock clock,
-        Supplier<RandomGenerator> random,
-        Duration ttl) implements Story {
+public class SettleAtTheTeaParty implements Story {
+
+    private final PublishMessage publishMessage;
+    private final Clock clock;
+    private final @Nullable Duration ttl;
+    private final String teapartyName ;
+
+    public SettleAtTheTeaParty(String region, PublishMessage publishMessage, Clock clock, @Nullable Duration ttl) {
+        this.publishMessage = publishMessage;
+        this.clock = clock;
+        this.ttl = ttl;
+        this.teapartyName = String.join(" ", region, NAME, "🫖🎉");
+    }
 
     public static final String NAME = "tea-party";
 
     private static final Logger log = LoggerFactory.getLogger(SettleAtTheTeaParty.class);
+
+    private final Map<String, Deque<Offer>> offers = new HashMap<>();
+    private final Map<String, Deque<Order>> orders = new HashMap<>();
 
     @Override
     public String name() {
         return NAME;
     }
 
-    /// How long the party sits, from the settings; zero is until stopped.
     @Override
-    public Duration ttl() {
-        return ttl;
+    public Optional<Duration> playsFor() {
+        return Optional.ofNullable(ttl);
     }
 
     @Override
@@ -46,32 +53,38 @@ public record SettleAtTheTeaParty(
         return Set.of(Offer.class, Order.class);
     }
 
-    /// An offer updates the market price of its thing and settles what waited for it; an order settles at the
-    /// market price or waits.
+    /// An offer looks for an order of that thing, an order looks for a kind offer of that thing.
+    /// If they meet, they settle and live happily everafter, and a transaction is published. If not, they wait.
     @Override
     public void on(Envelope envelope) {
         switch (envelope.payload()) {
-            case Offer offer -> offered(offer);
-            case Order order -> ordered(order);
-            default -> throw new IllegalStateException(NAME + " does not listen to " + envelope.payload());
+            case Offer offer -> meet(offer.productId(), orders, offers, offer)
+                    .ifPresent(o -> settle(o, offer));
+            case Order order -> meet(order.productId(), offers, orders, order)
+                    .ifPresent(o -> settle(order, o));
+            default -> Story.super.on(envelope);
         }
     }
 
-    private void offered(Offer offer) {
-        // FIXME the latest offer per thing, keyed by product id: a market, a record holding a map, pure functions
-        // FIXME then every order waiting for the thing settles at this offer, oldest first
-        log.debug("Offered {} for {} at {}", offer.productId(), offer.price(), offer.sellerId());
+    private static <T extends Payload, U extends Payload> Optional<U> meet(String thing, Map<String, Deque<U>> waiting, Map<String, Deque<T>> ownKind, T
+            newcomer) {
+        log.debug("Newcomer {} looking for  {}", newcomer.id(), thing);
+        var metMyPartner = Optional.ofNullable(waiting.get(thing)) .map(Deque::pollFirst);
+        if (metMyPartner.isEmpty()) {
+            var queue = ownKind.computeIfAbsent(thing, k -> new LinkedList<>());
+            queue.addLast(newcomer);
+            log.debug("No partner for {}: Wonderlanders are waiting in queue of length {} for {}", newcomer, queue.size(), thing);
+        }
+        return metMyPartner;
     }
 
-    private void ordered(Order order) {
-        // FIXME the latest offer for order.productId(): settle(order, offer), or keep the order waiting for the thing
-        log.debug("Ordered {} by {}", order.productId(), order.customerId());
-    }
 
     private void settle(Order order, Offer offer) {
-        // FIXME Transaction.settle(order, offer, random.get(), clock.instant()), published through publishMessage
-        // FIXME one INFO line per settlement: order id, offer id, customer, seller, price
-        log.info("Settled {} with {}: {} pays {} {}", order.id(), offer.offerId(), order.customerId(),
+        var tx = Transaction.settle(order, offer, clock.instant());
+        var completableFuture = publishMessage.publish(tx);
+        log.info( "{}: Se-tea-tled {} with {}: {} pays {} {}", teapartyName, order.id(), offer.id(), order.customerId(),
                 offer.sellerId(), offer.price());
+        var receipt = completableFuture.join();
+        log.debug("{}: Published transaction {} at offset {}, partition {}, market price; {},", teapartyName, tx.id(), receipt.partition(), receipt.offset(), offer.price());
     }
 }

@@ -242,8 +242,8 @@ docker run --rm ghcr.io/mathmagicians/confluent-eventing-playground:latest --loa
 docker run --rm ghcr.io/mathmagicians/confluent-eventing-playground:latest --story=tea-party --tea-party.region=EMEA
 ```
 A story's settings are the bundle of its name, and every story takes `--<name>.ttl`, the seconds it plays before
-the process ends; `0` is until stopped. The tea party takes `--tea-party.region`, default `EMEA`, and sits for
-`300` seconds by default. The load story takes:
+the process ends; left empty, `--tea-party.ttl=`, a consumer reads until stopped. The tea party takes
+`--tea-party.region`, default `EMEA`, and sits for `300` seconds by default. The load story takes:
 
 | Argument            | Values                    | Default |
 |---------------------|---------------------------|---------|

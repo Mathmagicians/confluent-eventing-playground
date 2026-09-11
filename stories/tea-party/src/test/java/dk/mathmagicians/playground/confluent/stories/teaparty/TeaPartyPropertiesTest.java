@@ -8,27 +8,30 @@ import org.junit.jupiter.api.Test;
 
 class TeaPartyPropertiesTest {
 
-    private static final Duration FOREVER = Duration.ZERO;
-
     @Test
-    void holdsTheRegionAndTheTtl() {
-        var settings = new TeaPartyProperties("APAC", Duration.ofSeconds(30));
+    void holdsTheRegionAndHowLongItSits() {
+        var settings = new TeaPartyProperties("APAC", "30");
 
         assertThat(settings.region()).isEqualTo("APAC");
-        assertThat(settings.ttl()).isEqualTo(Duration.ofSeconds(30));
+        assertThat(settings.playsFor()).hasValue(Duration.ofSeconds(30));
+    }
+
+    @Test
+    void sitsUntilStoppedWhenTheTtlIsLeftEmpty() {
+        assertThat(new TeaPartyProperties("APAC", "").playsFor()).isEmpty();
     }
 
     @Test
     void requiresARegion() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new TeaPartyProperties(" ", FOREVER))
+                .isThrownBy(() -> new TeaPartyProperties(" ", "30"))
                 .withMessageContaining("tea-party.region");
     }
 
     @Test
-    void rejectsANegativeTtl() {
+    void rejectsATtlOfZero() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new TeaPartyProperties("EMEA", Duration.ofSeconds(-1)))
+                .isThrownBy(() -> new TeaPartyProperties("EMEA", "0"))
                 .withMessageContaining("tea-party.ttl");
     }
 }

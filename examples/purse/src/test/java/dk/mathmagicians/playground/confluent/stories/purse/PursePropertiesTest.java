@@ -1,6 +1,7 @@
 package dk.mathmagicians.playground.confluent.stories.purse;
 
-import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures.character;
+import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures.ALICE;
+import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures.WHITE_RABBIT;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 
@@ -11,7 +12,7 @@ import org.junit.jupiter.api.Test;
 
 class PursePropertiesTest {
 
-    private static final Duration FOREVER = Duration.ZERO;
+    private static final String FOREVER = "";
 
     @Test
     void opensOnePursePerEntryWithTheOwnersIdOnTheWire() {
@@ -19,14 +20,18 @@ class PursePropertiesTest {
 
         assertThat(settings.openings())
                 .containsExactly(
-                        new Opening(character("Alice"), 1000),
-                        new Opening(character("White Rabbit"), 500.5));
+                        new Opening(ALICE, 1000),
+                        new Opening(WHITE_RABBIT, 500.5));
     }
 
     @Test
-    void holdsTheTtl() {
-        assertThat(new PurseProperties(List.of("Alice:1"), Duration.ofSeconds(30)).ttl())
-                .isEqualTo(Duration.ofSeconds(30));
+    void sitsForTheTtlInSeconds() {
+        assertThat(new PurseProperties(List.of("Alice:1"), "30").playsFor()).hasValue(Duration.ofSeconds(30));
+    }
+
+    @Test
+    void sitsUntilStoppedWhenTheTtlIsLeftEmpty() {
+        assertThat(new PurseProperties(List.of("Alice:1"), FOREVER).playsFor()).isEmpty();
     }
 
     @Test
@@ -70,13 +75,13 @@ class PursePropertiesTest {
     void rejectsAnOwnerNamedTwice() {
         assertThatIllegalArgumentException()
                 .isThrownBy(() -> new PurseProperties(List.of("Alice:1", "Alice:2"), FOREVER))
-                .withMessageContaining(character("Alice") + " twice");
+                .withMessageContaining(ALICE + " twice");
     }
 
     @Test
-    void rejectsANegativeTtl() {
+    void rejectsATtlOfZero() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new PurseProperties(List.of("Alice:1"), Duration.ofSeconds(-1)))
+                .isThrownBy(() -> new PurseProperties(List.of("Alice:1"), "0"))
                 .withMessageContaining("purse.ttl");
     }
 }

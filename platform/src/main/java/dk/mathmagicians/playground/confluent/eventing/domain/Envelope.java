@@ -17,7 +17,7 @@ public record Envelope(String id, String region, String app, Instant at, Payload
     interface KeyStrategy<T extends Payload> {
         String key(String region, T payload);
     }
-    static final KeyStrategy<Product> PRODUCT_KEY_STRATEGY = (_, p) -> p.productId();
+    static final KeyStrategy<Product> PRODUCT_KEY_STRATEGY = (_, p) -> p.id();
     static final KeyStrategy<Offer> OFFER_KEY_STRATEGY = (region, o) -> String.join("/", region, o.productId());
     static final KeyStrategy<Order> ORDER_KEY_STRATEGY = (region, o) -> region;
     static final KeyStrategy<Transaction> TRANSACTION_KEY_STRATEGY = (region, t) ->  t.customerId();

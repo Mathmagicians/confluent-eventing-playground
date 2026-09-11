@@ -44,7 +44,7 @@ services:
       - --load.ttl=${TTL:-60}
 
   # the same image playing another story: reads the region's offers and orders, publishes its transactions, for
-  # TTL seconds like the generators; TTL=0 keeps it at the table until `make down`
+  # TTL seconds like the generators
   tea-party:
     <<: *generator
     command:

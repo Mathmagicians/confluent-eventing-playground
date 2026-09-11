@@ -26,21 +26,21 @@ public record StoryRunner(Stories stories, Clock clock, ConfigurableApplicationC
     @Override
     public void run(ApplicationArguments args) throws InterruptedException {
         var story = stories.selected();
-        var ttl = story.ttl();
         var consumer = !story.listensTo().isEmpty();
-        if (ttl.isZero() || !consumer) {
+        var ttl = story.playsFor();
+        if (ttl.isEmpty() || !consumer) {
             log.info("Playing {}{}, of {}", story.name(), consumer ? " until stopped" : "", stories.names());
             story.start();
             return;
         }
-        var deadline = clock.instant().plus(ttl);
+        var deadline = clock.instant().plus(ttl.get());
         log.info("Playing {} until {}, of {}", story.name(), deadline, stories.names());
         story.start();
         var left = Duration.between(clock.instant(), deadline);
         if (left.isPositive()) {
             Thread.sleep(left);
         }
-        log.info("{} has played its {}, closing", story.name(), ttl);
+        log.info("{} has played its {}, closing", story.name(), ttl.get());
         context.close();
     }
 }

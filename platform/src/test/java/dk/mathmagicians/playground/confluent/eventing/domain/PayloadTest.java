@@ -15,8 +15,9 @@ class PayloadTest {
 
     static final Pattern ID_PATTERN = Pattern.compile(("(?<prefix>[^-]+)-(?<uuid>.+)"));
 
+    /// The drawn ids; a settlement's id is the order's and the offer's, see `TransactionTest`.
     static Stream<String> idIsAPrefixDashUUIDVersion3() {
-        return Stream.of( offer().offerId(), order().id(), transaction().transactionId(), envelope(offer()).id());
+        return Stream.of(offer().id(), order().id(), envelope(offer()).id());
     }
     @MethodSource
     @ParameterizedTest

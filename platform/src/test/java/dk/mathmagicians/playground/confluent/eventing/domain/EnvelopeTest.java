@@ -24,7 +24,7 @@ class EnvelopeTest {
     void keyOfAProductIsItsId() {
         var product = product();
         var key = envelope(product).key();
-        assertThat(key).isEqualTo( PRODUCT_KEY_STRATEGY.key(REGION, product)).isEqualTo(product.productId());
+        assertThat(key).isEqualTo( PRODUCT_KEY_STRATEGY.key(REGION, product)).isEqualTo(product.id());
     }
 
     @Test

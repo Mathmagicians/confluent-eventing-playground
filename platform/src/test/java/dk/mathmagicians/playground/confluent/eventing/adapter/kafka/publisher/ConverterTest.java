@@ -38,7 +38,7 @@ class ConverterTest {
 
         assertThat(message)
                 .isEqualTo(OfferDTO.Offer.newBuilder()
-                        .setOfferId(offer.offerId())
+                        .setOfferId(offer.id())
                         .setProductId(offer.productId())
                         .setPrice(offer.price())
                         .setSellerId(offer.sellerId())

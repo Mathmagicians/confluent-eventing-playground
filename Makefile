@@ -47,7 +47,7 @@ up-offer: docker-image   ## one generator
 up-order: docker-image   ## one generator
 	@$(COMPOSE) up order-generator
 
-up-tea-party: docker-image   ## the tea party of REGION, default EMEA, for TTL seconds; TTL=0 until stopped
+up-tea-party: docker-image   ## the tea party of REGION, default EMEA, for TTL seconds, default 60
 	@$(COMPOSE) up tea-party
 
 ##@ Infrastructure, Terraform Cloud creates the topics, schemas, and Flink tables from iac/, applied on main
@@ -86,8 +86,19 @@ flink-statements: tf-init   ## the Flink statements of ENVIRONMENT_ID: name, pha
 	  curl -sS --fail-with-body -u "$$FLINK_API_KEY:$$FLINK_API_SECRET" "$$endpoint/sql/v1/organizations/$$org/environments/$${ENVIRONMENT_ID:?set ENVIRONMENT_ID in $(ENV_FILE)}/statements" \
 	  | jq -r '.data[] | [.name, .status.phase, (.status.detail // "" | split("\n")[0])] | @tsv'
 
-flink-verify: flink-statements   ## every statement's phase, then the tables our Terraform set up, from tf output flink
-	@$(WITH_ENV) printf '\n== tables\n'; $(TF) output -json flink | jq -r '.[] | .[]'
+# tf output flink names what iac/ declared per environment: the tables, and under headers the ALTER statement; each is
+# read by its name, a table under its database, the cluster, a statement under statements
+flink-verify: tf-init   ## the phase of what iac/ declared on Flink, one lookup by name each, from tf output flink; red when one is missing or failed
+	@$(WITH_ENV) org=$$(curl -sS --fail-with-body -u "$$CLOUD_API_KEY:$$CLOUD_API_SECRET" $(CONFLUENT_API)/org/v2/organizations | jq -r '.data[0].id'); \
+	  base="$$($(TF) output -json compute_pool | jq -r .endpoint)/sql/v1/organizations/$$org/environments/$${ENVIRONMENT_ID:?set ENVIRONMENT_ID in $(ENV_FILE)}"; \
+	  cluster=$$($(TF) output -json cluster | jq -r .id); \
+	  phase() { body=$$(curl -sS --fail-with-body -u "$$FLINK_API_KEY:$$FLINK_API_SECRET" "$$base/$$1") || { printf '%s\n' "$$body"; return 1; }; \
+	    printf '%s\n' "$$body" | jq -r '[.name, .status.phase, (.status.detail // "" | split("\n")[0])] | @tsv'; }; \
+	  for entry in $$($(TF) output -json flink | jq -r 'to_entries[] | .key as $$env | .value | to_entries[] | "\($$env)/\(.key)/\(.value)"'); do \
+	    env=$${entry%%/*}; rest=$${entry#*/}; kind=$${rest%%/*}; name=$${rest#*/}; \
+	    case $$kind in headers) path="statements/$$name";; *) path="databases/$$cluster/materialized-tables/$$name";; esac; \
+	    printf '%s\t%s\t' "$$env" "$$kind"; phase "$$path" || fail=1; \
+	  done; exit $${fail:-0}
 
 ##@ Libraries, published to GitHub Packages for the builds that resolve them
 discovery-build:   ## architecture-discovery: compile, tests, jar

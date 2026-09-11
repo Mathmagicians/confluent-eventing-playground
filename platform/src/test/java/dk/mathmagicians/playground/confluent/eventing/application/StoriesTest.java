@@ -1,5 +1,6 @@
 package dk.mathmagicians.playground.confluent.eventing.application;
 
+import static dk.mathmagicians.playground.confluent.eventing.application.StoryFixtures.named;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 
@@ -7,10 +8,6 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class StoriesTest {
-
-    private static Story named(String name) {
-        return () -> name;
-    }
 
     @Test
     void selectsTheStoryByName() {

@@ -8,6 +8,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -52,8 +53,8 @@ public record GenerateLoad(
 
     /// The load plays for its ttl inside `start()`, so nothing is left for the substrate to wait.
     @Override
-    public Duration ttl() {
-        return ttl;
+    public Optional<Duration> playsFor() {
+        return Optional.of(ttl);
     }
 
     /// Starts the producers, waits for all of them, answers the number of messages published.

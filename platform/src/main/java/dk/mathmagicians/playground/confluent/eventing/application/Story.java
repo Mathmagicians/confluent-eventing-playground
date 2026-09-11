@@ -3,8 +3,10 @@ package dk.mathmagicians.playground.confluent.eventing.application;
 import dk.mathmagicians.playground.confluent.eventing.domain.Envelope;
 import dk.mathmagicians.playground.confluent.eventing.domain.Payload;
 import java.time.Duration;
+import java.util.Optional;
 import java.util.Set;
 import org.jmolecules.architecture.hexagonal.PrimaryPort;
+import org.jspecify.annotations.Nullable;
 
 /// The substrate's contract with a business process. A story says what it listens to, and the substrate hands it
 /// every message of those kinds; what it wants to publish, it publishes through `PublishMessage`. A story that
@@ -28,18 +30,39 @@ public interface Story {
         return Set.of();
     }
 
-    /// A message of a kind the story listens to.
+    /// A message of a kind the story listens to. The default is the refusal, for what a story does not listen to.
     default void on(Envelope envelope) {
-        throw new IllegalStateException(name() + " listens to nothing, got " + envelope.id());
+        throw new IllegalStateException(name() + " does not listen to " + envelope.payload());
     }
 
     /// Once, when the substrate is up. A story that acts on its own does its work here.
     default void start() {
     }
 
-    /// How long the story plays, `<name>.ttl`, counted from before `start()`: the substrate ends the process when
-    /// it has passed. Zero, the default, is until stopped, what a consumer wants in production.
-    default Duration ttl() {
-        return Duration.ZERO;
+    /// How long the story plays, its settings' `<name>.ttl`, counted from before `start()`: the substrate ends
+    /// the process when it has passed. Empty, the default, is until stopped, what a consumer wants in production.
+    default Optional<Duration> playsFor() {
+        return Optional.empty();
+    }
+
+    /// The ttl as a story's settings read it, `<name>.ttl` as text: positive seconds, or left empty for until
+    /// stopped, anything else fails the start with the reason. Text, because an empty value on the command line
+    /// is the one way to say until stopped when the setting has a default.
+    static Optional<Duration> ttl(String name, @Nullable String ttl) {
+        if (ttl == null || ttl.isBlank()) {
+            return Optional.empty();
+        }
+        var refused = new IllegalArgumentException(
+                name + ".ttl must be positive seconds, left empty for until stopped, was '" + ttl + "'");
+        long seconds;
+        try {
+            seconds = Long.parseLong(ttl.strip());
+        } catch (NumberFormatException e) {
+            throw refused;
+        }
+        if (seconds <= 0) {
+            throw refused;
+        }
+        return Optional.of(Duration.ofSeconds(seconds));
     }
 }

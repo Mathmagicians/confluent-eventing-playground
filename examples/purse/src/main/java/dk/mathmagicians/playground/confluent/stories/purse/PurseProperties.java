@@ -1,23 +1,21 @@
 package dk.mathmagicians.playground.confluent.stories.purse;
 
+import dk.mathmagicians.playground.confluent.eventing.application.Story;
 import dk.mathmagicians.playground.confluent.eventing.domain.Wonderland;
 import java.time.Duration;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Optional;
 import java.util.TreeSet;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.bind.DefaultValue;
-import org.springframework.boot.convert.DurationUnit;
 
 /// The settings of the purse story, `purse.*`: the purses at this table, `--purse.owners="Alice:1000,White
 /// Rabbit:500"`, one entry per purse, the owner as the features name a character of Wonderland and the coins the
-/// purse starts with; and how long the table sits, `--purse.ttl` seconds, zero for until stopped. Every value has
-/// a default, so the bundle binds at every start whatever the story; a wrong value fails startup with the entry in
-/// the message.
+/// purse starts with; and how long the table sits, `--purse.ttl` seconds, five minutes by default, left empty for
+/// until stopped. Every value has a default, so the bundle binds at every start whatever the story; a wrong value
+/// fails startup with the entry in the message.
 @ConfigurationProperties("purse")
-public record PurseProperties(
-        @DefaultValue("Alice:1000") List<String> owners,
-        @DefaultValue("0") @DurationUnit(ChronoUnit.SECONDS) Duration ttl) {
+public record PurseProperties(@DefaultValue("Alice:1000") List<String> owners, @DefaultValue("300") String ttl) {
 
     /// A purse as it opens: whose, by the id on the wire, and with how many coins.
     public record Opening(String ownerId, double coins) {
@@ -36,14 +34,17 @@ public record PurseProperties(
                 throw new IllegalArgumentException("purse.owners names " + opening.ownerId() + " twice");
             }
         }
-        if (ttl == null || ttl.isNegative()) {
-            throw new IllegalArgumentException("purse.ttl must be seconds, zero for until stopped, was " + ttl);
-        }
+        Story.ttl(KnowWhatIsLeft.NAME, ttl);
     }
 
     /// The purses, one per entry, in the order given.
     public List<Opening> openings() {
         return owners.stream().map(PurseProperties::parse).toList();
+    }
+
+    /// How long the table sits, empty for until stopped.
+    public Optional<Duration> playsFor() {
+        return Story.ttl(KnowWhatIsLeft.NAME, ttl);
     }
 
     private static Opening parse(String entry) {

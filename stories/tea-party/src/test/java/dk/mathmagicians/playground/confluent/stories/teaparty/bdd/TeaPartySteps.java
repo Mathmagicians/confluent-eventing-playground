@@ -20,6 +20,11 @@ public class TeaPartySteps {
         throw new PendingException();
     }
 
+    @Given("a generator in region {word} has placed offers and no orders")
+    public void aGeneratorInRegionHasPlacedOffersAndNoOrders(String region) {
+        throw new PendingException();
+    }
+
     @When("the tea party reads the streams of offers and orders")
     public void theTeaPartyReadsTheStreamsOfOffersAndOrders() {
         throw new PendingException();
@@ -27,6 +32,11 @@ public class TeaPartySteps {
 
     @When("the generator places offers")
     public void theGeneratorPlacesOffers() {
+        throw new PendingException();
+    }
+
+    @When("the generator places orders")
+    public void theGeneratorPlacesOrders() {
         throw new PendingException();
     }
 
@@ -40,18 +50,23 @@ public class TeaPartySteps {
         throw new PendingException();
     }
 
-    @Then("the offer is the latest one for that thing")
-    public void theOfferIsTheLatestOneForThatThing() {
+    @Then("each offer was taken once, by the order that waited longest")
+    public void eachOfferWasTakenOnceByTheOrderThatWaitedLongest() {
         throw new PendingException();
     }
 
-    @Then("no order was settled")
-    public void noOrderWasSettled() {
+    @Then("nothing was settled")
+    public void nothingWasSettled() {
         throw new PendingException();
     }
 
     @Then("every order for a thing now on offer was settled")
     public void everyOrderForAThingNowOnOfferWasSettled() {
+        throw new PendingException();
+    }
+
+    @Then("every offer for a thing now ordered was taken")
+    public void everyOfferForAThingNowOrderedWasTaken() {
         throw new PendingException();
     }
 }

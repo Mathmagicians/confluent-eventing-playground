@@ -1,116 +1,117 @@
 package dk.mathmagicians.playground.confluent.stories.teaparty;
 
-import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures.APP;
-import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures.AT;
+import static dk.mathmagicians.playground.confluent.eventing.application.StoryFixtures.publishMessage;
+import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures.ALICE;
+import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures.CLOCK;
+import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures.DORMOUSE;
+import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures.MAD_HATTER;
+import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures.MARCH_HARE;
 import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures.REGION;
-import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures.character;
-import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures.dice;
+import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures.TARTS;
+import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures.TOP_HAT;
 import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures.envelope;
+import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures.offer;
+import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures.order;
 import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures.product;
-import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures.publisher;
-import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures.thing;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 
-import dk.mathmagicians.playground.confluent.eventing.application.PublishMessage;
 import dk.mathmagicians.playground.confluent.eventing.domain.Envelope;
 import dk.mathmagicians.playground.confluent.eventing.domain.Offer;
 import dk.mathmagicians.playground.confluent.eventing.domain.Order;
 import dk.mathmagicians.playground.confluent.eventing.domain.Transaction;
-import java.time.Clock;
 import java.time.Duration;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
-/// The tea party over offers and orders built by hand: what it publishes is what it settled.
+/// The tea party over offers and orders built by hand: an offer is one thing for sale, an order one thing wanted,
+/// and what it publishes is what it settled. Every test gets a party of its own, so nothing waits over from one
+/// test to the next.
 class SettleAtTheTeaPartyTest {
 
-    private static final Clock CLOCK = Clock.fixed(AT, ZoneOffset.UTC);
     private static final Duration TTL = Duration.ofSeconds(30);
-    private static final String TOP_HAT = thing("Top Hat");
-    private static final String TARTS = thing("Tarts");
-    private static final String ALICE = character("Alice");
-    private static final String DORMOUSE = character("Dormouse");
-    private static final String HATTER = character("Mad Hatter");
-    private static final String HARE = character("March Hare");
 
     /// Envelopes as the tea party publishes them.
     private final List<Envelope> published = new ArrayList<>();
-    private final SettleAtTheTeaParty teaParty = new SettleAtTheTeaParty(
-            REGION,
-            new PublishMessage(REGION, APP, publisher(published), CLOCK, () -> dice()),
-            CLOCK,
-            () -> dice(),
-            TTL);
+    private final SettleAtTheTeaParty teaParty =
+            new SettleAtTheTeaParty(REGION, publishMessage(published), CLOCK, TTL);
 
-    private static Envelope offered(String offerId, String productId, double price, String seller) {
-        return envelope(new Offer(offerId, productId, price, seller, AT));
+    private List<String> settledOrders() {
+        return published.stream().map(envelope -> ((Transaction) envelope.payload()).orderRef().id()).toList();
     }
 
-    private static Envelope ordered(String orderId, String productId, String customer) {
-        return envelope(new Order(orderId, customer, productId, AT));
-    }
-
-    private List<Transaction> settled() {
-        return published.stream().map(envelope -> (Transaction) envelope.payload()).toList();
+    private List<String> takenOffers() {
+        return published.stream().map(envelope -> ((Transaction) envelope.payload()).offerRef().id()).toList();
     }
 
     @Test
     void isTheTeaPartyStoryListeningToOffersAndOrders() {
         assertThat(teaParty.name()).isEqualTo("tea-party");
         assertThat(teaParty.listensTo()).containsExactlyInAnyOrder(Offer.class, Order.class);
-        assertThat(teaParty.ttl()).isEqualTo(TTL);
+        assertThat(teaParty.playsFor()).hasValue(TTL);
     }
 
     @Test
-    void settlesAnOrderAtTheLatestOfferForItsThing() {
-        teaParty.on(offered("OFF-1", TOP_HAT, 10, HATTER));
-        teaParty.on(offered("OFF-2", TOP_HAT, 12, HARE));
+    void settlesAnOrderWithAnOfferForItsThing() {
+        teaParty.on(envelope(offer("OFF-1", TOP_HAT, 12, MARCH_HARE)));
 
-        teaParty.on(ordered("ORD-1", TOP_HAT, ALICE));
+        teaParty.on(envelope(order("ORD-1", ALICE, TOP_HAT)));
 
-        assertThat(settled()).singleElement().satisfies(transaction -> {
+        assertThat(published).singleElement().satisfies(envelope -> {
+            var transaction = (Transaction) envelope.payload();
             assertThat(transaction.customerId()).isEqualTo(ALICE);
-            assertThat(transaction.sellerId()).isEqualTo(HARE);
+            assertThat(transaction.sellerId()).isEqualTo(MARCH_HARE);
             assertThat(transaction.price()).isEqualTo(12);
             assertThat(transaction.orderRef().id()).isEqualTo("ORD-1");
-            assertThat(transaction.offerRef().offerId()).isEqualTo("OFF-2");
+            assertThat(transaction.offerRef().id()).isEqualTo("OFF-1");
         });
     }
 
     @Test
     void keepsAnOrderWaitingUntilItsThingIsOffered() {
-        teaParty.on(ordered("ORD-1", TOP_HAT, ALICE));
+        teaParty.on(envelope(order("ORD-1", ALICE, TOP_HAT)));
         assertThat(published).isEmpty();
 
-        teaParty.on(offered("OFF-1", TOP_HAT, 10, HATTER));
+        teaParty.on(envelope(offer("OFF-1", TOP_HAT, 10, MAD_HATTER)));
 
-        assertThat(settled()).singleElement().satisfies(transaction ->
-                assertThat(transaction.orderRef().id()).isEqualTo("ORD-1"));
+        assertThat(settledOrders()).containsExactly("ORD-1");
     }
 
     @Test
-    void settlesEveryOrderThatWaitedForTheThingOldestFirst() {
-        teaParty.on(ordered("ORD-1", TOP_HAT, ALICE));
-        teaParty.on(ordered("ORD-2", TOP_HAT, DORMOUSE));
-        teaParty.on(ordered("ORD-3", TARTS, ALICE));
+    void keepsAnOfferWaitingUntilItsThingIsOrdered() {
+        teaParty.on(envelope(offer("OFF-1", TOP_HAT, 10, MAD_HATTER)));
+        assertThat(published).isEmpty();
 
-        teaParty.on(offered("OFF-1", TOP_HAT, 10, HATTER));
+        teaParty.on(envelope(order("ORD-1", ALICE, TOP_HAT)));
 
-        assertThat(settled()).extracting(transaction -> transaction.orderRef().id())
-                .containsExactly("ORD-1", "ORD-2");
+        assertThat(takenOffers()).containsExactly("OFF-1");
     }
 
+    /// One offer, one order: the second order waits for the next offer, and the tarts wait for their own.
     @Test
-    void settlesOnceOnly() {
-        teaParty.on(ordered("ORD-1", TOP_HAT, ALICE));
-        teaParty.on(offered("OFF-1", TOP_HAT, 10, HATTER));
+    void takesAnOfferOnceAndLetsTheNextOrderWait() {
+        teaParty.on(envelope(order("ORD-1", ALICE, TOP_HAT)));
+        teaParty.on(envelope(order("ORD-2", DORMOUSE, TOP_HAT)));
+        teaParty.on(envelope(order("ORD-3", ALICE, TARTS)));
 
-        teaParty.on(offered("OFF-2", TOP_HAT, 11, HARE));
+        teaParty.on(envelope(offer("OFF-1", TOP_HAT, 10, MAD_HATTER)));
+        assertThat(settledOrders()).containsExactly("ORD-1");
 
-        assertThat(settled()).hasSize(1);
+        teaParty.on(envelope(offer("OFF-2", TOP_HAT, 11, MARCH_HARE)));
+        assertThat(settledOrders()).containsExactly("ORD-1", "ORD-2");
+    }
+
+    /// The offer that waited longest goes first.
+    @Test
+    void servesWaitingOffersInTheOrderTheyCame() {
+        teaParty.on(envelope(offer("OFF-1", TOP_HAT, 10, MAD_HATTER)));
+        teaParty.on(envelope(offer("OFF-2", TOP_HAT, 11, MARCH_HARE)));
+
+        teaParty.on(envelope(order("ORD-1", ALICE, TOP_HAT)));
+        teaParty.on(envelope(order("ORD-2", DORMOUSE, TOP_HAT)));
+
+        assertThat(takenOffers()).containsExactly("OFF-1", "OFF-2");
     }
 
     @Test

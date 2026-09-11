@@ -1,5 +1,7 @@
 package dk.mathmagicians.playground.confluent.eventing.adapter.cli;
 
+import static dk.mathmagicians.playground.confluent.eventing.application.StoryFixtures.acting;
+import static dk.mathmagicians.playground.confluent.eventing.application.StoryFixtures.listening;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -7,13 +9,11 @@ import static org.mockito.Mockito.verify;
 import dk.mathmagicians.playground.confluent.eventing.application.Stories;
 import dk.mathmagicians.playground.confluent.eventing.application.Story;
 import dk.mathmagicians.playground.confluent.eventing.domain.Order;
-import dk.mathmagicians.playground.confluent.eventing.domain.Payload;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -25,22 +25,6 @@ import org.springframework.context.ConfigurableApplicationContext;
 class StoryRunnerTest {
 
     private static final Duration SHORT = Duration.ofMillis(20);
-    private static final Set<Class<? extends Payload>> ORDERS = Set.of(Order.class);
-    private static final Set<Class<? extends Payload>> NOTHING = Set.of();
-
-    /// A story that counts its starts, listens or not, and plays for the ttl given.
-    private record Counting(String name, AtomicInteger starts, Set<Class<? extends Payload>> listensTo, Duration ttl)
-            implements Story {
-
-        Counting(String name, Set<Class<? extends Payload>> listensTo, Duration ttl) {
-            this(name, new AtomicInteger(), listensTo, ttl);
-        }
-
-        @Override
-        public void start() {
-            starts.incrementAndGet();
-        }
-    }
 
     @Mock
     private ConfigurableApplicationContext context;
@@ -53,8 +37,8 @@ class StoryRunnerTest {
 
     @Test
     void startsTheSelectedStoryOnce() throws InterruptedException {
-        var selected = new Counting("selected", NOTHING, Duration.ZERO);
-        var other = new Counting("other", NOTHING, Duration.ZERO);
+        var selected = acting("selected", null);
+        var other = acting("other", null);
 
         runner(selected, other).run(new DefaultApplicationArguments());
 
@@ -64,24 +48,23 @@ class StoryRunnerTest {
 
     @Test
     void leavesAConsumerWithoutATtlUntilStopped() throws InterruptedException {
-        runner(new Counting("forever", ORDERS, Duration.ZERO)).run(new DefaultApplicationArguments());
+        runner(listening("forever", Set.of(Order.class), null)).run(new DefaultApplicationArguments());
 
         verify(context, never()).close();
     }
 
     @Test
     void leavesAStoryThatActsOnItsOwnToEndTheProcess() throws InterruptedException {
-        runner(new Counting("load", NOTHING, SHORT)).run(new DefaultApplicationArguments());
+        runner(acting("load", SHORT)).run(new DefaultApplicationArguments());
 
         verify(context, never()).close();
     }
 
     @Test
     void closesTheContextOfAConsumerWhenItsTtlHasPassed() throws InterruptedException {
-        var story = new Counting("brief", ORDERS, SHORT);
         var before = Instant.now();
 
-        runner(story).run(new DefaultApplicationArguments());
+        runner(listening("brief", Set.of(Order.class), SHORT)).run(new DefaultApplicationArguments());
 
         assertThat(Duration.between(before, Instant.now())).isGreaterThanOrEqualTo(SHORT);
         verify(context).close();

@@ -1,7 +1,9 @@
 package dk.mathmagicians.playground.confluent.eventing.domain;
 
 import dk.mathmagicians.playground.confluent.eventing.application.Publisher;
+import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -13,6 +15,8 @@ import java.util.stream.Stream;
 public final class EventFixtures {
 
     public static final Instant AT = Instant.parse("2026-09-04T10:15:30.123456789Z");
+    /// A clock stopped at `AT`.
+    public static final Clock CLOCK = Clock.fixed(AT, ZoneOffset.UTC);
 
     public static final String REGION = "EMEA";
 
@@ -58,7 +62,33 @@ public final class EventFixtures {
         var offer = Offer.random(random, at);
         var order = Order.random(random, at);
         var sameThing = new Order(order.id(), order.customerId(), offer.productId(), order.createdAt());
-        return Transaction.settle(sameThing, offer, random, at);
+        return Transaction.settle(sameThing, offer, at);
+    }
+
+    /// The wonderlanders and the things the tests trade, by their ids on the wire.
+    public static final String ALICE = character("Alice");
+    public static final String WHITE_RABBIT = character("White Rabbit");
+    public static final String MAD_HATTER = character("Mad Hatter");
+    public static final String MARCH_HARE = character("March Hare");
+    public static final String DORMOUSE = character("Dormouse");
+    public static final String CHESHIRE_CAT = character("Cheshire Cat");
+    public static final String TOP_HAT = thing("Top Hat");
+    public static final String TARTS = thing("Tarts");
+
+    /// An order placed at `AT`.
+    public static Order order(String id, String customerId, String productId) {
+        return new Order(id, customerId, productId, AT);
+    }
+
+    /// An offer made at `AT`.
+    public static Offer offer(String id, String productId, double price, String sellerId) {
+        return new Offer(id, productId, price, sellerId, AT);
+    }
+
+    /// A trade settled at `AT`: the customer pays the seller the price, for a top hat.
+    public static Transaction trade(String customerId, String sellerId, double price) {
+        return Transaction.settle(
+                order("ORD-1", customerId, TOP_HAT), offer("OFF-1", TOP_HAT, price, sellerId), AT);
     }
 
     /// One fixture per record `Payload` permits.

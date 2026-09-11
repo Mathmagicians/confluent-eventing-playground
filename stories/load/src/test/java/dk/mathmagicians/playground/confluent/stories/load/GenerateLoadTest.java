@@ -1,11 +1,9 @@
 package dk.mathmagicians.playground.confluent.stories.load;
 
-import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures.APP;
+import static dk.mathmagicians.playground.confluent.eventing.application.StoryFixtures.publishing;
 import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures.REGION;
-import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures.publisher;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import dk.mathmagicians.playground.confluent.eventing.application.PublishMessage;
 import dk.mathmagicians.playground.confluent.eventing.domain.Envelope;
 import dk.mathmagicians.playground.confluent.eventing.domain.Order;
 import dk.mathmagicians.playground.confluent.eventing.domain.Payload;
@@ -26,11 +24,12 @@ class GenerateLoadTest {
 
     /// Envelopes as the producers publish them.
     private final ConcurrentLinkedQueue<Envelope> published = new ConcurrentLinkedQueue<>();
+    /// The producers share the random source of their threads, so their ids differ; the clock is the real one, the
+    /// loops run against it.
     private final Clock clock = Clock.systemUTC();
-    private final PublishMessage publishMessage =
-            new PublishMessage(REGION, APP, publisher(published), clock, ThreadLocalRandom::current);
 
     private GenerateLoad load(GenerateLoad.Recipe<? extends Payload> payloads, int concurrent) {
+        var publishMessage = publishing(published, ThreadLocalRandom::current).from(REGION);
         return new GenerateLoad(publishMessage, clock, payloads, concurrent, INTERVAL, TTL);
     }
 
@@ -38,7 +37,7 @@ class GenerateLoadTest {
     void isTheLoadStory() {
         assertThat(load(Order::random, 1).name()).isEqualTo("load");
         assertThat(load(Order::random, 1).listensTo()).isEmpty();
-        assertThat(load(Order::random, 1).ttl()).isEqualTo(TTL);
+        assertThat(load(Order::random, 1).playsFor()).hasValue(TTL);
     }
 
     @Test

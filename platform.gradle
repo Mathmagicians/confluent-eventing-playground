@@ -21,7 +21,8 @@ def tagged = describe =~ /^v(\d+)\.(\d+)\.(\d+)-(\d+)-g[0-9a-f]+$/
 def (major, minor, patch, commits) = tagged.matches() ? (1..4).collect { tagged[0][it] as int } : [0, 0, 0, 1]
 def nextVersion = "${major}.${minor}.${patch + 1}"
 version = commits == 0 ? "${major}.${minor}.${patch}" : "${nextVersion}-SNAPSHOT"
-group = 'dk.mathmagicians.playground'
+def ourGroup = 'dk.mathmagicians.playground'
+group = ourGroup
 
 tasks.register('version') {
     description = 'Prints the version.'
@@ -35,6 +36,17 @@ tasks.register('nextVersion') {
     group = 'help'
     def next = nextVersion
     doLast { println next }
+}
+
+// our own libraries live on GitHub Packages, which needs a token even to read: GITHUB_ACTOR and GITHUB_TOKEN from
+// the environment, CI's or gh's; the same repository resolves them and receives them
+def githubPackages = {
+    name = 'GitHubPackages'
+    url = 'https://maven.pkg.github.com/mathmagicians/confluent-eventing-playground'
+    credentials {
+        username = System.getenv('GITHUB_ACTOR')
+        password = System.getenv('GITHUB_TOKEN')
+    }
 }
 
 // the rest is for a project with code: a subproject here, the root of a story's build
@@ -51,20 +63,15 @@ if (project != rootProject || subprojects.isEmpty()) {
     repositories {
         mavenCentral()
         maven { url = 'https://packages.confluent.io/maven/' } // the Schema Registry client and the Protobuf serializer
-        // our own libraries: the developer loop installs them locally, make platform-install and discovery-install;
-        // CI publishes them to GitHub Packages, which needs a token even to read, GITHUB_ACTOR and GITHUB_TOKEN from
-        // the environment
+        // our own libraries: the developer loop installs them locally, make platform-install and discovery-install,
+        // taken first; CI publishes them to GitHub Packages
         mavenLocal {
-            content { includeGroup 'dk.mathmagicians.playground' }
+            content { includeGroup ourGroup }
         }
         maven {
-            name = 'GitHubPackages'
-            url = 'https://maven.pkg.github.com/mathmagicians/confluent-eventing-playground'
-            credentials {
-                username = System.getenv('GITHUB_ACTOR')
-                password = System.getenv('GITHUB_TOKEN')
-            }
-            content { includeGroup 'dk.mathmagicians.playground' }
+            githubPackages.delegate = delegate
+            githubPackages()
+            content { includeGroup ourGroup }
         }
     }
 
@@ -111,7 +118,7 @@ if (project != rootProject || subprojects.isEmpty()) {
         outputs.upToDateWhen { false }
     }
 
-    // a library goes to GitHub Packages, where other builds resolve it; a token from the environment, CI's or gh's
+    // a library goes to GitHub Packages, where other builds resolve it
     plugins.withId('maven-publish') {
         publishing {
             publications {
@@ -121,12 +128,8 @@ if (project != rootProject || subprojects.isEmpty()) {
             }
             repositories {
                 maven {
-                    name = 'GitHubPackages'
-                    url = 'https://maven.pkg.github.com/mathmagicians/confluent-eventing-playground'
-                    credentials {
-                        username = System.getenv('GITHUB_ACTOR')
-                        password = System.getenv('GITHUB_TOKEN')
-                    }
+                    githubPackages.delegate = delegate
+                    githubPackages()
                 }
             }
         }

@@ -6,9 +6,11 @@ import dk.mathmagicians.playground.confluent.eventing.domain.Payload;
 import dk.mathmagicians.playground.confluent.eventing.domain.Transaction;
 import java.time.Duration;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import org.jmolecules.architecture.hexagonal.PrimaryPort;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,10 +27,11 @@ public final class KnowWhatIsLeft implements Story {
     // FIXME a domain record Purse(ownerId, coins): in(price), out(price), left(), isEmpty(), owes(), pure
     // FIXME functions answering a new purse; this map then holds a Purse per owner id
     private final TreeMap<String, Double> purses = new TreeMap<>();
-    private final Duration ttl;
+    private final @Nullable Duration ttl;
 
-    /// The purses at this table, by owner id, with the coins each opens with, and how long the table sits.
-    public KnowWhatIsLeft(Map<String, Double> openings, Duration ttl) {
+    /// The purses at this table, by owner id, with the coins each opens with, and how long the table sits, nothing
+    /// for until stopped.
+    public KnowWhatIsLeft(Map<String, Double> openings, @Nullable Duration ttl) {
         purses.putAll(openings);
         this.ttl = ttl;
     }
@@ -38,10 +41,9 @@ public final class KnowWhatIsLeft implements Story {
         return NAME;
     }
 
-    /// How long the table sits, from the settings; zero is until stopped.
     @Override
-    public Duration ttl() {
-        return ttl;
+    public Optional<Duration> playsFor() {
+        return Optional.ofNullable(ttl);
     }
 
     /// The story's name and the owners, sorted: `purse-ALICE-WHITE_RABBIT`.
@@ -57,14 +59,18 @@ public final class KnowWhatIsLeft implements Story {
 
     @Override
     public void on(Envelope envelope) {
-        if (!(envelope.payload() instanceof Transaction transaction)) {
-            throw new IllegalStateException(NAME + " does not listen to " + envelope.payload());
+        switch (envelope.payload()) {
+            case Transaction transaction -> traded(transaction);
+            default -> Story.super.on(envelope);
         }
+    }
+
+    private void traded(Transaction transaction) {
         // FIXME the seller's purse, when at this table: coins in, one INFO line with the price and what is left
         // FIXME the customer's purse, when at this table: coins out, one INFO line; below zero, one ERROR line with
         // FIXME what the owner owes
         // FIXME a trade between two others: nothing, at most a DEBUG line
-        log.debug("Saw {}: {} pays {} {}", transaction.transactionId(), transaction.customerId(),
+        log.debug("Saw {}: {} pays {} {}", transaction.id(), transaction.customerId(),
                 transaction.sellerId(), transaction.price());
     }
 

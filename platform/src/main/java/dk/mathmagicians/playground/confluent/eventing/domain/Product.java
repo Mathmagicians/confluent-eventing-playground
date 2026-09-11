@@ -7,7 +7,7 @@ import java.util.random.RandomGenerator;
 @ValueObject
 public record Product(
         String producerId,
-        String productId,
+        String id,
         String productName,
         String productDescription,
         Instant createdAt) implements Payload {

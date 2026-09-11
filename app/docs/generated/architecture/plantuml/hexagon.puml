@@ -1,0 +1,139 @@
+@startuml
+' the hexagon from the code: Spring Modulith modules placed by their jMolecules stereotypes
+skinparam shadowing false
+skinparam defaultTextAlignment left
+skinparam ranksep 24
+skinparam nodesep 24
+skinparam ArrowFontSize 10
+skinparam ArrowFontColor #666666
+<style>
+hexagon { HorizontalAlignment center }
+rectangle { HorizontalAlignment center }
+</style>
+
+rectangle "DRIVING ADAPTERS" as driving #line:transparent {
+  hexagon "Cli" as m_Cli {
+    rectangle "<size:1> </size>" as m_Cli_in #line:transparent {
+      card "StoryRunner\n<size:10>«PrimaryAdapter»</size>" as m_Cli_StoryRunner
+    }
+  }
+  hexagon "Kafka consumer" as m_Kafka_consumer {
+    rectangle "<size:1> </size>" as m_Kafka_consumer_in #line:transparent {
+      card "StoryListener\n<size:10>«PrimaryAdapter»</size>" as m_Kafka_consumer_StoryListener
+    }
+  }
+  m_Cli_StoryRunner -[hidden]down-> m_Kafka_consumer_StoryListener
+}
+rectangle "APPLICATION" as core #line:transparent {
+  hexagon "Application" as m_Application {
+    rectangle "<size:1> </size>" as m_Application_in #line:transparent {
+      card "PublishMessage\n<size:10>«PrimaryPort»</size>" as m_Application_PublishMessage
+      card "Story\n<size:10>«PrimaryPort»</size>" as m_Application_Story
+      card "Publisher\n<size:10>«SecondaryPort»</size>" as m_Application_Publisher
+      m_Application_PublishMessage -[hidden]right-> m_Application_Story
+      m_Application_Story -[hidden]right-> m_Application_Publisher
+      hexagon "Domain" as m_Domain {
+        rectangle "<size:1> </size>" as m_Domain_in #line:transparent {
+          card "Wonderland\n<size:10>«Factory»</size>" as m_Domain_Wonderland
+          card "Envelope\n<size:10>«ValueObject»</size>" as m_Domain_Envelope
+          card "Payload\n<size:10>«ValueObject»</size>" as m_Domain_Payload
+          card "Offer\n<size:10>«ValueObject»</size>" as m_Domain_Offer
+          card "Order\n<size:10>«ValueObject»</size>" as m_Domain_Order
+          card "Product\n<size:10>«ValueObject»</size>" as m_Domain_Product
+          card "Transaction\n<size:10>«ValueObject»</size>" as m_Domain_Transaction
+          label "<size:1> </size>" as m_Domain_Payload_j
+          m_Domain_Offer .up. m_Domain_Payload_j
+          m_Domain_Order .up. m_Domain_Payload_j
+          m_Domain_Product .up. m_Domain_Payload_j
+          m_Domain_Transaction .up. m_Domain_Payload_j
+          m_Domain_Payload_j .up.|> m_Domain_Payload
+          card "Receipt\n<size:10>«ValueObject»</size>" as m_Domain_Receipt
+          m_Domain_Wonderland -[hidden]right-> m_Domain_Envelope
+          m_Domain_Envelope -[hidden]right-> m_Domain_Payload
+          m_Domain_Payload -[hidden]right-> m_Domain_Receipt
+          m_Domain_Offer -[hidden]right-> m_Domain_Order
+          m_Domain_Order -[hidden]right-> m_Domain_Product
+          m_Domain_Product -[hidden]right-> m_Domain_Transaction
+          m_Domain_Payload -[hidden]down-> m_Domain_Order
+        }
+      }
+      m_Application_PublishMessage -[hidden]down-> m_Domain_Envelope
+      m_Application_Story -[hidden]down-> m_Domain_Envelope
+      m_Application_Publisher -[hidden]down-> m_Domain_Envelope
+    }
+  }
+  hexagon "Load story" as m_Load_story {
+    rectangle "<size:1> </size>" as m_Load_story_in #line:transparent {
+      card "GenerateLoad\n<size:10>«PrimaryPort»</size>" as m_Load_story_GenerateLoad
+    }
+  }
+  hexagon "Tea party story" as m_Tea_party_story {
+    rectangle "<size:1> </size>" as m_Tea_party_story_in #line:transparent {
+      card "SettleAtTheTeaParty\n<size:10>«PrimaryPort»</size>" as m_Tea_party_story_SettleAtTheTeaParty
+    }
+  }
+  m_Domain_Offer -[hidden]down-> m_Load_story_GenerateLoad
+  m_Domain_Order -[hidden]down-> m_Load_story_GenerateLoad
+  m_Domain_Product -[hidden]down-> m_Load_story_GenerateLoad
+  m_Domain_Transaction -[hidden]down-> m_Load_story_GenerateLoad
+  m_Load_story_GenerateLoad -[hidden]down-> m_Tea_party_story_SettleAtTheTeaParty
+}
+rectangle "DRIVEN ADAPTERS" as driven #line:transparent {
+  hexagon "Kafka publisher" as m_Kafka_publisher {
+    rectangle "<size:1> </size>" as m_Kafka_publisher_in #line:transparent {
+      card "KafkaPublisher\n<size:10>«SecondaryAdapter»</size>" as m_Kafka_publisher_KafkaPublisher
+    }
+  }
+  hexagon "Log" as m_Log {
+    rectangle "<size:1> </size>" as m_Log_in #line:transparent {
+      card "LoggingPublisher\n<size:10>«SecondaryAdapter»</size>" as m_Log_LoggingPublisher
+    }
+  }
+  m_Kafka_publisher_KafkaPublisher -[hidden]down-> m_Log_LoggingPublisher
+}
+
+m_Application_PublishMessage -right-> m_Application_Publisher
+m_Application_PublishMessage ..> m_Domain_Envelope
+m_Application_PublishMessage ..> m_Domain_Payload
+m_Application_PublishMessage ..> m_Domain_Receipt
+m_Application_Publisher ..> m_Domain_Envelope
+m_Application_Publisher ..> m_Domain_Receipt
+m_Application_Story ..> m_Domain_Envelope
+m_Application_Story ..> m_Domain_Payload
+m_Cli_StoryRunner -right-> m_Application
+m_Cli_StoryRunner .right.> m_Application_Story
+m_Kafka_consumer_StoryListener -right-> m_Application
+m_Kafka_consumer_StoryListener .right.> m_Application_Story
+m_Kafka_publisher_KafkaPublisher .left.|> m_Application_Publisher
+m_Load_story_GenerateLoad --> m_Application_PublishMessage
+m_Load_story_GenerateLoad ..|> m_Application_Story
+m_Load_story_GenerateLoad ..> m_Domain_Payload
+m_Log_LoggingPublisher .left.|> m_Application_Publisher
+m_Tea_party_story_SettleAtTheTeaParty --> m_Application_PublishMessage
+m_Tea_party_story_SettleAtTheTeaParty ..|> m_Application_Story
+m_Tea_party_story_SettleAtTheTeaParty ..> m_Domain_Envelope
+m_Tea_party_story_SettleAtTheTeaParty ..> m_Domain_Offer
+m_Tea_party_story_SettleAtTheTeaParty ..> m_Domain_Order
+m_Tea_party_story_SettleAtTheTeaParty ..> m_Domain_Payload
+m_Tea_party_story_SettleAtTheTeaParty ..> m_Domain_Receipt
+m_Tea_party_story_SettleAtTheTeaParty ..> m_Domain_Transaction
+
+rectangle "<size:10>legend</size>" as legend #line:BBBBBB;text:666666 {
+  label " " as l_uses_from
+  label " " as l_uses_to
+  l_uses_from -right-> l_uses_to : uses
+  label " " as l_implements_from
+  label " " as l_implements_to
+  l_implements_from .right.|> l_implements_to : implements
+  label " " as l_depends_on_from
+  label " " as l_depends_on_to
+  l_depends_on_from .right.> l_depends_on_to : depends on
+  l_uses_to -[hidden]right-> l_implements_from
+  l_implements_to -[hidden]right-> l_depends_on_from
+}
+m_Log_LoggingPublisher -[hidden]down-> l_uses_from
+m_Tea_party_story_SettleAtTheTeaParty -[hidden]down-> l_uses_from
+legend right
+  EventingPlatform
+endlegend
+@enduml

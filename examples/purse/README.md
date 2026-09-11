@@ -35,7 +35,8 @@ snapshot of the next one between releases. GitHub Packages needs a token even to
    - `on(Envelope)`, one message of those kinds at a time; what you throw sets the message aside on the dead-letter
      topic
    - `start()`, once when the platform is up, for a story that acts on its own
-   - `ttl()`, how long it plays before the platform ends the process; zero, the default, is until stopped
+   - `playsFor()`, how long it plays before the platform ends the process, its settings' `ttl`; empty is until
+     stopped, the settings say `300` unless `--purse.ttl=` leaves it empty
    - to publish, build a `PublishMessage` from the platform's `Publisher` and `Clock` in the auto-configuration,
      the tea party story in `stories/tea-party` shows how
 5. **Give it settings.** A `@ConfigurationProperties("<name>")` record with a default for every value and a
