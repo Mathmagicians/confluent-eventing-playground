@@ -44,7 +44,7 @@ output "compute_pool" {
 output "flink" {
   value = {
     for env in local.environments : env => {
-      product_catalog = confluent_flink_materialized_table.product_catalog[env].display_name
+      product_catalog = confluent_flink_materialized_table.product_lvs[env].display_name
     }
   }
 }

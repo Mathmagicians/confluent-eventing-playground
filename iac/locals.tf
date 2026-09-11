@@ -28,6 +28,7 @@ locals {
   # --- flink ----------------------------------------------------------------------------------------------------
   # the statements are source, next to the proto files; templatefile reads them with the environment prefix
   flink_product_catalog_sql_file = "${path.module}/../src/main/flink/product_catalog.sql"
+  flink_headers_sql_file         = "${path.module}/../src/main/flink/headers.sql"
   flink_rest_endpoint            = data.confluent_flink_region.main.rest_endpoint
   organization                   = data.confluent_organization.main.id
 

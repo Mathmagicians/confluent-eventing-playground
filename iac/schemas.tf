@@ -13,6 +13,7 @@ resource "confluent_schema" "topic" {
   subject_name = "${each.key}-value"
   format       = "PROTOBUF"
   schema       = file("${local.proto}/${each.value}")
+  # FIXME hard_delete = true while nothing is live: a destroy removes the subject for real, so a rebuild starts clean
 }
 
 # transaction.proto imports order.proto and offer.proto; the registry resolves the imports through references to
@@ -25,6 +26,7 @@ resource "confluent_schema" "transaction" {
   schema       = file("${local.proto}/transaction.proto")
   # the referenced versions are unknown while the plan creates them in the same run; the registry validates on apply
   skip_validation_during_plan = true
+  # FIXME hard_delete = true, same as above
 
   dynamic "schema_reference" {
     for_each = ["orders", "offers"]
