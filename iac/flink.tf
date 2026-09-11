@@ -28,7 +28,7 @@ resource "confluent_flink_statement" "products_headers" {
     "sql.current-catalog"  = data.confluent_environment.main.display_name
     "sql.current-database" = data.confluent_kafka_cluster.main.display_name
   }
-  
+
   depends_on = [confluent_schema.topic]
 }
 
