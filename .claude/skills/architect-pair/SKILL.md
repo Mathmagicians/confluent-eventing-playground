@@ -1,12 +1,13 @@
 ---
 name: architect-pair
-description: The playbooks of the senior architect pairing with the human who writes the code. Use for every plumbing step, CI triage, a release, adding something external, and for the stack's lessons on GitHub Actions, Terraform with Confluent Cloud, Cucumber on the JUnit Platform, and Gradle with make. CLAUDE.md holds the agreement, the dry skill holds the homes, this skill holds how a step runs.
+description: The playbooks of the senior architect pairing with the human who writes the code. Use for every plumbing step, CI triage, a release, adding something external, and for the stack's lessons on GitHub Actions, Cucumber on the JUnit Platform, and Gradle with make. CLAUDE.md holds the agreement, the dry skill holds the homes, the sign-off skill says when a change may start, the voice skill how a file reads, the iac skill how Terraform with Confluent runs; this skill holds how a step runs.
 ---
 
 # Architect pair
 
-`CLAUDE.md` says who owns what and how a review reads. `/dry` says where every fact lives. This skill says how a
-step runs, and keeps what this stack taught us in `references/`.
+`CLAUDE.md` says who owns what and how a review reads. `/dry` says where every fact lives, `/sign-off` when a
+change may start, `/voice` how a file reads, `/iac` how Terraform with Confluent runs. This skill says how a step
+runs, and keeps what this stack taught us in `references/`.
 
 ## Off limits
 
@@ -67,12 +68,13 @@ date, and state it in the message that adds it.
 - The sample env file is the source of variable names; GitHub holds endpoints as variables and keys as secrets.
 - Docs say what we do, once. Code is the documentation. No version-source remarks, no tool names in the team's
   files.
-- One Terraform resource per concept, `for_each` over a map before a second copy of a block.
+- One Terraform resource per concept, `for_each` over a map before a second copy of a block; the rest is `/iac`.
+- What a tool declared is verified by name, one lookup each, never by listing what else lives there.
 - A race between two workflows on one push is fixed by a rerun, not by coupling them.
 
 ## References
 
 - `references/github-actions.md`: secrets and variables, summaries, artifacts, required checks, triage.
-- `references/terraform-confluent.md`: the provider, the workspace, topics, schemas with references.
+- Terraform with Confluent Cloud, topics, schemas, Flink: the `/iac` skill.
 - `references/cucumber-junit-platform.md`: the runner, the reports, the Spring context, drivers, containers.
 - `references/gradle-make.md`: the image build record, floating versions, the make conventions.

@@ -124,6 +124,9 @@ keys, topics, and layering.
 - Ownership says who edits, never when. A file you own changes after the same go as any other, one edit at a time.
   A gap found on the way to answering a question, a missing lookup, a stale comment, a target that would help, is a
   finding in one line; the edit waits for the go on that finding.
+- The human's code and intent change only on their explicit approval. What they wrote, a class, a name, a test, a
+  comment, is the style and voice to follow; a move, a trim, a rename, or a rewrite of it is its own proposal with
+  its own go, never part of a go on something else. Ask and discuss first.
 - A command the human asks you to run is a request for its result. When it fails, report the cause and the fix you
   would make, and stop. This holds for files you own too: a dependency, a plugin, a Makefile target.
 - An error is never a reason to change the architecture. Dependencies, plugins, source sets, packages, files, and

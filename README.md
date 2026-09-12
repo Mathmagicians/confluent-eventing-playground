@@ -243,17 +243,28 @@ docker run --rm ghcr.io/mathmagicians/confluent-eventing-playground:latest --sto
 ```
 A story's settings are the bundle of its name, and every story takes `--<name>.ttl`, the seconds it plays before
 the process ends; left empty, `--tea-party.ttl=`, a consumer reads until stopped. The tea party takes
-`--tea-party.region`, default `EMEA`, and sits for `300` seconds by default. The load story takes:
+`--tea-party.region` and sits for `300` seconds by default. A region left out is the platform's, `--region`,
+`EMEA` by default. The load story takes:
 
 | Argument            | Values                    | Default |
 |---------------------|---------------------------|---------|
 | `--load.type`       | `offer`, `order`, `product` | offer |
 | `--load.concurrent` | producers running the loop | 10     |
 | `--load.interval`   | milliseconds a producer sleeps between events | 250 |
-| `--load.region`     | stamped on every event    | EMEA    |
+| `--load.region`     | stamped on every event    | the platform's `region` |
 | `--load.ttl`        | seconds to run, max 300   | 60      |
 
 A wrong value fails startup with the reason.
+
+Under the `local` profile the console stands in for the topics: the log is where a story publishes, and what a
+story listens to is typed, one message per line, the type and its fields as Protobuf text. `help` prints a
+template per type, `region: APAC` sets the region of what follows, EOF ends the process.
+
+```bash
+make run ENV=local ARGS="--story=tea-party --tea-party.ttl="
+Offer offer_id: "OFF-1" product_id: "P-TOPH" price: 12.5 seller_id: "MAD_HATTER"
+Order id: "ORD-1" customer_id: "ALICE" product_id: "P-TOPH"
+```
 
 ## Coding standards
 

@@ -5,6 +5,10 @@ plantuml::components.puml[,,format=svg]
 plantuml::module-eventing.domain.puml[,,format=svg]
 include::module-eventing.domain.adoc[]
 
+== Protobuf
+plantuml::module-eventing.adapter.protobuf.puml[,,format=svg]
+include::module-eventing.adapter.protobuf.adoc[]
+
 == Application
 plantuml::module-eventing.application.puml[,,format=svg]
 include::module-eventing.application.adoc[]
@@ -12,6 +16,10 @@ include::module-eventing.application.adoc[]
 == Cli
 plantuml::module-eventing.adapter.cli.puml[,,format=svg]
 include::module-eventing.adapter.cli.adoc[]
+
+== Console
+plantuml::module-eventing.adapter.console.puml[,,format=svg]
+include::module-eventing.adapter.console.adoc[]
 
 == Kafka consumer
 plantuml::module-eventing.adapter.kafka.consumer.puml[,,format=svg]

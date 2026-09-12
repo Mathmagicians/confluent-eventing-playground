@@ -17,9 +17,9 @@ top to bottom direction
 
 System_Boundary("EventingPlatform_boundary", "EventingPlatform", $tags="") {
   Container_Boundary("EventingPlatform.EventingPlatform_boundary", "EventingPlatform", $tags="") {
+    Component(EventingPlatform.EventingPlatform.Loadstory, "Load story", $techn="Module", $descr="", $tags="", $link="")
     Component(EventingPlatform.EventingPlatform.Domain, "Domain", $techn="Module", $descr="", $tags="", $link="")
     Component(EventingPlatform.EventingPlatform.Application, "Application", $techn="Module", $descr="", $tags="", $link="")
-    Component(EventingPlatform.EventingPlatform.Loadstory, "Load story", $techn="Module", $descr="", $tags="", $link="")
   }
 
 }
