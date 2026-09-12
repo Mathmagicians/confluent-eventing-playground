@@ -51,7 +51,7 @@ class HexagonDocumenterTest {
 
     /// `Codec` has no stereotype of its own; `@Adapter` on its package gives it the role. Its module is the row of
     /// shared adapters, written after the three columns and hung from the cards along the domain's bottom, and
-    /// the adapters of both sides point down into it.
+    /// the adapters of both sides point into it without rank, so they keep their height.
     @Test
     void drawsTheSharedAdaptersInARowBelowTheApplication() {
         assertThat(uml)
@@ -59,8 +59,8 @@ class HexagonDocumenterTest {
                 .contains("hexagon \"Wire\" as m_Wire {")
                 .contains(card("Codec", "Adapter"))
                 .contains("m_Domain_Square -[hidden]down-> m_Wire_Codec")
-                .contains("m_Cli_Runner .down.> m_Wire_Codec\n")
-                .contains("m_Kafka_KafkaPublisher .down.> m_Wire_Codec\n");
+                .contains("m_Cli_Runner .[norank].> m_Wire_Codec\n")
+                .contains("m_Kafka_KafkaPublisher .[norank].> m_Wire_Codec\n");
         assertThat(uml.indexOf("rectangle \"SHARED ADAPTERS\"")).isGreaterThan(uml.indexOf("rectangle \"DRIVEN ADAPTERS\""));
     }
 
@@ -142,8 +142,8 @@ class HexagonDocumenterTest {
                 .contains("l_implements_to -[hidden]right-> l_depends_on_from")
                 .doesNotContain("speaks")
                 .doesNotContain("-[dotted]->")
-                .contains("m_Kafka_KafkaPublisher -[hidden]down-> l_uses_from")
                 .contains("m_Wire_Codec -[hidden]down-> l_uses_from")
+                .doesNotContain("m_Kafka_KafkaPublisher -[hidden]down-> l_uses_from")
                 .doesNotContain("m_Domain_Square -[hidden]down-> l_uses_from")
                 .contains("legend right\n  fixture\nendlegend");
     }

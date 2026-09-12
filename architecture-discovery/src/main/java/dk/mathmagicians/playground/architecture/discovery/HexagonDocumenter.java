@@ -97,12 +97,14 @@ public final class HexagonDocumenter {
         CORE("APPLICATION", "", ""),
         DOMAIN("DOMAIN", "", ""),
         DRIVEN("DRIVEN ADAPTERS", "left", ""),
-        SHARED("SHARED ADAPTERS", "up", "down");
+        SHARED("SHARED ADAPTERS", "up", "[norank]");
 
         final String label;
         /// The way an arrow from this ring points into the hexagon.
         final String direction;
-        /// The way an arrow from another adapter points into this ring; only the shared ring is such a target.
+        /// The way an arrow from another adapter is drawn into this ring; only the shared ring is such a target,
+        /// and an arrow into it carries no rank, so the adapter stays at its height beside the application and
+        /// the row below it.
         final String inbound;
 
         Ring(String label, String direction, String inbound) {
@@ -224,16 +226,30 @@ public final class HexagonDocumenter {
         out.add("");
         arrows(out, rings, cards);
         out.add("");
-        legend(out, rings, cards, shared.map(Cell::bottom).orElse(anchors));
+        legend(out, shared.map(Cell::bottom).orElseGet(() -> hangers(rings, cards, anchors)));
         out.add("@enduml");
         return String.join("\n", out) + "\n";
+    }
+
+    /// Where the legend hangs when there is no shared row: the last driven card and the cards along the bottom
+    /// of the application column.
+    private static List<String> hangers(Map<Ring, List<ApplicationModule>> rings, Map<String, String> cards,
+                                        List<String> anchors) {
+        var driven = rings.getOrDefault(Ring.DRIVEN, List.of()).stream()
+                .flatMap(HexagonDocumenter::types)
+                .map(type -> cards.get(type.getName()))
+                .filter(Objects::nonNull)
+                .toList();
+        return Stream.concat(driven.isEmpty() ? Stream.empty() : Stream.of(driven.getLast()), anchors.stream())
+                .toList();
     }
 
     /// A column: an unseen frame with the ring's name as its title, its modules as hexagons in a grid of one
     /// column. The nested modules go inside the first module of the column, or straight into the column when it
     /// has none of its own. `cards` collects the alias of every stereotyped type's card by type name, for the
-    /// arrows. Answers the column as a cell, its top where it hangs from what sits above, the cards along its
-    /// bottom where what hangs below attaches; nothing when the ring has no module.
+    /// arrows. Answers the column as a cell, its top where it hangs from what sits above, the cards along the
+    /// bottom of every module in it where what hangs below attaches, since the arrows may float a module above
+    /// its place in the grid; nothing when the ring has no module.
     private Optional<Cell> column(List<String> out, Ring ring, List<ApplicationModule> members,
                                   List<ApplicationModule> nested, Map<String, String> cards) {
         if (members.isEmpty() && nested.isEmpty()) {
@@ -249,7 +265,8 @@ public final class HexagonDocumenter {
         }
         var cell = grid(out, "", cells, 1);
         out.add("}");
-        return Optional.of(cell);
+        var bottom = cells.stream().flatMap(member -> member.bottom().stream()).toList();
+        return Optional.of(new Cell(cell.left(), cell.right(), cell.top(), bottom));
     }
 
     /// One module: its hexagon, padded by an unseen frame, since PlantUML's hexagon cuts its corners through what
@@ -435,11 +452,10 @@ public final class HexagonDocumenter {
     }
 
     /// The legend: a discrete grey box in the lower right corner, one row of horizontal samples, every arrow with
-    /// its relation written on it. Hidden arrows from the last driven card and from the anchors, the cards along
-    /// the bottom of the shared row, or of the application column when there is none, hang it below everything,
-    /// to the right. The text legend carries the system's name.
-    private void legend(List<String> out, Map<Ring, List<ApplicationModule>> rings, Map<String, String> cards,
-                        List<String> anchors) {
+    /// its relation written on it. Hidden arrows from the hangers, the cards along the bottom of the shared row,
+    /// or the last driven card and the bottom of the application column when there is none, hang it below
+    /// everything, to the right. The text legend carries the system's name.
+    private void legend(List<String> out, List<String> hangers) {
         out.add(FRAME + " \"<size:" + SMALL_FONT_SIZE + ">legend</size>\" as legend #line:" + LEGEND_LINE
                 + ";text:" + LEGEND_TEXT + " {");
         var samples = new ArrayList<Cell>();
@@ -452,13 +468,7 @@ public final class HexagonDocumenter {
         }
         grid(out, "", samples, samples.size());
         out.add("}");
-        var driven = rings.getOrDefault(Ring.DRIVEN, List.of()).stream()
-                .flatMap(HexagonDocumenter::types)
-                .map(type -> cards.get(type.getName()))
-                .filter(Objects::nonNull)
-                .toList();
-        Stream.concat(driven.isEmpty() ? Stream.empty() : Stream.of(driven.getLast()), anchors.stream())
-                .forEach(anchor -> out.add(anchor + " -[hidden]down-> " + samples.getFirst().left()));
+        hangers.forEach(hanger -> out.add(hanger + " -[hidden]down-> " + samples.getFirst().left()));
         out.add("legend right");
         out.add(INDENT + systemName());
         out.add("endlegend");
@@ -562,8 +572,12 @@ public final class HexagonDocumenter {
     }
 
     /// The hexagonal stereotypes declared on the type's own package, `@Adapter` on a `package-info`: the role of
-    /// every type in the package, as the architecture rule reads it. A parent package's do not reach down.
+    /// every top-level type in the package, as the architecture rule reads it. A parent package's do not reach
+    /// down, and a nested type keeps to its top-level type's card.
     private Stream<Stereotype> packageStereotypes(JavaClass type) {
+        if (!type.isTopLevelClass()) {
+            return Stream.empty();
+        }
         var pkg = type.getPackage();
         return stereotypes.fromPackage(pkg).stream()
                 .filter(stereotype -> stereotype.belongsToGroup(HEXAGONAL))
