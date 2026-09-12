@@ -141,6 +141,11 @@ if (project != rootProject || subprojects.isEmpty()) {
             mainClass = 'dk.mathmagicians.playground.confluent.EventingPlatform'
         }
 
+        // the local profile reads the console, so a run from source gets the terminal's input
+        tasks.named('bootRun') {
+            standardInput = System.in
+        }
+
         tasks.named('bootBuildImage') {
             // the image name is the Makefile's, -Pimage=<name>:<tag>; the build's name when Gradle runs alone
             imageName = providers.gradleProperty('image').getOrElse("${rootProject.name}:${project.version}")

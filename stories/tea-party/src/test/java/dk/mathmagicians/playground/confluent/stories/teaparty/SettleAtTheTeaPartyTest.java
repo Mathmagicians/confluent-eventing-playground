@@ -50,6 +50,7 @@ class SettleAtTheTeaPartyTest {
         assertThat(teaParty.name()).isEqualTo("tea-party");
         assertThat(teaParty.listensTo()).containsExactlyInAnyOrder(Offer.class, Order.class);
         assertThat(teaParty.playsFor()).hasValue(TTL);
+        assertThat(teaParty.region()).hasValue(REGION);
     }
 
     @Test

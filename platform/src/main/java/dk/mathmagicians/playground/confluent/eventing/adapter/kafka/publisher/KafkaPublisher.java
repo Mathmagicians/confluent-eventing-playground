@@ -1,7 +1,9 @@
 package dk.mathmagicians.playground.confluent.eventing.adapter.kafka.publisher;
 
 import com.google.protobuf.Message;
+import dk.mathmagicians.playground.confluent.eventing.adapter.kafka.EnvelopeHeaders;
 import dk.mathmagicians.playground.confluent.eventing.adapter.kafka.Topics;
+import dk.mathmagicians.playground.confluent.eventing.adapter.protobuf.Converter;
 import dk.mathmagicians.playground.confluent.eventing.application.Publisher;
 import dk.mathmagicians.playground.confluent.eventing.domain.Envelope;
 import dk.mathmagicians.playground.confluent.eventing.domain.Receipt;
@@ -38,7 +40,7 @@ final class KafkaPublisher implements Publisher {
     public CompletableFuture<Receipt> publish(Envelope envelope) {
         var topic = topics.select(envelope.payload());
         var value = Converter.to(envelope.payload());
-        var record = new ProducerRecord<>(topic, null, envelope.key(), value, Converter.headers(envelope));
+        var record = new ProducerRecord<>(topic, null, envelope.key(), value, EnvelopeHeaders.headers(envelope, value));
         return template.send(record)
                 .whenComplete((result, failure) -> {
                     if (failure != null) {

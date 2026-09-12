@@ -2,6 +2,7 @@ package dk.mathmagicians.playground.confluent.stories.purse;
 
 import dk.mathmagicians.playground.confluent.eventing.application.Story;
 import dk.mathmagicians.playground.confluent.eventing.domain.Wonderland;
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
@@ -17,8 +18,8 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
 @ConfigurationProperties("purse")
 public record PurseProperties(@DefaultValue("Alice:1000") List<String> owners, @DefaultValue("300") String ttl) {
 
-    /// A purse as it opens: whose, by the id on the wire, and with how many coins.
-    public record Opening(String ownerId, double coins) {
+    /// A purse as it opens: whose, by the id on the wire, and with how many coins, money, so a cent is a cent.
+    public record Opening(String ownerId, BigDecimal coins) {
     }
 
     private static final String ENTRY = "Name:coins";
@@ -53,13 +54,13 @@ public record PurseProperties(@DefaultValue("Alice:1000") List<String> owners, @
             throw new IllegalArgumentException("purse.owners entry '" + entry + "' must be " + ENTRY);
         }
         var ownerId = Wonderland.characterId(entry.substring(0, colon).strip());
-        double coins;
+        BigDecimal coins;
         try {
-            coins = Double.parseDouble(entry.substring(colon + 1).strip());
+            coins = new BigDecimal(entry.substring(colon + 1).strip());
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException("purse.owners entry '" + entry + "' must be " + ENTRY, e);
         }
-        if (coins < 0) {
+        if (coins.signum() < 0) {
             throw new IllegalArgumentException("purse.owners entry '" + entry + "' cannot open with a debt");
         }
         return new Opening(ownerId, coins);

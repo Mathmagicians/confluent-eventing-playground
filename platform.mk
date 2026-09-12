@@ -77,8 +77,8 @@ docker-publish: docker-image   ## push to the registry under each tag in TAGS
 docker-image-exists:   ## exit 0 when the registry has a latest image
 	@docker manifest inspect $(REPO):latest > /dev/null
 
-docker-run:   ## the registry image TAG with profile ENV, default test; ARGS pick the story and its settings, e.g. ARGS="--story=tea-party --tea-party.region=APAC"
-	@$(WITH_ENV) docker run --rm --pull always -e SPRING_PROFILES_ACTIVE=$(ENV) $(addprefix -e ,$(CREDENTIALS)) $(REPO):$(TAG) $(ARGS)
+docker-run:   ## the registry image TAG with profile ENV, default test, its console on stdin; ARGS pick the story and its settings, e.g. ARGS="--story=tea-party --tea-party.region=APAC"
+	@$(WITH_ENV) docker run --rm -i --pull always -e SPRING_PROFILES_ACTIVE=$(ENV) $(addprefix -e ,$(CREDENTIALS)) $(REPO):$(TAG) $(ARGS)
 
 ##@ Flock, docker compose plays the image from compose.yaml against ENV, default test; settings are environment variables, e.g. TTL=300 make up
 up: docker-image   ## every player in compose.yaml, for TTL seconds, default 60, up to 300

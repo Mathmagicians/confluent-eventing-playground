@@ -52,7 +52,12 @@ class LoadPropertiesTest {
     }
 
     @Test
-    void requiresARegion() {
+    void takesThePlatformsRegionWhenNoneIsGiven() {
+        assertThat(new LoadProperties(Type.OFFER, 10, 250, null, TTL).region()).isNull();
+    }
+
+    @Test
+    void rejectsABlankRegion() {
         assertThatThrownBy(() -> new LoadProperties(Type.OFFER, 10, 250, " ", TTL))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("load.region");

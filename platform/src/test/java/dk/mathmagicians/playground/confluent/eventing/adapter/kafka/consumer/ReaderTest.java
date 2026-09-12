@@ -1,25 +1,27 @@
 package dk.mathmagicians.playground.confluent.eventing.adapter.kafka.consumer;
 
+import static dk.mathmagicians.playground.confluent.eventing.adapter.kafka.KafkaFixtures.topics;
 import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures.envelope;
-import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures.offer;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 
-import com.google.protobuf.DynamicMessage;
-import com.google.protobuf.Timestamp;
-import dk.mathmagicians.playground.confluent.eventing.adapter.kafka.publisher.Converter;
+import com.google.protobuf.Message;
+import dk.mathmagicians.playground.confluent.eventing.adapter.kafka.EnvelopeHeaders;
+import dk.mathmagicians.playground.confluent.eventing.adapter.protobuf.Converter;
 import dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures;
 import dk.mathmagicians.playground.confluent.eventing.domain.Payload;
+import io.confluent.kafka.serializers.protobuf.KafkaProtobufSerializer;
 import java.util.List;
-import org.apache.kafka.common.header.internals.RecordHeaders;
-import org.assertj.core.api.Assertions;
-import org.junit.jupiter.api.Test;
+import java.util.Map;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.springframework.boot.kafka.autoconfigure.KafkaProperties;
 
-/// The inbound direction, and the round trips with the publisher's `Converter`. The deserializer itself needs
-/// the registry, so `read` is exercised by the BDD suite; what comes after it is exercised here.
+/// The bytes off the wire: a message serialized as the publisher's serializer does it, magic byte and schema id
+/// first, read back as its envelope. The registry is Confluent's in-memory one, `mock://`, shared by its name.
 class ReaderTest {
+
+    private static final String REGISTRY = "mock://reader";
 
     static List<Payload> payloads() {
         return EventFixtures.payloads();
@@ -27,63 +29,27 @@ class ReaderTest {
 
     @ParameterizedTest
     @MethodSource("payloads")
-    void roundTripsThroughTheMessage(Payload payload) {
-        var message = Converter.to(payload);
-
-        assertThat(Reader.from(message)).isEqualTo(payload);
-    }
-
-    @ParameterizedTest
-    @MethodSource("payloads")
-    void roundTripsThroughBytes(Payload payload) throws Exception {
-        var message = Converter.to(payload);
-        var parsed = message.getParserForType().parseFrom(message.toByteArray());
-
-        assertThat(Reader.from(parsed)).isEqualTo(payload);
-    }
-
-    /// The deserializer answers a `DynamicMessage` when it knows no generated class: the full name picks the
-    /// record all the same.
-    @ParameterizedTest
-    @MethodSource("payloads")
-    void readsADynamicMessageByItsFullName(Payload payload) throws Exception {
-        var message = Converter.to(payload);
-        var dynamic = DynamicMessage.parseFrom(message.getDescriptorForType(), message.toByteArray());
-
-        assertThat(Reader.from(dynamic)).isEqualTo(payload);
-    }
-
-    @Test
-    void rejectsAMessageOfNoPayloadType() {
-        var timestamp = Timestamp.newBuilder().setSeconds(1).build();
-
-        assertThatIllegalArgumentException()
-                .isThrownBy(() -> Reader.from(timestamp))
-                .withMessageContaining("google.protobuf.Timestamp");
-    }
-
-    /// Ties the fixture list to the permitted records, so a new record without a fixture fails here.
-    @Test
-    void everyPermittedRecordHasAFixture() {
-        Assertions.<Class<?>>assertThat(EventFixtures.payloads().stream().map(Payload::getClass))
-                .containsExactlyInAnyOrder(Payload.class.getPermittedSubclasses());
-    }
-
-    @ParameterizedTest
-    @MethodSource("payloads")
-    void envelopeRoundTripsThroughTheHeaders(Payload payload) {
+    void readsTheEnvelopeOffTheWire(Payload payload) {
         var envelope = envelope(payload);
-        var headers = new RecordHeaders(Converter.headers(envelope));
+        var topic = topics().select(payload);
+        var message = Converter.to(payload);
+        var record = new ConsumerRecord<>(topic, 0, 0L, envelope.key(), serialize(topic, message));
+        EnvelopeHeaders.headers(envelope, message).forEach(record.headers()::add);
+        var reader = new Reader(properties());
 
-        assertThat(Reader.envelope(headers, payload)).isEqualTo(envelope);
+        assertThat(reader.read(record)).isEqualTo(envelope);
     }
 
-    @Test
-    void rejectsARecordWithoutTheEnvelopeHeaders() {
-        var none = new RecordHeaders();
+    private static KafkaProperties properties() {
+        var properties = new KafkaProperties();
+        properties.getProperties().put("schema.registry.url", REGISTRY);
+        return properties;
+    }
 
-        assertThatIllegalArgumentException()
-                .isThrownBy(() -> Reader.envelope(none, offer()))
-                .withMessageContaining("ce_id");
+    private static byte[] serialize(String topic, Message message) {
+        try (var serializer = new KafkaProtobufSerializer<Message>()) {
+            serializer.configure(Map.of("schema.registry.url", REGISTRY), false);
+            return serializer.serialize(topic, message);
+        }
     }
 }

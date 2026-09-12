@@ -60,6 +60,7 @@ make arch-gen      # the hexagon and the module canvases under docs/generated/ar
 make docker-image  # one image: the platform and your story, purse:<version>
 make bdd           # your features against that image and the Confluent test cluster
 make run ARGS="--purse.owners=Alice:1000"     # from source, against the test cluster
+make run ENV=local ARGS="--purse.ttl="        # from source, the console standing in for the topics: type help
 make docker-run ARGS="--purse.owners=Alice:1000"   # the published image
 make up            # the image from compose.yaml, OWNERS and TTL as environment variables; make down stops it
 make help          # every target

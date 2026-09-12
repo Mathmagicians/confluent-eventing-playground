@@ -31,6 +31,11 @@ class StoryTest {
     }
 
     @Test
+    void isFromNoRegionOfItsOwnByDefault() {
+        assertThat(quiet.region()).isEmpty();
+    }
+
+    @Test
     void refusesWhatItDoesNotListenTo() {
         var envelope = envelope();
 

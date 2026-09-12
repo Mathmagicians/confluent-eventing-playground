@@ -17,12 +17,17 @@ class TeaPartyPropertiesTest {
     }
 
     @Test
+    void sitsInThePlatformsRegionWhenNoneIsGiven() {
+        assertThat(new TeaPartyProperties(null, "30").region()).isNull();
+    }
+
+    @Test
     void sitsUntilStoppedWhenTheTtlIsLeftEmpty() {
         assertThat(new TeaPartyProperties("APAC", "").playsFor()).isEmpty();
     }
 
     @Test
-    void requiresARegion() {
+    void rejectsABlankRegion() {
         assertThatIllegalArgumentException()
                 .isThrownBy(() -> new TeaPartyProperties(" ", "30"))
                 .withMessageContaining("tea-party.region");

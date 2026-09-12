@@ -25,6 +25,12 @@ public interface Story {
         return name();
     }
 
+    /// The region the story is from, its settings' `<name>.region`, when it has one: a generator publishes for
+    /// it, a tea party sits in it. Empty is the platform's region, `region`, or no region at all, the purse's case.
+    default Optional<String> region() {
+        return Optional.empty();
+    }
+
     /// The payload types the story wants to see. Empty for a story that only publishes.
     default Set<Class<? extends Payload>> listensTo() {
         return Set.of();

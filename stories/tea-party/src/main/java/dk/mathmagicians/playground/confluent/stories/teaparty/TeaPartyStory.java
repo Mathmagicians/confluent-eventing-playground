@@ -14,7 +14,7 @@ class TeaPartyStory {
 
     @Bean
     SettleAtTheTeaParty teaParty(TeaPartyProperties teaParty, Publishing publishing, Clock clock) {
-        return new SettleAtTheTeaParty(
-                teaParty.region(), publishing.from(teaParty.region()), clock, teaParty.playsFor().orElse(null));
+        var publish = publishing.from(teaParty.region());
+        return new SettleAtTheTeaParty(publish.region(), publish, clock, teaParty.playsFor().orElse(null));
     }
 }

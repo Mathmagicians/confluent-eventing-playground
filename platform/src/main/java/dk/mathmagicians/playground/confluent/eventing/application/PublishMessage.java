@@ -22,7 +22,6 @@ public record PublishMessage(
     /// Puts the payload in an envelope stamped with an id, the region, the app, and the instant, hands it to the
     /// publisher, and answers its receipt.
     public CompletableFuture<Receipt> publish(Payload payload) {
-        var envelope = Envelope.of(random.get(), region, app, clock.instant(), payload);
-        return publisher.publish(envelope);
+        return publisher.publish(Envelope.of(random.get(), region, app, clock.instant(), payload));
     }
 }

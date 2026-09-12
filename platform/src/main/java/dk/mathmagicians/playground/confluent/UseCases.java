@@ -22,11 +22,12 @@ class UseCases {
         return Clock.systemUTC();
     }
 
-    /// What a story publishes with: named after `spring.application.name`, through the profile's publisher,
-    /// drawing ids from the calling thread's random source.
+    /// What a story publishes with: named after `spring.application.name`, for the platform's `region` unless
+    /// the story has its own, through the profile's publisher, drawing ids from the calling thread's random source.
     @Bean
-    Publishing publishing(Publisher publisher, Clock clock, @Value("${spring.application.name}") String app) {
-        return new Publishing(app, publisher, clock, ThreadLocalRandom::current);
+    Publishing publishing(Publisher publisher, Clock clock,
+                          @Value("${spring.application.name}") String app, @Value("${region}") String region) {
+        return new Publishing(app, region, publisher, clock, ThreadLocalRandom::current);
     }
 
     /// The stories on the classpath and the one this process plays, `--story`; a name nobody answers to fails

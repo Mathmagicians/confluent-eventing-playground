@@ -8,9 +8,10 @@ import dk.mathmagicians.playground.architecture.discovery.fixture.FixtureApplica
 import org.junit.jupiter.api.Test;
 import org.springframework.modulith.core.ApplicationModules;
 
-/// Over the fixture application: four modules, `cli` with a driving adapter, `application` with two ports, `domain`
-/// with value objects, a sealed one among them, and a factory, `kafka` with a driven adapter. The fixture lives
-/// among the tests, which Modulith leaves out by default, so the import option includes them.
+/// Over the fixture application: five modules, `cli` with a driving adapter, `application` with two ports, `domain`
+/// with value objects, a sealed one among them, and a factory, `kafka` with a driven adapter, `wire` with a
+/// shared adapter, the stereotype on its package. The fixture lives among the tests, which Modulith leaves out by
+/// default, so the import option includes them.
 class HexagonDocumenterTest {
 
     private static final ApplicationModules FIXTURE =
@@ -46,6 +47,21 @@ class HexagonDocumenterTest {
 
         assertThat(application).isLessThan(domain);
         assertThat(domain).isLessThan(driven);
+    }
+
+    /// `Codec` has no stereotype of its own; `@Adapter` on its package gives it the role. Its module is the row of
+    /// shared adapters, written after the three columns and hung from the cards along the domain's bottom, and
+    /// the adapters of both sides point down into it.
+    @Test
+    void drawsTheSharedAdaptersInARowBelowTheApplication() {
+        assertThat(uml)
+                .contains("rectangle \"SHARED ADAPTERS\" as shared #line:transparent {")
+                .contains("hexagon \"Wire\" as m_Wire {")
+                .contains(card("Codec", "Adapter"))
+                .contains("m_Domain_Square -[hidden]down-> m_Wire_Codec")
+                .contains("m_Cli_Runner .down.> m_Wire_Codec\n")
+                .contains("m_Kafka_KafkaPublisher .down.> m_Wire_Codec\n");
+        assertThat(uml.indexOf("rectangle \"SHARED ADAPTERS\"")).isGreaterThan(uml.indexOf("rectangle \"DRIVEN ADAPTERS\""));
     }
 
     @Test
@@ -112,7 +128,7 @@ class HexagonDocumenterTest {
     /// `Runner` holds a `Publish`, a type reference; `KafkaPublisher` implements `Publisher`, the port; `Publish`
     /// holds a `Publisher` and takes a `Thing`. Both ends have cards, so the arrows join the cards, without a
     /// label: the legend draws each arrow with its relation, in a row hung below the driven adapters and the
-    /// domain, and the text legend names the system.
+    /// shared adapters, and the text legend names the system.
     @Test
     void drawsTheArrowsWithTheLegendAndNoLabels() {
         assertThat(uml)
@@ -127,7 +143,8 @@ class HexagonDocumenterTest {
                 .doesNotContain("speaks")
                 .doesNotContain("-[dotted]->")
                 .contains("m_Kafka_KafkaPublisher -[hidden]down-> l_uses_from")
-                .contains("m_Domain_Square -[hidden]down-> l_uses_from")
+                .contains("m_Wire_Codec -[hidden]down-> l_uses_from")
+                .doesNotContain("m_Domain_Square -[hidden]down-> l_uses_from")
                 .contains("legend right\n  fixture\nendlegend");
     }
 

@@ -124,7 +124,8 @@ nothing outside itself.
 | Use cases        | The driving ports, named in the features' words: `Story`, the contract every story implements, and `PublishMessage`; the stories `GenerateLoad`, `SettleAtTheTeaParty`, `KnowWhatIsLeft`, one jar each. Records, plain Java and SLF4J. | `application`, `stories/*` | `@PrimaryPort` |
 | Driven ports     | What the use cases need from the outside: `Publisher`. Interfaces.                                            | `application`         | `@SecondaryPort`    |
 | Driving adapters | What calls a use case: `StoryRunner`, the command line starting the story `--story` names; `StoryListener`, the consumer feeding it the topics it listens to. | `adapter/cli`, `adapter/kafka/consumer` | `@PrimaryAdapter` |
-| Driven adapters  | What implements a driven port: `LoggingPublisher` for `local`, `KafkaPublisher` with `Topics` and `Converter` for `test` and `prod`. | `adapter/log`, `adapter/kafka/publisher` | `@SecondaryAdapter` |
+| Driven adapters  | What implements a driven port: `LoggingPublisher` for `local`, `KafkaPublisher` with `Topics` for `test` and `prod`. | `adapter/log`, `adapter/kafka/publisher` | `@SecondaryAdapter` |
+| Shared adapters  | What both sides of the rim use: `Converter`, the payload records and their Protobuf messages each way; `Topics` and `EnvelopeHeaders`, the wire the Kafka adapters share. | `adapter/protobuf`, `adapter/kafka` | `@Adapter` |
 | Composition root | `UseCases`, a `@Configuration` that wires the clock and picks the story; each story's auto-configuration builds the story from its settings, its ports, the clock, and the random source. | root, `stories/*` | none |
 
 A use case takes what the generator has, a payload, and the driven port takes what the wire carries, an envelope:
@@ -133,7 +134,7 @@ sees: a story's auto-configuration wires them by hand from their ports, the cloc
 `UseCases` picks the story `--story` names. The stereotypes are
 jMolecules annotations, and `ArchitectureTest` runs `ensureHexagonal()` over them: a use case reaches driven ports,
 other use cases, and the domain only, a driving adapter reaches use cases only, a driven adapter reaches driven ports
-only, and nothing inside reaches an adapter.
+only, both reach the shared adapters, which reach the domain only, and nothing inside reaches an adapter.
 
 ### Data flow
 
@@ -178,7 +179,7 @@ only, and nothing inside reaches an adapter.
 
 Root package: `dk.mathmagicians.playground.confluent`. Packages by ring inside the platform: `domain` in the
 centre, `application` around it, and `adapter` at the edge with one package per technology, `cli`, `log`,
-`kafka/publisher`, `kafka/consumer`, see Hexagon under Architecture. A story is one package under `stories`. The
+`console`, `protobuf`, `kafka/publisher`, `kafka/consumer`, see Hexagon under Architecture. A story is one package under `stories`. The
 domain is one package, so a sealed type and its records stay package-private neighbours.
 
 Tests live next to what they test:

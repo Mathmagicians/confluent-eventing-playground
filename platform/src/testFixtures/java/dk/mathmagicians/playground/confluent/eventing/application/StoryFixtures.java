@@ -59,10 +59,10 @@ public final class StoryFixtures {
         return new Fake(name, name, types, ttl, new AtomicInteger());
     }
 
-    /// What a story publishes with in a test: envelopes stamped `APP` at `AT`, kept in `published`, their ids
-    /// from the random source given.
+    /// What a story publishes with in a test: envelopes stamped `APP` at `AT`, for `REGION` unless the story says
+    /// another, kept in `published`, their ids from the random source given.
     public static Publishing publishing(Collection<Envelope> published, Supplier<RandomGenerator> random) {
-        return new Publishing(APP, publisher(published), CLOCK, random);
+        return new Publishing(APP, REGION, publisher(published), CLOCK, random);
     }
 
     /// The use case of `REGION`, every id from a fresh seeded generator, so one publish has one known id.

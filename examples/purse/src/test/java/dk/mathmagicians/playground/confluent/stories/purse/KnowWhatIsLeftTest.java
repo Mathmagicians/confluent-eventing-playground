@@ -10,20 +10,21 @@ import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixture
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
-import static org.assertj.core.api.Assertions.within;
 
 import dk.mathmagicians.playground.confluent.eventing.domain.Transaction;
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
-/// A table with Alice's and the White Rabbit's purses, over trades built by hand: who paid whom how much.
+/// A table with Alice's and the White Rabbit's purses, over trades built by hand: who paid whom how much. The
+/// balances are money, compared as amounts, so a scale never matters.
 class KnowWhatIsLeftTest {
 
-    private static final double CENT = 0.005;
     private static final Duration TTL = Duration.ofSeconds(30);
 
-    private final KnowWhatIsLeft table = new KnowWhatIsLeft(Map.of(ALICE, 100.0, WHITE_RABBIT, 50.0), TTL);
+    private final KnowWhatIsLeft table =
+            new KnowWhatIsLeft(Map.of(ALICE, new BigDecimal("100"), WHITE_RABBIT, new BigDecimal("50")), TTL);
 
     @Test
     void isThePurseStoryListeningToTransactions() {
@@ -38,15 +39,15 @@ class KnowWhatIsLeftTest {
     }
 
     @Test
-    void opensOnePursePerOwnerWithItsCoins() {
-        assertThat(table.left(ALICE)).isEqualTo(100);
-        assertThat(table.left(WHITE_RABBIT)).isEqualTo(50);
+    void opensOnePursePerOwnerWithItsBalance() {
+        assertThat(table.balance(ALICE)).isEqualByComparingTo("100");
+        assertThat(table.balance(WHITE_RABBIT)).isEqualByComparingTo("50");
     }
 
     @Test
     void knowsNobodyElsesPurse() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> table.left(MAD_HATTER))
+                .isThrownBy(() -> table.balance(MAD_HATTER))
                 .withMessageContaining(MAD_HATTER)
                 .withMessageContaining(ALICE);
     }
@@ -55,31 +56,31 @@ class KnowWhatIsLeftTest {
     void putsThePriceInWhenTheOwnerSold() {
         table.on(envelope(trade(MAD_HATTER, ALICE, 10.5)));
 
-        assertThat(table.left(ALICE)).isCloseTo(110.5, within(CENT));
-        assertThat(table.left(WHITE_RABBIT)).isEqualTo(50);
+        assertThat(table.balance(ALICE)).isEqualByComparingTo("110.5");
+        assertThat(table.balance(WHITE_RABBIT)).isEqualByComparingTo("50");
     }
 
     @Test
     void takesThePriceOutWhenTheOwnerBought() {
         table.on(envelope(trade(ALICE, MAD_HATTER, 10.5)));
 
-        assertThat(table.left(ALICE)).isCloseTo(89.5, within(CENT));
+        assertThat(table.balance(ALICE)).isEqualByComparingTo("89.5");
     }
 
     @Test
     void movesTheCoinsBetweenTwoPursesAtTheTable() {
         table.on(envelope(trade(ALICE, WHITE_RABBIT, 30)));
 
-        assertThat(table.left(ALICE)).isCloseTo(70, within(CENT));
-        assertThat(table.left(WHITE_RABBIT)).isCloseTo(80, within(CENT));
+        assertThat(table.balance(ALICE)).isEqualByComparingTo("70");
+        assertThat(table.balance(WHITE_RABBIT)).isEqualByComparingTo("80");
     }
 
     @Test
     void letsTheOthersTradesPassBy() {
         table.on(envelope(trade(MAD_HATTER, CHESHIRE_CAT, 99)));
 
-        assertThat(table.left(ALICE)).isEqualTo(100);
-        assertThat(table.left(WHITE_RABBIT)).isEqualTo(50);
+        assertThat(table.balance(ALICE)).isEqualByComparingTo("100");
+        assertThat(table.balance(WHITE_RABBIT)).isEqualByComparingTo("50");
     }
 
     @Test
@@ -87,7 +88,7 @@ class KnowWhatIsLeftTest {
         table.on(envelope(trade(WHITE_RABBIT, MAD_HATTER, 60)));
         table.on(envelope(trade(WHITE_RABBIT, CHESHIRE_CAT, 5)));
 
-        assertThat(table.left(WHITE_RABBIT)).isCloseTo(-15, within(CENT));
+        assertThat(table.balance(WHITE_RABBIT)).isEqualByComparingTo("-15");
     }
 
     @Test

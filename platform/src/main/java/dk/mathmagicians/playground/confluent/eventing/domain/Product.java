@@ -13,8 +13,7 @@ public record Product(
         Instant createdAt) implements Payload {
     static final String ID_PREFIX = "P";
 
-    /// The id of a thing: `P-` and its first four letters, upper case, spaces removed, the last letter repeated when
-    /// the name is short. Product is the partition key, and twelve things make a small key space.
+    /// Product is the partition key, and twelve things make a small key space.
     static String id(String s) {
         var base = s.replaceAll("\\s", "");
         var last = s.substring(s.length() - 1);

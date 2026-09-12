@@ -9,7 +9,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.protobuf.Message;
-import dk.mathmagicians.playground.confluent.eventing.adapter.kafka.consumer.Reader;
+import dk.mathmagicians.playground.confluent.eventing.adapter.kafka.EnvelopeHeaders;
+import dk.mathmagicians.playground.confluent.eventing.adapter.protobuf.Converter;
 import dk.mathmagicians.playground.confluent.eventing.domain.Receipt;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.junit.jupiter.api.Test;
@@ -44,7 +45,7 @@ class KafkaPublisherTest {
         assertThat(sent.topic()).isEqualTo("test.offers");
         assertThat(sent.key()).isEqualTo(envelope.key());
         assertThat(sent.value()).isEqualTo(Converter.to(envelope.payload()));
-        assertThat(Reader.envelope(sent.headers(), envelope.payload())).isEqualTo(envelope);
+        assertThat(EnvelopeHeaders.envelope(sent.headers(), envelope.payload())).isEqualTo(envelope);
     }
 
     @Test

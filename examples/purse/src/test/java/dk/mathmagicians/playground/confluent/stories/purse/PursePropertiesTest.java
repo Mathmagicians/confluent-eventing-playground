@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 
 import dk.mathmagicians.playground.confluent.stories.purse.PurseProperties.Opening;
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -20,8 +21,8 @@ class PursePropertiesTest {
 
         assertThat(settings.openings())
                 .containsExactly(
-                        new Opening(ALICE, 1000),
-                        new Opening(WHITE_RABBIT, 500.5));
+                        new Opening(ALICE, new BigDecimal("1000")),
+                        new Opening(WHITE_RABBIT, new BigDecimal("500.5")));
     }
 
     @Test

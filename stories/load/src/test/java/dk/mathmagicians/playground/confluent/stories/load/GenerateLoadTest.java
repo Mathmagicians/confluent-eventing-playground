@@ -38,6 +38,7 @@ class GenerateLoadTest {
         assertThat(load(Order::random, 1).name()).isEqualTo("load");
         assertThat(load(Order::random, 1).listensTo()).isEmpty();
         assertThat(load(Order::random, 1).playsFor()).hasValue(TTL);
+        assertThat(load(Order::random, 1).region()).hasValue(REGION);
     }
 
     @Test

@@ -32,7 +32,9 @@ hexagon's edges.
    one `.adoc` canvas per module, and `all-docs.adoc` linking them. Then it runs `HexagonDocumenter` from the
    `architecture-discovery` library into `hexagon.puml`: the modules as a hexagon, driving adapters left, driven
    adapters right, the application in the centre with the domain nested inside it, the application's own types
-   in a row above the domain. Inside each module, every type with a stereotype is a card with its role, laid out
+   in a row above the domain, and the adapters both sides share, jMolecules' unqualified `@Adapter`, in a row
+   below it. A hexagonal stereotype on a package is the role of every type in it that declares none of its own.
+   Inside each module, every type with a stereotype is a card with its role, laid out
    in a grid, the permitted types of a sealed type in a row under it, implementing it. `HexagonDocumenter.Options`
    caps the types listed per role, unlimited by default, an ellipsis line with the total beyond the cap.
    The roles come from jMolecules' stereotype catalogs, the `META-INF/jmolecules-stereotypes.json` in each jar,

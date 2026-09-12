@@ -19,16 +19,24 @@ import org.slf4j.LoggerFactory;
 @PrimaryPort
 public class SettleAtTheTeaParty implements Story {
 
+    private final String region;
     private final PublishMessage publishMessage;
     private final Clock clock;
     private final @Nullable Duration ttl;
     private final String teapartyName ;
 
     public SettleAtTheTeaParty(String region, PublishMessage publishMessage, Clock clock, @Nullable Duration ttl) {
+        this.region = region;
         this.publishMessage = publishMessage;
         this.clock = clock;
         this.ttl = ttl;
         this.teapartyName = String.join(" ", region, NAME, "🫖🎉");
+    }
+
+    /// The region the party sits in.
+    @Override
+    public Optional<String> region() {
+        return Optional.of(region);
     }
 
     public static final String NAME = "tea-party";

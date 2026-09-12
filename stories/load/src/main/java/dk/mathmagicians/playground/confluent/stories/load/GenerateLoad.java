@@ -57,6 +57,12 @@ public record GenerateLoad(
         return Optional.of(ttl);
     }
 
+    /// The region the generator publishes for.
+    @Override
+    public Optional<String> region() {
+        return Optional.of(publishMessage.region());
+    }
+
     /// Starts the producers, waits for all of them, answers the number of messages published.
     public long run() {
         var deadline = clock.instant().plus(ttl);
