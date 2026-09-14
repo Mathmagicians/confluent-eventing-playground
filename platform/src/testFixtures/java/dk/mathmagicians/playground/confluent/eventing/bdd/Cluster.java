@@ -7,7 +7,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.google.protobuf.DynamicMessage;
 import com.google.protobuf.Message;
 import dk.mathmagicians.playground.confluent.eventing.adapter.kafka.EnvelopeHeaders;
+import dk.mathmagicians.playground.confluent.eventing.adapter.protobuf.Converter;
+import dk.mathmagicians.playground.confluent.eventing.domain.Envelope;
+import dk.mathmagicians.playground.confluent.eventing.domain.Payload;
 import dk.mathmagicians.playground.confluent.eventing.domain.Receipt;
+import dk.mathmagicians.playground.confluent.eventing.domain.Transaction;
 import io.confluent.kafka.serializers.protobuf.KafkaProtobufDeserializer;
 import io.confluent.kafka.serializers.protobuf.KafkaProtobufDeserializerConfig;
 import jakarta.annotation.PreDestroy;
@@ -22,25 +26,88 @@ import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.errors.GroupIdNotFoundException;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.boot.kafka.autoconfigure.KafkaProperties;
+import org.springframework.core.env.Environment;
 
 /// Test driver for the Confluent test cluster: one admin client from the `kafka` profile for the life of the
-/// suite's context, and a consumer per read, values as the raw bytes on the wire.
-class Cluster {
+/// suite's context, a consumer per read, values as the raw bytes on the wire, and a producer per publish, for
+/// a scenario that stands in for a story.
+public class Cluster {
 
     /// Kafka's own request timeout; the first call pays for DNS, TLS, and SASL
     private static final long TIMEOUT_SECONDS = 30;
 
     private final KafkaProperties properties;
+    private final Environment environment;
     private final AdminClient client;
 
-    Cluster(KafkaProperties properties) {
+    Cluster(KafkaProperties properties, Environment environment) {
         this.properties = properties;
+        this.environment = environment;
         this.client = AdminClient.create(properties.buildAdminProperties());
+    }
+
+    /// The topic of a payload type on the cluster, `orders` as `test.orders`, from the profile's `topics.*`.
+    public String topic(String payloads) {
+        return environment.getRequiredProperty("topics." + payloads);
+    }
+
+    /// Forgets a consumer group's offsets, so the next story under that group starts afresh; a group the cluster
+    /// never saw is nothing to forget.
+    public void forget(String group) {
+        try {
+            client.deleteConsumerGroups(List.of(group)).all().get(TIMEOUT_SECONDS, SECONDS);
+        } catch (ExecutionException e) {
+            if (!(e.getCause() instanceof GroupIdNotFoundException)) {
+                throw new IllegalStateException("the cluster refused: " + e.getCause().getMessage(), e);
+            }
+        } catch (TimeoutException e) {
+            throw new IllegalStateException("the cluster did not answer within " + TIMEOUT_SECONDS + " s", e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("interrupted while asking the cluster", e);
+        }
+    }
+
+    /// Publishes the envelope as a story would, headers and message on the payload's topic, and answers the
+    /// receipt.
+    public Receipt publish(Envelope envelope) {
+        var message = Converter.to(envelope.payload());
+        var topic = topic(envelope.payload().getClass().getSimpleName().toLowerCase() + "s");
+        var record = new ProducerRecord<String, Message>(
+                topic, null, envelope.key(), message, EnvelopeHeaders.headers(envelope, message));
+        try (var producer = new KafkaProducer<String, Message>(properties.buildProducerProperties())) {
+            var landed = producer.send(record).get(TIMEOUT_SECONDS, SECONDS);
+            return new Receipt(envelope.id(), landed.topic(), landed.partition(), landed.offset());
+        } catch (ExecutionException e) {
+            throw new IllegalStateException("the cluster refused: " + e.getCause().getMessage(), e);
+        } catch (TimeoutException e) {
+            throw new IllegalStateException("the cluster did not answer within " + TIMEOUT_SECONDS + " s", e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("interrupted while publishing", e);
+        }
+    }
+
+    /// The payload the receipt points at, read back from the topic.
+    public Payload payload(Receipt receipt) {
+        return Converter.from(value(read(receipt.topic(), receipt.partition(), receipt.offset())));
+    }
+
+    /// Every transaction on the transactions topic, from the beginning.
+    public List<Transaction> transactions() {
+        return readAll(topic("transactions")).stream()
+                .map(record -> Converter.from(value(record)))
+                .filter(Transaction.class::isInstance)
+                .map(Transaction.class::cast)
+                .toList();
     }
 
     /// The API keys open the cluster: the cheapest authenticated call answers with the cluster id.

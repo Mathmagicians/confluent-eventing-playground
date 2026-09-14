@@ -15,16 +15,16 @@ public class Published {
     private final List<Receipt> receipts = new ArrayList<>();
     private String region;
 
-    void add(String region, List<Receipt> more) {
+    public void add(String region, List<Receipt> more) {
         this.region = region;
         receipts.addAll(more);
     }
 
-    String region() {
+    public String region() {
         return region;
     }
 
-    List<Receipt> receipts() {
+    public List<Receipt> receipts() {
         return List.copyOf(receipts);
     }
 }

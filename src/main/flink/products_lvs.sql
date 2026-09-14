@@ -5,7 +5,8 @@
 -- This file holds the query alone: the table's name, key, buckets, changelog mode, and format are the resource's arguments in iac/flink.tf.
 -- Terraform prefixes this with CREATE MATERILIZED TABLE ... AS
 
-SELECT region, product_id,
+SELECT CONCAT_WS('/', region, product_id) AS `key`,
+          region, product_id,
           LAST_VALUE(product_name) AS product_name,
           LAST_VALUE(producer_id) AS producer_id,
           LAST_VALUE(product_description) AS product_descriptions,
