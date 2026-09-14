@@ -136,7 +136,12 @@ public final class ConsoleListener implements SmartLifecycle {
             } else if (line.equalsIgnoreCase("q") || line.equalsIgnoreCase("quit")) {
                 quit();
             } else if (line.toLowerCase().startsWith(REGION)) {
-                region = line.toUpperCase().substring(REGION.length()).trim();
+                var name = line.substring(REGION.length()).trim().toUpperCase();
+                if (name.isEmpty()) {
+                    out.println(">>> A region needs a name; it stays " + region);
+                    return;
+                }
+                region = name;
                 out.println("The region is now " + region);
                 return;
             } else {

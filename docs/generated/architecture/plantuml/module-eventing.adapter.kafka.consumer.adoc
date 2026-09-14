@@ -8,5 +8,5 @@
 * `d.m.p.c.e.a.k.c.Reader`
 * `d.m.p.c.e.a.k.c.StoryListener`
 |Bean references
-|* `d.m.p.c.e.a.Stories` (in Application)
+|* `d.m.p.c.e.a.Story` (in Application)
 |===

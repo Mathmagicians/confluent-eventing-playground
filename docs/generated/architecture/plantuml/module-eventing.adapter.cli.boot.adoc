@@ -7,5 +7,5 @@
 
 * `d.m.p.c.e.a.c.b.StoryRunner`
 |Bean references
-|* `d.m.p.c.e.a.Stories` (in Application)
+|* `d.m.p.c.e.a.Story` (in Application)
 |===

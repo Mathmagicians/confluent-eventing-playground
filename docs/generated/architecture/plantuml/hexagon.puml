@@ -7,22 +7,22 @@ skinparam nodesep 24
 skinparam ArrowFontSize 10
 skinparam ArrowFontColor #666666
 <style>
-hexagon { HorizontalAlignment center }
+hexagon { HorizontalAlignment center; FontStyle plain }
 rectangle { HorizontalAlignment center }
 </style>
 
 rectangle "DRIVING ADAPTERS" as driving #line:transparent {
-  hexagon "<size:10>cli/boot</size>\nBoot" as m_Boot {
+  hexagon "<size:10>cli/boot</size>\n<b>Boot</b>" as m_Boot {
     rectangle "<size:1> </size>" as m_Boot_in #line:transparent {
       card "StoryRunner\n<size:10>«PrimaryAdapter»</size>" as m_Boot_StoryRunner
     }
   }
-  hexagon "<size:10>cli/console</size>\nConsole" as m_Console {
+  hexagon "<size:10>cli/console</size>\n<b>Console</b>" as m_Console {
     rectangle "<size:1> </size>" as m_Console_in #line:transparent {
       card "ConsoleListener\n<size:10>«PrimaryAdapter»</size>" as m_Console_ConsoleListener
     }
   }
-  hexagon "<size:10>kafka/consumer</size>\nKafka Consumer" as m_Kafka_Consumer {
+  hexagon "<size:10>kafka/consumer</size>\n<b>Kafka Consumer</b>" as m_Kafka_Consumer {
     rectangle "<size:1> </size>" as m_Kafka_Consumer_in #line:transparent {
       card "DeadLetters\n<size:10>«PrimaryAdapter»</size>" as m_Kafka_Consumer_DeadLetters
       card "Reader\n<size:10>«PrimaryAdapter»</size>" as m_Kafka_Consumer_Reader
@@ -35,18 +35,16 @@ rectangle "DRIVING ADAPTERS" as driving #line:transparent {
   m_Console_ConsoleListener -[hidden]down-> m_Kafka_Consumer_DeadLetters
 }
 rectangle "APPLICATION" as core #line:transparent {
-  hexagon "<size:10>eventing/application</size>\nApplication" as m_Application {
+  hexagon "<size:10>eventing/application</size>\n<b>Application</b>" as m_Application {
     rectangle "<size:1> </size>" as m_Application_in #line:transparent {
       card "PublishMessage\n<size:10>«PrimaryPort»</size>" as m_Application_PublishMessage
       card "Story\n<size:10>«PrimaryPort»</size>" as m_Application_Story
       card "Publisher\n<size:10>«SecondaryPort»</size>" as m_Application_Publisher
       card "Publishing\n<size:10>«Factory»</size>" as m_Application_Publishing
-      card "Stories\n<size:10>«Service»</size>" as m_Application_Stories
       m_Application_PublishMessage -[hidden]right-> m_Application_Story
       m_Application_Story -[hidden]right-> m_Application_Publisher
       m_Application_Publisher -[hidden]right-> m_Application_Publishing
-      m_Application_Publishing -[hidden]right-> m_Application_Stories
-      hexagon "<size:10>eventing/domain</size>\nDomain" as m_Domain {
+      hexagon "<size:10>eventing/domain</size>\n<b>Domain</b>" as m_Domain {
         rectangle "<size:1> </size>" as m_Domain_in #line:transparent {
           card "Wonderland\n<size:10>«Factory»</size>" as m_Domain_Wonderland
           card "Envelope\n<size:10>«ValueObject»</size>" as m_Domain_Envelope
@@ -75,15 +73,14 @@ rectangle "APPLICATION" as core #line:transparent {
       m_Application_Story -[hidden]down-> m_Domain_Envelope
       m_Application_Publisher -[hidden]down-> m_Domain_Envelope
       m_Application_Publishing -[hidden]down-> m_Domain_Envelope
-      m_Application_Stories -[hidden]down-> m_Domain_Envelope
     }
   }
-  hexagon "<size:10>stories/load</size>\nLoad Story" as m_Load_Story {
+  hexagon "<size:10>stories/load</size>\n<b>Load Story</b>" as m_Load_Story {
     rectangle "<size:1> </size>" as m_Load_Story_in #line:transparent {
       card "GenerateLoad\n<size:10>«PrimaryPort»</size>" as m_Load_Story_GenerateLoad
     }
   }
-  hexagon "<size:10>stories/teaparty</size>\nTea Party Story" as m_Tea_Party_Story {
+  hexagon "<size:10>stories/teaparty</size>\n<b>Tea Party Story</b>" as m_Tea_Party_Story {
     rectangle "<size:1> </size>" as m_Tea_Party_Story_in #line:transparent {
       card "SettleAtTheTeaParty\n<size:10>«PrimaryPort»</size>" as m_Tea_Party_Story_SettleAtTheTeaParty
     }
@@ -95,12 +92,12 @@ rectangle "APPLICATION" as core #line:transparent {
   m_Load_Story_GenerateLoad -[hidden]down-> m_Tea_Party_Story_SettleAtTheTeaParty
 }
 rectangle "DRIVEN ADAPTERS" as driven #line:transparent {
-  hexagon "<size:10>kafka/publisher</size>\nKafka Publisher" as m_Kafka_Publisher {
+  hexagon "<size:10>kafka/publisher</size>\n<b>Kafka Publisher</b>" as m_Kafka_Publisher {
     rectangle "<size:1> </size>" as m_Kafka_Publisher_in #line:transparent {
       card "KafkaPublisher\n<size:10>«SecondaryAdapter»</size>" as m_Kafka_Publisher_KafkaPublisher
     }
   }
-  hexagon "<size:10>cli/log</size>\nLog" as m_Log {
+  hexagon "<size:10>cli/log</size>\n<b>Log</b>" as m_Log {
     rectangle "<size:1> </size>" as m_Log_in #line:transparent {
       card "LoggingPublisher\n<size:10>«SecondaryAdapter»</size>" as m_Log_LoggingPublisher
     }
@@ -108,7 +105,7 @@ rectangle "DRIVEN ADAPTERS" as driven #line:transparent {
   m_Kafka_Publisher_KafkaPublisher -[hidden]down-> m_Log_LoggingPublisher
 }
 rectangle "SHARED ADAPTERS" as shared #line:transparent {
-  hexagon "<size:10>adapter/protobuf</size>\nProtobuf" as m_Protobuf {
+  hexagon "<size:10>adapter/protobuf</size>\n<b>Protobuf</b>" as m_Protobuf {
     rectangle "<size:1> </size>" as m_Protobuf_in #line:transparent {
       card "Converter\n<size:10>«Adapter»</size>" as m_Protobuf_Converter
     }
@@ -119,7 +116,7 @@ t_driving -[hidden]down-> m_Boot_StoryRunner
 label " " as t_core
 t_driving -[hidden]right-> t_core
 driving -[hidden]right-> core
-t_core -[hidden]down-> m_Application_Publisher
+t_core -[hidden]down-> m_Application_Story
 label " " as t_driven
 t_core -[hidden]right-> t_driven
 core -[hidden]right-> driven
@@ -141,17 +138,14 @@ m_Application_Publishing .right.> m_Application_PublishMessage
 m_Application_Publishing -right-> m_Application_Publisher
 m_Application_Publishing ..> m_Domain_Envelope
 m_Application_Publishing ..> m_Domain_Payload
-m_Application_Stories -right-> m_Application_Story
 m_Application_Story ..> m_Domain_Envelope
 m_Application_Story ..> m_Domain_Payload
-m_Boot_StoryRunner -right-> m_Application_Stories
-m_Boot_StoryRunner .right.> m_Application_Story
+m_Boot_StoryRunner -right-> m_Application_Story
 m_Console_ConsoleListener -right-> m_Application_Publishing
-m_Console_ConsoleListener -right-> m_Application_Stories
-m_Console_ConsoleListener .right.> m_Application_Story
+m_Console_ConsoleListener -right-> m_Application_Story
+m_Console_ConsoleListener .[norank].> m_Protobuf_Converter
 m_Kafka_Consumer_Reader .[norank].> m_Protobuf_Converter
-m_Kafka_Consumer_StoryListener -right-> m_Application_Stories
-m_Kafka_Consumer_StoryListener .right.> m_Application_Story
+m_Kafka_Consumer_StoryListener -right-> m_Application_Story
 m_Kafka_Publisher_KafkaPublisher .left.|> m_Application_Publisher
 m_Kafka_Publisher_KafkaPublisher .[norank].> m_Protobuf_Converter
 m_Load_Story_GenerateLoad --> m_Application_PublishMessage

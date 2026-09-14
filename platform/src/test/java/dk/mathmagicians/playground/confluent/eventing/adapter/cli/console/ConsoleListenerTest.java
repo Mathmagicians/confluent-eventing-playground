@@ -104,6 +104,14 @@ class ConsoleListenerTest {
     }
 
     @Test
+    void keepsTheRegionWhenTheNewOneHasNoName() {
+        readEverything(console(story, "region: AMER", "region:   ", AN_ORDER));
+
+        assertThat(story.heard()).extracting(Envelope::region).containsExactly("AMER");
+        assertThat(screen()).contains("it stays AMER");
+    }
+
+    @Test
     void printsTheHelpAtTheStartWithATemplatePerTypeTheStoryListensTo() {
         readEverything(console(story));
 

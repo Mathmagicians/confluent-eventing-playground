@@ -7,6 +7,6 @@
 
 * `d.m.p.c.e.a.c.c.ConsoleListener`
 |Bean references
-|* `d.m.p.c.e.a.Stories` (in Application)
+|* `d.m.p.c.e.a.Story` (in Application)
 * `d.m.p.c.e.a.Publishing` (in Application)
 |===
