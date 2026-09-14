@@ -71,12 +71,12 @@ public final class ConsoleListener implements SmartLifecycle {
             log.info("{} listens to nothing, no console", story.name());
             return;
         }
-        var session = new Session(story);
+        var session = new Session();
         log.info("""
                             Welcome to the Console Listener - we make it easy to test your story without a Kafka cluster, using just the console.
                             This story - {} -  listens to events from the console, accepting events of type: {}, for region {}.
                         """,
-                story.name(), story.listensTo().stream().map(Class::getSimpleName).sorted().toList(), publishing.region());
+                story.name(), typesThatWeListenTo, publishing.region());
         session.help();
         reading = Thread.ofPlatform().name(THREAD).start(() -> session.read(in));
 
@@ -100,14 +100,14 @@ public final class ConsoleListener implements SmartLifecycle {
         return reading != null && reading.isAlive();
     }
 
-    /// One session: the story at the table, the region in force, the three kinds of line.
+    /// One session: the story at the table, the region in force, the kinds of line.
     final class Session {
 
-        private final Story story;
         private String region;
+        final String REGION = "region: ";
 
-        Session(Story story) {
-            this.story = story;
+
+        Session() {
             this.region = publishing.region();
         }
 
@@ -123,9 +123,8 @@ public final class ConsoleListener implements SmartLifecycle {
             log.info("The console is closed, {} heard everything", story.name());
         }
 
-        /// One line: blank is nothing, `help`, `region: <name>`, or a message for the story.
+        /// One line: blank is nothing, `help`, `q` or `quit`, `region: <name>`, or a message for the story.
         void line(String line) {
-            final String REGION = "region: ";
             if (line.isBlank()) {
                 out.println(">>> Have some tea, said the March Hare. There is no tea. Type something, like a line, or ask for help, like HELP.");
                 return;
@@ -134,6 +133,8 @@ public final class ConsoleListener implements SmartLifecycle {
 
             if (line.equalsIgnoreCase("help")) {
                 help();
+            } else if (line.equalsIgnoreCase("q") || line.equalsIgnoreCase("quit")) {
+                quit();
             } else if (line.toLowerCase().startsWith(REGION)) {
                 region = line.toUpperCase().substring(REGION.length()).trim();
                 out.println("The region is now " + region);
@@ -146,13 +147,19 @@ public final class ConsoleListener implements SmartLifecycle {
                     help();
                 } else {
                     out.println(">>> You entered a message of type " + tokens[0] + " for region " + region);
+                    Payload payload;
                     try {
-                        var payload = Converter.from(type, tokens[1]);
-                        story.on(publishing.envelope(region, payload));
-                        out.println(">>> The story accepted the message, it is now in the story's hands");
+                        payload = Converter.from(type, tokens.length > 1 ? tokens[1] : "");
                     } catch (IllegalArgumentException e) {
                         out.println(">>> The console, with all its might, could not read your message: " + e.getMessage());
                         help();
+                        return;
+                    }
+                    try {
+                        story.on(publishing.envelope(region, payload));
+                        out.println(">>> The story accepted the message, it is now in the story's hands");
+                    } catch (RuntimeException e) {
+                        out.println(">>> The story set the message aside: " + e.getMessage());
                     }
                 }
             }
@@ -163,19 +170,19 @@ public final class ConsoleListener implements SmartLifecycle {
             var helpText = """
                     The Console Listener accepts three kinds of line:
                     
-                    * REGION: <name> sets the region of every message after it, the platform's default is %s.
+                    * %s <name> sets the region of every message after it, the platform's default is %s.
                       When you enter a region, every event after it will be stamped with that region.
                     
                     * You may enter an event using protobuf text format, starting with the type's name, then its fields, one per line.
                     
-                    * Type help for instructions, Ctrl+D to end the session...
+                    * Type help for instructions, q or quit to end the session, Ctrl+D does the same.
                     
                     **************** The types you can input as events are: ****************  
                     
                     %s
                     
                     **************** Curiouser and curiouser! Type a line and see where it goes; Ctrl+D closes the rabbit hole. **************** 
-                    """.formatted(publishing.region(), recordShapes);
+                    """.formatted(REGION, publishing.region(), recordShapes);
             out.println(helpText);
         }
 

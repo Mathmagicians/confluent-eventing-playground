@@ -186,9 +186,11 @@ public final class Converter {
         return builder.get();
     }
 
+    /// A scalar as `name: value`, a nested message as `name { fields }`, the way Protobuf prints them.
     private static String fields(Descriptor message) {
         return message.getFields().stream()
-                .map(field -> field.getName() + ": " + placeholder(field))
+                .map(field -> field.getName() + (field.getJavaType() == FieldDescriptor.JavaType.MESSAGE ? " " : ": ")
+                        + placeholder(field))
                 .collect(joining(" "));
     }
 

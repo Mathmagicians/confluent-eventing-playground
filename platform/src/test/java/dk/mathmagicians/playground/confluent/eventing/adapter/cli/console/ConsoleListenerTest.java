@@ -32,10 +32,13 @@ import org.junit.jupiter.api.Test;
 class ConsoleListenerTest {
 
     private static final Duration SOON = Duration.ofSeconds(2);
-    private static final String AN_OFFER =
-            "Offer offer_id: \"OFF-1\" product_id: \"" + TOP_HAT + "\" price: 12.5 seller_id: \"" + MAD_HATTER + "\"";
+    /// The record is what the text says, so the lines type the creation time the fixtures carry.
+    private static final String CREATED_AT =
+            "created_at { seconds: " + AT.getEpochSecond() + " nanos: " + AT.getNano() + " }";
+    private static final String AN_OFFER = "Offer offer_id: \"OFF-1\" product_id: \"" + TOP_HAT
+            + "\" price: 12.5 seller_id: \"" + MAD_HATTER + "\" " + CREATED_AT;
     private static final String AN_ORDER =
-            "Order id: \"ORD-1\" customer_id: \"" + ALICE + "\" product_id: \"" + TOP_HAT + "\"";
+            "Order id: \"ORD-1\" customer_id: \"" + ALICE + "\" product_id: \"" + TOP_HAT + "\" " + CREATED_AT;
 
     /// A story at the table that keeps every envelope it gets.
     private record Listening(String name, List<Envelope> heard) implements Story {
@@ -126,7 +129,7 @@ class ConsoleListenerTest {
         assertThat(story.heard()).singleElement().satisfies(envelope ->
                 assertThat(envelope.payload()).isInstanceOf(Order.class));
         assertThat(screen())
-                .contains("Teapot is no payload type")
+                .contains("Unrecognized type: Teapot")
                 .contains("prize");
         assertThat(screen().split("Order id: \"\"", -1)).hasSize(4);
     }
