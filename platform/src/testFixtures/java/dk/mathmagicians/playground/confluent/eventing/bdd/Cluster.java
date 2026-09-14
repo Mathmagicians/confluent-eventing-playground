@@ -40,6 +40,8 @@ import org.apache.kafka.common.errors.GroupNotEmptyException;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.awaitility.Awaitility;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.boot.kafka.autoconfigure.KafkaProperties;
 import org.springframework.core.env.Environment;
@@ -48,6 +50,8 @@ import org.springframework.core.env.Environment;
 /// suite's context, a consumer per read, values as the raw bytes on the wire, and a producer per publish, for
 /// a scenario that stands in for a story.
 public class Cluster {
+
+    private static final Logger log = LoggerFactory.getLogger(Cluster.class);
 
     /// Kafka's own request timeout; the first call pays for DNS, TLS, and SASL
     private static final long TIMEOUT_SECONDS = 30;
@@ -241,29 +245,41 @@ public class Cluster {
     /// Every record of the topic from the beginning, in offset order within a partition, headers and raw value:
     /// what a compacted topic holds, a table's rows among them.
     List<ConsumerRecord<String, byte[]>> readAll(String topic) {
+        var timeout = Duration.ofSeconds(TIMEOUT_SECONDS);
+        var started = Instant.now();
+        var deadline = started.plus(timeout.multipliedBy(2));
         try (var consumer = new KafkaConsumer<String, byte[]>(rawConsumer())) {
-            var partitions = consumer.partitionsFor(topic).stream()
+            var partitions = consumer.partitionsFor(topic, timeout).stream()
                     .map(info -> new TopicPartition(topic, info.partition()))
                     .toList();
             consumer.assign(partitions);
+            var end = consumer.endOffsets(partitions, timeout);
             consumer.seekToBeginning(partitions);
-            var end = consumer.endOffsets(partitions);
-            var deadline = Instant.now().plusSeconds(TIMEOUT_SECONDS);
             var records = new ArrayList<ConsumerRecord<String, byte[]>>();
-            while (partitions.stream().anyMatch(partition -> consumer.position(partition) < end.get(partition))) {
-                assertThat(Instant.now()).as("reading %s to its end", topic).isBefore(deadline);
+            var behind = partitions;
+            while (!behind.isEmpty()) {
+                assertThat(Instant.now())
+                        .as("reading %s to its end: %d records so far, still behind on %s", topic, records.size(), behind)
+                        .isBefore(deadline);
                 consumer.poll(Duration.ofSeconds(1)).forEach(records::add);
+                behind = partitions.stream()
+                        .filter(partition -> consumer.position(partition, timeout) < end.get(partition))
+                        .toList();
             }
+            log.info("read {} records from {} in {} s", records.size(), topic, Duration.between(started, Instant.now()).toSeconds());
             return records;
         }
     }
 
-    /// a consumer of the `kafka` profile that leaves keys as strings and values as the bytes on the wire
+    /// a consumer of the `kafka` profile that leaves keys as strings and values as the bytes on the wire; it is
+    /// assigned its partitions and belongs to no group, and every call it makes is bounded
     private HashMap<String, Object> rawConsumer() {
         var configs = new HashMap<String, Object>(properties.buildConsumerProperties());
         configs.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         configs.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class);
         configs.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
+        configs.put(ConsumerConfig.DEFAULT_API_TIMEOUT_MS_CONFIG, (int) TIMEOUT_SECONDS * 1000);
+        configs.remove(ConsumerConfig.GROUP_ID_CONFIG);
         return configs;
     }
 

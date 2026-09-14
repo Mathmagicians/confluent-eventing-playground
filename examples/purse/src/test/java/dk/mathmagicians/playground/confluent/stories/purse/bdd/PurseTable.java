@@ -23,8 +23,8 @@ class PurseTable {
 
     private static final String SITS_FOR = "120";
 
-    /// The purse's lines as patterns: each `{}` of the message a word, who, the price, the balance or the
-    /// shortfall, numbers as `BigDecimal` prints them.
+    /// The purse's lines as patterns: each `{}` of the message a word, the owner first and the balance or the
+    /// shortfall last, whatever the line says in between, numbers as `BigDecimal` prints them.
     private static final Pattern SOLD = line(Purse.SOLD);
     private static final Pattern BOUGHT = line(Purse.BOUGHT);
     private static final Pattern OWES = line(Purse.OWES);
@@ -50,22 +50,30 @@ class PurseTable {
     /// The balance on the owner's last line, a sale's or a purchase's.
     void assertLeft(String owner, BigDecimal coins) {
         var last = Stream.concat(lines(SOLD).stream(), lines(BOUGHT).stream())
-                .filter(line -> line.group(1).equals(owner))
+                .filter(line -> owner(line).equals(owner))
                 .max(Comparator.comparingInt(MatchResult::start));
         assertThat(last).as("a line of %s's purse", owner).isPresent();
-        assertThat(new BigDecimal(last.get().group(3))).isEqualByComparingTo(coins);
+        assertThat(amount(last.get())).isEqualByComparingTo(coins);
     }
 
     void assertOwes(String owner, BigDecimal coins) {
-        var lines = lines(OWES).stream().filter(line -> line.group(1).equals(owner)).toList();
+        var lines = lines(OWES).stream().filter(line -> owner(line).equals(owner)).toList();
         assertThat(lines).as("a line saying %s's coins are gone", owner).isNotEmpty();
-        assertThat(new BigDecimal(lines.getLast().group(3))).isEqualByComparingTo(coins);
+        assertThat(amount(lines.getLast())).isEqualByComparingTo(coins);
+    }
+
+    private static String owner(MatchResult line) {
+        return line.group(1);
+    }
+
+    private static BigDecimal amount(MatchResult line) {
+        return new BigDecimal(line.group(line.groupCount()));
     }
 
     void assertSaidNothingAbout(String one, String other) {
         var speakers = Stream.of(SOLD, BOUGHT, OWES)
                 .flatMap(line -> lines(line).stream())
-                .map(line -> line.group(1))
+                .map(PurseTable::owner)
                 .toList();
         assertThat(speakers).doesNotContain(one, other);
     }
