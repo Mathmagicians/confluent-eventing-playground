@@ -48,13 +48,18 @@ public class FlinkSteps {
         var topic = table(table);
 
         await().atMost(CATCHES_UP).pollInterval(LOOK_AGAIN).untilAsserted(() -> {
-            var rows = cluster.readAll(topic).stream()
+            var all = cluster.readAll(topic).stream()
                     .filter(record -> record.value() != null)
                     .map(cluster::value)
+                    .toList();
+            var rows = all.stream()
                     .filter(row -> text(row, "region").equals(region))
                     .collect(toMap(row -> text(row, "product_id"), row -> row, (_, later) -> later));
 
-            assertThat(rows.keySet()).as("products of %s in %s", region, topic).containsAll(latest.keySet());
+            assertThat(rows.keySet())
+                    .as("products of %s in %s, which holds %d rows with regions %s", region, topic, all.size(),
+                            all.stream().map(row -> text(row, "region")).distinct().toList())
+                    .containsAll(latest.keySet());
             latest.forEach((id, product) -> {
                 var row = rows.get(id);
                 assertThat(text(row, "product_name")).isEqualTo(product.getProductName());

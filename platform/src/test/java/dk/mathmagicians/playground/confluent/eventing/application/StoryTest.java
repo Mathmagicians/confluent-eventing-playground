@@ -1,13 +1,22 @@
 package dk.mathmagicians.playground.confluent.eventing.application;
 
+import static dk.mathmagicians.playground.confluent.eventing.application.StoryFixtures.listeningFrom;
 import static dk.mathmagicians.playground.confluent.eventing.application.StoryFixtures.named;
+import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures.APP;
+import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures.AT;
+import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures.OTHER_REGION;
+import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures.dice;
 import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures.envelope;
+import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures.order;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 
+import dk.mathmagicians.playground.confluent.eventing.domain.Envelope;
+import dk.mathmagicians.playground.confluent.eventing.domain.Order;
 import java.time.Duration;
 import java.util.List;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 /// The defaults of the contract: a story that says only its name listens to nothing, reads under its name, plays
@@ -49,6 +58,19 @@ class StoryTest {
     @Test
     void startsQuietlyByDefault() {
         quiet.start();
+    }
+
+    @Test
+    void hearsEveryRegionByDefault() {
+        assertThat(quiet.hears(envelope())).isTrue();
+    }
+
+    @Test
+    void hearsItsOwnRegionOnlyWhenItHasOne() {
+        var fromApac = listeningFrom(OTHER_REGION, "tea-party", Set.of(Order.class));
+
+        assertThat(fromApac.hears(Envelope.of(dice(), OTHER_REGION, APP, AT, order()))).isTrue();
+        assertThat(fromApac.hears(envelope())).isFalse();
     }
 
     @Test

@@ -7,16 +7,19 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import java.util.TreeSet;
+import org.jspecify.annotations.Nullable;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.bind.DefaultValue;
 
 /// The settings of the purse story, `purse.*`: the purses at this table, `--purse.owners="Alice:1000,White
 /// Rabbit:500"`, one entry per purse, the owner as the features name a character of Wonderland and the coins the
-/// purse starts with; and how long the table sits, `--purse.ttl` seconds, five minutes by default, left empty for
+/// purse starts with; the region the table sits in, `--purse.region`, whose trades alone it hears, left out for
+/// every region; and how long the table sits, `--purse.ttl` seconds, five minutes by default, left empty for
 /// until stopped. Every value has a default, so the bundle binds at every start whatever the story; a wrong value
 /// fails startup with the entry in the message.
 @ConfigurationProperties("purse")
-public record PurseProperties(@DefaultValue("Alice:1000") List<String> owners, @DefaultValue("300") String ttl) {
+public record PurseProperties(
+        @Nullable String region, @DefaultValue("Alice:1000") List<String> owners, @DefaultValue("300") String ttl) {
 
     /// A purse as it opens: whose, by the id on the wire, and with how many coins, money, so a cent is a cent.
     public record Opening(String ownerId, BigDecimal coins) {
@@ -25,6 +28,9 @@ public record PurseProperties(@DefaultValue("Alice:1000") List<String> owners, @
     private static final String ENTRY = "Name:coins";
 
     public PurseProperties {
+        if (region != null && region.isBlank()) {
+            throw new IllegalArgumentException("purse.region cannot be blank; leave it out for every region");
+        }
         if (owners == null || owners.isEmpty()) {
             throw new IllegalArgumentException("purse.owners is required: at least one " + ENTRY);
         }

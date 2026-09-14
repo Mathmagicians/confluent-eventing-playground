@@ -16,5 +16,7 @@ import org.springframework.context.annotation.Import;
         webEnvironment = WebEnvironment.NONE,
         properties = {"spring.profiles.active=test", "spring.main.lazy-initialization=true"})
 @ImportAutoConfiguration(KafkaAutoConfiguration.class)
-@Import({Cluster.class, SchemaRegistry.class, GeneratorContainer.class, StoryContainer.class, Published.class})
+@Import({
+    Cluster.class, SchemaRegistry.class, GeneratorContainer.class, StoryContainer.class, Published.class, Region.class
+})
 class CucumberSpringConfiguration {}

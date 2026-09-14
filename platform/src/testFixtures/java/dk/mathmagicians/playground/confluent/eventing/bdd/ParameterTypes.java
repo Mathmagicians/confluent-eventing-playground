@@ -1,5 +1,7 @@
 package dk.mathmagicians.playground.confluent.eventing.bdd;
 
+import dk.mathmagicians.playground.confluent.eventing.adapter.kafka.Topics;
+import dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures;
 import dk.mathmagicians.playground.confluent.eventing.domain.Wonderland;
 import io.cucumber.java.ParameterType;
 import java.util.List;
@@ -19,7 +21,7 @@ public class ParameterTypes {
     /// properties of the profile to the name on the cluster: `test.orders`, `test.products.lvs`, `test.orders.DLT`.
     @ParameterType("topic ([\\w.]+)|dead-letter topic for (\\w+)")
     public String topic(String name, String deadLetterOf) {
-        return name != null ? named(name) : named(deadLetterOf) + ".DLT";
+        return name != null ? named(name) : Topics.deadLetterOf(named(deadLetterOf));
     }
 
     /// `products`, `offers and orders`, `products, offers and orders`: the payload types a generator produces, as
@@ -50,5 +52,17 @@ public class ParameterTypes {
     @ParameterType("[A-Z][a-z]+(?: (?:of|[A-Z][a-z]+))*")
     public String wonderlander(String name) {
         return Wonderland.characterId(name);
+    }
+
+    /// A story as the features name one, `tea party`, `purse`: its name on the command line, `tea-party`.
+    @ParameterType("[a-z]+(?: [a-z]+)*")
+    public String story(String words) {
+        return words.replace(' ', '-');
+    }
+
+    /// A thing as the features name one, `Top Hat`, `Drink Me Bottle`: its product id on the wire, `P-TOPH`.
+    @ParameterType("[A-Z][a-z]+(?: [A-Z][a-z]+)*")
+    public String thing(String name) {
+        return EventFixtures.thing(name);
     }
 }

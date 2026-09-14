@@ -313,8 +313,9 @@ A review finding cites the rule it breaks.
 
 ### Kafka and Confluent Cloud
 
-- Producer: `acks=all`, `enable.idempotence=true`, compression `lz4` or `zstd`, explicit `linger.ms` and `batch.size`.
-  All of it through Spring properties, each tuning value with a comment.
+- Every client setting lives in `platform/src/main/resources/kafka.properties`, each tuning value with a comment:
+  the idempotent producer, compression, batching, the registry, how a schema's imports are found. The rules are
+  here, the values there.
 - Every record has a key.
 - Topics, their schemas, and the Flink tables are created by Terraform Cloud from `iac/`. Test containers
   auto-create.
@@ -323,7 +324,7 @@ A review finding cites the rule it breaks.
 - Consumer group id is explicit and named after the story. Offset management stays on Spring defaults until a
   scenario needs otherwise.
 - Listener exceptions propagate to Spring's `DefaultErrorHandler`, which publishes to the dead-letter topic
-  `<topic>.DLT`, Spring's default name and partition, through `DeadLetterPublishingRecoverer`.
+  `<topic>.DLT`, the name `iac/` gives it, on the same partition, through `DeadLetterPublishingRecoverer`.
 - One serialization class per direction owns `byte[]` and serializer configuration. Business code works with
   `Envelope`.
 - Every message carries its envelope as record headers, CloudEvents binary mode: `ce_specversion`, `ce_id`,
@@ -333,9 +334,10 @@ A review finding cites the rule it breaks.
   thin-envelope alternative and stays off the wire.
 - Schema evolution: `BACKWARD` compatibility, `TopicNameStrategy`, schemas checked in under
   `src/main/proto`, one file per payload, registered by `iac/` under its topic's `<topic>-value` subject,
-  imports as schema references. A producer runs with `auto.register.schemas=false` and `use.latest.version=true`.
-- Confluent Cloud clients use `SASL_SSL` with `PLAIN`. Every other setting stays at the Confluent-recommended default
-  until a measurement justifies a change.
+  imports as schema references to the imported payloads' subjects, so every subject carries its environment and
+  test evolves before prod. A producer never registers a schema; it serializes with the latest registered version
+  and finds a schema's imports where `iac/` put them, through `ReferenceSubjects`.
+- Every other setting stays at the Confluent-recommended default until a measurement justifies a change.
 
 ### Testing
 

@@ -28,13 +28,13 @@ public final class KnowWhatIsLeft implements Story {
     private static final Logger log = LoggerFactory.getLogger(KnowWhatIsLeft.class);
 
     /// What the purse says, one line per trade of an owner: owner, price, balance. INFO when coins come or go,
-    /// ERROR when the coins are gone and the owner shops on, DEBUG for a trade that is none of its business.
+    /// WARN when the coins are gone and the owner shops on, DEBUG for a trade that is none of its business.
     static final String PASSED_BY = "{} paid {} {} gold coins, none of this table's business";
 
-    record Purse(String ownerId, BigDecimal balance) {
-        static final String SOLD = "{} sold a thing for {} gold coins, the purse jingles with {}";
-        static final String BOUGHT = "{} bought a thing for {} gold coins, {} left in the purse";
-        static final String OWES = "{} bought a thing for {} gold coins, but the coins went down a deep rabbit hole: {} short, and the shopping goes on";
+    public record Purse(String ownerId, BigDecimal balance) {
+        public static final String SOLD = "{} sold a thing for {} gold coins, the purse jingles with {}";
+        public static final String BOUGHT = "{} bought a thing for {} gold coins, {} left in the purse";
+        public static final String OWES = "{} bought a thing for {} gold coins, but the coins went down a deep rabbit hole: {} short, and the shopping goes on";
 
         Purse in(BigDecimal price) {
             var nextIncarnation = new Purse(ownerId, balance.add(price));
@@ -45,9 +45,9 @@ public final class KnowWhatIsLeft implements Story {
         Purse out(BigDecimal price) {
             var nextIncarnation = new Purse(ownerId, balance.subtract(price));
             if (nextIncarnation.balance().compareTo(BigDecimal.ZERO) < 0) {
-                log.info(OWES, ownerId, price, nextIncarnation.balance().negate());
+                log.warn(OWES, ownerId, price, nextIncarnation.balance().negate());
             } else {
-                log.warn(BOUGHT, ownerId, price, nextIncarnation.balance());
+                log.info(BOUGHT, ownerId, price, nextIncarnation.balance());
             }
             return nextIncarnation;
         }
@@ -55,18 +55,25 @@ public final class KnowWhatIsLeft implements Story {
     }
 
     private final Map<String, Purse> purses = new TreeMap<>();
+    private final @Nullable String region;
     private final @Nullable Duration ttl;
 
-    /// The purses at this table, by owner id, with the coins each opens with, and how long the table sits, nothing
-    /// for until stopped.
-    public KnowWhatIsLeft(Map<String, BigDecimal> openings, @Nullable Duration ttl) {
+    /// The purses at this table, by owner id, with the coins each opens with; the region whose trades the table
+    /// hears, nothing for every region; and how long the table sits, nothing for until stopped.
+    public KnowWhatIsLeft(Map<String, BigDecimal> openings, @Nullable String region, @Nullable Duration ttl) {
         openings.forEach((k, v) -> purses.put(k, new Purse(k, v)));
+        this.region = region;
         this.ttl = ttl;
     }
 
     @Override
     public String name() {
         return NAME;
+    }
+
+    @Override
+    public Optional<String> region() {
+        return Optional.ofNullable(region);
     }
 
     @Override

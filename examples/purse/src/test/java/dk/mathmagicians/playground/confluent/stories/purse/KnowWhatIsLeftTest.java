@@ -3,6 +3,7 @@ package dk.mathmagicians.playground.confluent.stories.purse;
 import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures.ALICE;
 import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures.CHESHIRE_CAT;
 import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures.MAD_HATTER;
+import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures.REGION;
 import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures.WHITE_RABBIT;
 import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures.envelope;
 import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures.offer;
@@ -23,14 +24,20 @@ class KnowWhatIsLeftTest {
 
     private static final Duration TTL = Duration.ofSeconds(30);
 
-    private final KnowWhatIsLeft table =
-            new KnowWhatIsLeft(Map.of(ALICE, new BigDecimal("100"), WHITE_RABBIT, new BigDecimal("50")), TTL);
+    private final KnowWhatIsLeft table = new KnowWhatIsLeft(
+            Map.of(ALICE, new BigDecimal("100"), WHITE_RABBIT, new BigDecimal("50")), null, TTL);
 
     @Test
     void isThePurseStoryListeningToTransactions() {
         assertThat(table.name()).isEqualTo("purse");
         assertThat(table.listensTo()).containsExactly(Transaction.class);
         assertThat(table.playsFor()).hasValue(TTL);
+    }
+
+    @Test
+    void sitsInEveryRegionUnlessGivenOne() {
+        assertThat(table.region()).isEmpty();
+        assertThat(new KnowWhatIsLeft(Map.of(ALICE, BigDecimal.ONE), REGION, TTL).region()).hasValue(REGION);
     }
 
     @Test

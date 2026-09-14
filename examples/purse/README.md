@@ -69,6 +69,14 @@ make help          # every target
 The credentials of the test cluster come from `.env.test.private`, the platform's `.env.private.sample` lists them;
 `ENV_DIR` in the Makefile says where the file is. In CI they are in the environment.
 
+## The feature
+
+`alices_purse_knows_what_is_left.feature`, the purse as a container in a region and a group of the scenario's own:
+
+| Scenarios | Unique steps | Of the platform | Of the purse |
+|-----------|--------------|-----------------|--------------|
+| 6         | 8            | 3               | 5            |
+
 ## Developing against a platform that is not released yet
 
 From a checkout of the platform, `make platform-install` puts its jars into the local Maven repository under the

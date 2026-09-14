@@ -43,6 +43,12 @@ public interface Story {
         throw new IllegalStateException(name() + " does not listen to " + envelope.payload());
     }
 
+    /// Whether the envelope is for this story: a story from a region hears its region only, a story without one
+    /// hears every region.
+    default boolean hears(Envelope envelope) {
+        return region().map(envelope.region()::equals).orElse(true);
+    }
+
     /// Once, when the substrate is up. A story that acts on its own does its work here.
     default void start() {
     }

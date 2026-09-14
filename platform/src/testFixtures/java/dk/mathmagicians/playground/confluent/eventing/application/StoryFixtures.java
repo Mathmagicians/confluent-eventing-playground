@@ -9,7 +9,9 @@ import dk.mathmagicians.playground.confluent.eventing.domain.Envelope;
 import dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures;
 import dk.mathmagicians.playground.confluent.eventing.domain.Payload;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -21,13 +23,21 @@ import org.jspecify.annotations.Nullable;
 /// what a story publishes with.
 public final class StoryFixtures {
 
-    /// A story with every answer given, that counts its starts and takes every message. No ttl is until stopped.
+    /// A story with every answer given, that counts its starts and keeps every message it gets. No ttl is until
+    /// stopped, no region is every region.
     public record Fake(
             String name,
             String group,
+            @Nullable String from,
             Set<Class<? extends Payload>> listensTo,
             @Nullable Duration ttl,
-            AtomicInteger starts) implements Story {
+            AtomicInteger starts,
+            List<Envelope> heard) implements Story {
+
+        @Override
+        public Optional<String> region() {
+            return Optional.ofNullable(from);
+        }
 
         @Override
         public Optional<Duration> playsFor() {
@@ -41,6 +51,7 @@ public final class StoryFixtures {
 
         @Override
         public void on(Envelope envelope) {
+            heard.add(envelope);
         }
     }
 
@@ -51,12 +62,17 @@ public final class StoryFixtures {
 
     /// A story that acts on its own, listening to nothing, for the ttl given.
     public static Fake acting(String name, @Nullable Duration ttl) {
-        return new Fake(name, name, Set.of(), ttl, new AtomicInteger());
+        return new Fake(name, name, null, Set.of(), ttl, new AtomicInteger(), new ArrayList<>());
     }
 
     /// A story that listens to the types given under its own name, for the ttl given.
     public static Fake listening(String name, Set<Class<? extends Payload>> types, @Nullable Duration ttl) {
-        return new Fake(name, name, types, ttl, new AtomicInteger());
+        return new Fake(name, name, null, types, ttl, new AtomicInteger(), new ArrayList<>());
+    }
+
+    /// A story from a region that listens to the types given under its own name, until stopped.
+    public static Fake listeningFrom(String region, String name, Set<Class<? extends Payload>> types) {
+        return new Fake(name, name, region, types, null, new AtomicInteger(), new ArrayList<>());
     }
 
     /// What a story publishes with in a test: envelopes stamped `APP` at `AT`, for `REGION` unless the story says

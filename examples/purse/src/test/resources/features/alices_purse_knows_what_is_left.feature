@@ -8,29 +8,28 @@ Feature: Alice's purse knows what is left
 
   Scenario Outline: The purse follows its owner's trades and nobody else's
     Given <Owner>'s purse holds <Coins> coins
-    And the tea party has settled orders from <Owner>, offers by <Owner>, and trades between others
+    And Mad Hatter paid <Owner> 20.25 coins for a thing
+    And <Owner> paid Mad Hatter 10.5 coins for a thing
+    And Mad Hatter paid Dormouse 99 coins for a thing
     When the purse reads the stream of transactions
-    Then it put in the price of every transaction where <Owner> is the seller
-    And took out the price of every transaction where <Owner> is the customer
-    And nothing for the others
-    And it reports what is left
+    Then <Owner> has <Left> coins left
+    And the purse said nothing about Mad Hatter or Dormouse
 
     Examples:
-      | Owner        | Coins |
-      | Alice        | 1000  |
-      | White Rabbit | 500   |
-      | Cheshire Cat | 250   |
+      | Owner        | Coins | Left    |
+      | Alice        | 1000  | 1009.75 |
+      | White Rabbit | 500   | 509.75  |
+      | Cheshire Cat | 250   | 259.75  |
 
   Scenario Outline: An empty purse says what its owner owes
     Given <Owner>'s purse holds <Coins> coins
-    And the tea party has settled orders from <Owner> worth more than that
+    And <Owner> paid Cheshire Cat <Price> coins for a thing
     When the purse reads the stream of transactions
-    Then the purse is empty
-    And it reports what <Owner> owes
-    And it says so where a human will look
+    Then <Owner> owes <Owed> coins
+    And the purse makes a warning
 
     Examples:
-      | Owner           | Coins |
-      | Alice           | 1     |
-      | Mad Hatter      | 10    |
-      | Queen of Hearts | 0     |
+      | Owner           | Coins | Price | Owed |
+      | Alice           | 1     | 2     | 1    |
+      | Mad Hatter      | 10    | 11    | 1    |
+      | Queen of Hearts | 0     | 1     | 1    |

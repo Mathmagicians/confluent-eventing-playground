@@ -1,84 +1,51 @@
 package dk.mathmagicians.playground.confluent.stories.purse.bdd;
 
-import dk.mathmagicians.playground.confluent.eventing.bdd.Cluster;
+import dk.mathmagicians.playground.confluent.eventing.bdd.Region;
 import dk.mathmagicians.playground.confluent.eventing.bdd.StoryContainer;
-import dk.mathmagicians.playground.confluent.eventing.domain.Wonderland;
 import io.cucumber.java.ParameterType;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
-import io.cucumber.java.en.When;
+import java.math.BigDecimal;
 
-/// Steps of "Alice's purse knows what is left", glue to `PurseTable`. Owners are Wonderland characters: the
-/// purse is opened by the name the feature writes, and answers about the id on the wire, see
-/// `ParameterTypes.wonderlander`.
+/// Steps of "Alice's purse knows what is left", glue to `PurseTable`: how the purse opens, and what it says. The
+/// trades on the stream, the reading, and the cluster are the platform's steps. The purse opens by the name the
+/// feature writes; what it says names the id on the wire, see `ParameterTypes.wonderlander`.
 public class PurseSteps {
-
-    /// A character as the feature names one and as the wire keys one, `White Rabbit` and `WHITE_RABBIT`.
-    public record Owner(String name, String id) {}
 
     private final PurseTable table;
 
-    public PurseSteps(StoryContainer story, Cluster cluster) {
-        this.table = new PurseTable(story, cluster);
+    public PurseSteps(StoryContainer story, Region region) {
+        this.table = new PurseTable(story, region);
     }
 
+    /// A character as the feature names one, `White Rabbit`, kept as written: the purse's settings take names.
     @ParameterType("[A-Z][a-z]+(?: (?:of|[A-Z][a-z]+))*")
-    public Owner owner(String name) {
-        return new Owner(name, Wonderland.characterId(name));
+    public String owner(String name) {
+        return name;
     }
 
     @Given("{owner}'s purse holds {int} coins")
-    public void ownersPurseHoldsCoins(Owner owner, int coins) {
-        table.open(owner.name(), owner.id(), coins);
+    public void ownersPurseHoldsCoins(String owner, int coins) {
+        table.open(owner, coins);
     }
 
-    @Given("the tea party has settled orders from {wonderlander}, offers by {wonderlander}, and trades between others")
-    public void theTeaPartyHasSettledOrdersFromOffersByAndTradesBetweenOthers(String customer, String seller) {
-        table.settledAroundTheOwner();
+    @Then("{wonderlander} has {bigdecimal} coins left")
+    public void hasCoinsLeft(String owner, BigDecimal coins) {
+        table.assertLeft(owner, coins);
     }
 
-    @Given("the tea party has settled orders from {wonderlander} worth more than that")
-    public void theTeaPartyHasSettledOrdersFromWorthMoreThanThat(String customer) {
-        table.settledBeyondTheOwner();
+    @Then("{wonderlander} owes {bigdecimal} coins")
+    public void owesCoins(String owner, BigDecimal coins) {
+        table.assertOwes(owner, coins);
     }
 
-    @When("the purse reads the stream of transactions")
-    public void thePurseReadsTheStreamOfTransactions() {
-        table.reads();
+    @Then("the purse said nothing about {wonderlander} or {wonderlander}")
+    public void thePurseSaidNothingAbout(String one, String other) {
+        table.assertSaidNothingAbout(one, other);
     }
 
-    @Then("it put in the price of every transaction where {wonderlander} is the seller")
-    public void itPutInThePriceOfEveryTransactionWhereIsTheSeller(String seller) {
-        table.assertPutInWhatTheOwnerSold();
-    }
-
-    @Then("took out the price of every transaction where {wonderlander} is the customer")
-    public void tookOutThePriceOfEveryTransactionWhereIsTheCustomer(String customer) {
-        table.assertTookOutWhatTheOwnerBought();
-    }
-
-    @Then("nothing for the others")
-    public void nothingForTheOthers() {
-        table.assertNothingForTheOthers();
-    }
-
-    @Then("it reports what is left")
-    public void itReportsWhatIsLeft() {
-        table.assertReportsWhatIsLeft();
-    }
-
-    @Then("the purse is empty")
-    public void thePurseIsEmpty() {
-        table.assertEmpty();
-    }
-
-    @Then("it reports what {wonderlander} owes")
-    public void itReportsWhatOwes(String owner) {
-        table.assertReportsWhatTheOwnerOwes(owner);
-    }
-
-    @Then("it says so where a human will look")
-    public void itSaysSoWhereAHumanWillLook() {
-        table.assertSaysSoWhereAHumanLooks();
+    @Then("the purse makes a warning")
+    public void thePurseMakesAWarning() {
+        table.assertMakesAWarning();
     }
 }

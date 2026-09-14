@@ -21,6 +21,14 @@ public record Topics(String products, String offers, String orders, String trans
         require("topics.transactions", transactions);
     }
 
+    /// The suffix of a dead-letter topic, as `iac/topics.tf` names them: `test.orders.DLT`.
+    public static final String DEAD_LETTER = ".DLT";
+
+    /// The dead-letter topic of a topic, where a record goes when the story throws.
+    public static String deadLetterOf(String topic) {
+        return topic + DEAD_LETTER;
+    }
+
     /// The topic a payload goes to.
     public String select(Payload payload) {
         return of(payload.getClass());

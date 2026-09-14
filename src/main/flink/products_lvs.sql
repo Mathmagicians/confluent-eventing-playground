@@ -12,7 +12,7 @@ SELECT region, product_id,
           COUNT(*) AS versions,
           MAX(arrived_at) AS updated_at
    FROM(
-           SELECT COALESCE(DECODE(headers[ENCODE('ce_region', 'UTF-8')], 'UTF-8'), 'NONE') AS region,
+           SELECT COALESCE(CAST(headers AS MAP<STRING, STRING>)['ce_region'], 'NONE') AS region,
                   product_id, product_name, producer_id, product_description,
                   `$rowtime` AS arrived_at
            FROM `${env}.products`

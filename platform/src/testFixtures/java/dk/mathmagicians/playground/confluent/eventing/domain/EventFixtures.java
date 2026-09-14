@@ -19,6 +19,8 @@ public final class EventFixtures {
     public static final Clock CLOCK = Clock.fixed(AT, ZoneOffset.UTC);
 
     public static final String REGION = "EMEA";
+    /// A region that is not `REGION`, for what must stay apart.
+    public static final String OTHER_REGION = "APAC";
 
     /// `spring.application.name`
     public static final String APP = "confluent-eventing-playground";

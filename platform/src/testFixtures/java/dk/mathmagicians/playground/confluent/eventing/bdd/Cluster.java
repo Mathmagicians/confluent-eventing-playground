@@ -7,6 +7,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.google.protobuf.DynamicMessage;
 import com.google.protobuf.Message;
 import dk.mathmagicians.playground.confluent.eventing.adapter.kafka.EnvelopeHeaders;
+import dk.mathmagicians.playground.confluent.eventing.adapter.kafka.Topics;
 import dk.mathmagicians.playground.confluent.eventing.adapter.protobuf.Converter;
 import dk.mathmagicians.playground.confluent.eventing.domain.Envelope;
 import dk.mathmagicians.playground.confluent.eventing.domain.Payload;
@@ -18,10 +19,14 @@ import jakarta.annotation.PreDestroy;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Stream;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -35,6 +40,7 @@ import org.apache.kafka.common.errors.GroupNotEmptyException;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.awaitility.Awaitility;
+import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.boot.kafka.autoconfigure.KafkaProperties;
 import org.springframework.core.env.Environment;
 
@@ -48,17 +54,66 @@ public class Cluster {
 
     private final KafkaProperties properties;
     private final Environment environment;
+    private final Topics topics;
     private final AdminClient client;
 
     Cluster(KafkaProperties properties, Environment environment) {
         this.properties = properties;
         this.environment = environment;
+        this.topics = Binder.get(environment).bind("topics", Topics.class).get();
         this.client = AdminClient.create(properties.buildAdminProperties());
     }
 
-    /// The topic of a payload type on the cluster, `orders` as `test.orders`, from the profile's `topics.*`.
+    /// The topic of a payload type on the cluster, by the type's name in either number, `order` or `orders` as
+    /// `test.orders`, from the profile's `topics.*`.
     public String topic(String payloads) {
-        return environment.getRequiredProperty("topics." + payloads);
+        var word = payloads.endsWith("s") ? payloads.substring(0, payloads.length() - 1) : payloads;
+        return Stream.of(Payload.class.getPermittedSubclasses())
+                .filter(type -> type.getSimpleName().equalsIgnoreCase(word))
+                .findFirst()
+                .map(type -> topics.of(type.asSubclass(Payload.class)))
+                .orElseThrow(() -> new IllegalArgumentException(payloads + " is no payload type"));
+    }
+
+    /// Every payload topic on the cluster, one per record `Payload` permits.
+    public List<String> topics() {
+        return Stream.of(Payload.class.getPermittedSubclasses())
+                .map(type -> topics.of(type.asSubclass(Payload.class)))
+                .toList();
+    }
+
+    /// The end of every partition of the topics: where the next record lands.
+    public Map<TopicPartition, Long> endOffsets(Collection<String> topics) {
+        try (var consumer = new KafkaConsumer<String, byte[]>(rawConsumer())) {
+            var partitions = topics.stream()
+                    .flatMap(topic -> consumer.partitionsFor(topic).stream())
+                    .map(info -> new TopicPartition(info.topic(), info.partition()))
+                    .toList();
+            return consumer.endOffsets(partitions);
+        }
+    }
+
+    /// Whether the group has read the topics to their end: for every partition that got records since the
+    /// offsets given, the group's committed offset has reached the end.
+    public boolean caughtUp(String group, Collection<String> topics, Map<TopicPartition, Long> since) {
+        var end = endOffsets(topics);
+        var committed = await(client.listConsumerGroupOffsets(group).partitionsToOffsetAndMetadata());
+        return end.entrySet().stream().allMatch(partition -> {
+            var nothingNew = partition.getValue().equals(since.getOrDefault(partition.getKey(), 0L));
+            var read = committed.get(partition.getKey());
+            return nothingNew || read != null && read.offset() >= partition.getValue();
+        });
+    }
+
+    /// The payloads the receipts point at, read back from the topics, in the order they landed: by topic,
+    /// partition, and offset.
+    public List<Payload> payloads(List<Receipt> receipts) {
+        return receipts.stream()
+                .sorted(Comparator.comparing(Receipt::topic)
+                        .thenComparing(Receipt::partition)
+                        .thenComparing(Receipt::offset))
+                .map(this::payload)
+                .toList();
     }
 
     /// Forgets a consumer group's offsets, so the next story under that group starts afresh; a group the cluster
@@ -92,9 +147,9 @@ public class Cluster {
     /// receipt.
     public Receipt publish(Envelope envelope) {
         var message = Converter.to(envelope.payload());
-        var topic = topic(envelope.payload().getClass().getSimpleName().toLowerCase() + "s");
         var record = new ProducerRecord<String, Message>(
-                topic, null, envelope.key(), message, EnvelopeHeaders.headers(envelope, message));
+                topics.select(envelope.payload()), null, envelope.key(), message,
+                EnvelopeHeaders.headers(envelope, message));
         try (var producer = new KafkaProducer<String, Message>(properties.buildProducerProperties())) {
             var landed = producer.send(record).get(TIMEOUT_SECONDS, SECONDS);
             return new Receipt(envelope.id(), landed.topic(), landed.partition(), landed.offset());

@@ -17,6 +17,7 @@ class PurseStory {
     KnowWhatIsLeft purse(PurseProperties purse) {
         return new KnowWhatIsLeft(
                 purse.openings().stream().collect(toMap(Opening::ownerId, Opening::coins)),
+                purse.region(),
                 purse.playsFor().orElse(null));
     }
 }

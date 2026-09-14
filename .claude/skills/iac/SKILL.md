@@ -77,8 +77,9 @@ The plan is the review, the human approves it, and nothing in the code second-gu
 - A table is a topic with a subject: the catalog is the environment's name, the database the cluster's, the table
   the topic's, and the dot inside `test.products` forces backticks. Columns are the Protobuf fields plus `$rowtime`
   and `key`. Headers are not inferred: `ALTER TABLE ... ADD (headers MAP<BYTES, BYTES> METADATA VIRTUAL)` once per
-  table, `VIRTUAL` keeps it out of the subject. A query reads a header with
-  `DECODE(headers[ENCODE('ce_region', 'UTF-8')], 'UTF-8')`, the map is keyed by bytes.
+  table, `VIRTUAL` keeps it out of the subject. The map is keyed by bytes, and a lookup by a bytes key answers
+  null for every record, `headers[ENCODE('ce_region', 'UTF-8')]` included; a query reads a header through the map
+  cast to string keys, `CAST(headers AS MAP<STRING, STRING>)['ce_region']`, verified on `test.products`.
 - The SQL is source, under `src/main/flink`, one file per table or statement, the `SELECT` alone for a table, no
   trailing semicolon. `templatefile` fills `${env}`, the one template variable, comments included; a literal `${`
   is `$${`, and `$rowtime` passes through.
@@ -98,7 +99,9 @@ The plan is the review, the human approves it, and nothing in the code second-gu
   `databases/<cluster id>/materialized-tables/<name>`, a statement under `statements/<name>`. The statements list is
   paged by ten and sorted by name, so it never proves anything about ours. A `LIMIT` never bounds a query over an
   upsert table, so no target waits for one to complete.
-- `make flink-statements` is the raw listing, `make confluent-lookup` the ids the workspace variables want.
+- `make flink-statements` is the raw listing, `make confluent-lookup` the ids the workspace variables want. A
+  query is tried in the SQL workspace, not from a make target. Should a reader of the statements API be needed
+  again: the results are paged, the first page is empty, and `metadata.next` leads to the rows.
 
 ## The lab before the code
 

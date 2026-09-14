@@ -25,6 +25,11 @@ class TopicsTest {
     }
 
     @Test
+    void namesTheDeadLetterTopicAsIacDoes() {
+        assertThat(Topics.deadLetterOf("test.orders")).isEqualTo("test.orders.DLT");
+    }
+
+    @Test
     void rejectsABlankName() {
         assertThatThrownBy(() -> new Topics("test.products", " ", "test.orders", "test.transactions"))
                 .isInstanceOf(IllegalArgumentException.class)

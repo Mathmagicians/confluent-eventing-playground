@@ -10,11 +10,14 @@ Feature: At the tea party an order meets an offer
 
   Scenario Outline: An order is settled with an offer for its thing
     Given a tea party in region <Region>
-    And a generator in region <Region> has placed offers and orders
+    And Mad Hatter offers a Top Hat for 12.5 coins
+    And March Hare offers a Tea Set for 3 coins
+    And Alice orders a Top Hat
+    And Dormouse orders a Tea Set
     When the tea party reads the streams of offers and orders
-    Then every order for a thing on offer was settled by one transaction
-    And each transaction names the order's customer, the offer's seller, and the offer's price
-    And each offer was taken once, by the order that waited longest
+    Then for every order the tea party read there is a transaction, the order was settled
+    And Alice paid Mad Hatter 12.5 coins for the Top Hat
+    And Dormouse paid March Hare 3 coins for the Tea Set
 
     Examples:
       | Region |
@@ -24,24 +27,26 @@ Feature: At the tea party an order meets an offer
 
   Scenario Outline: An order waits until its thing is offered
     Given a tea party in region <Region>
-    And a generator in region <Region> has placed orders and no offers
-    When the tea party reads the streams of offers and orders
+    And Alice orders a Top Hat
+    When the tea party reads the stream of orders
     Then nothing was settled
-    When the generator places offers
-    Then every order for a thing now on offer was settled
+    When Mad Hatter offers a Top Hat for 12.5 coins
+    And the tea party reads the stream of offers
+    Then Alice paid Mad Hatter 12.5 coins for the Top Hat
 
     Examples:
       | Region |
       | EMEA   |
       | AMER   |
 
-  Scenario Outline: An offer waits until its thing is ordered
+  Scenario Outline: An offer goes to the order that waited longest
     Given a tea party in region <Region>
-    And a generator in region <Region> has placed offers and no orders
+    And Alice orders a Top Hat
+    And White Rabbit orders a Top Hat
+    And Mad Hatter offers a Top Hat for 12.5 coins
     When the tea party reads the streams of offers and orders
-    Then nothing was settled
-    When the generator places orders
-    Then every offer for a thing now ordered was taken
+    Then Alice paid Mad Hatter 12.5 coins for the Top Hat
+    And White Rabbit is still waiting for a Top Hat
 
     Examples:
       | Region |
