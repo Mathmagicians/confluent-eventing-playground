@@ -78,7 +78,7 @@ class HexagonDocumenterTest {
     void drawsTheSharedAdaptersInARowBelowTheApplication() {
         assertThat(uml)
                 .contains("rectangle \"SHARED ADAPTERS\" as shared #line:transparent {")
-                .contains("hexagon \"Wire\" as m_Wire {")
+                .contains(hexagon("fixture/wire", "Wire"))
                 .contains(card("Codec", "Adapter"))
                 .contains("m_Domain_Square -[hidden]down-> m_Wire_Codec")
                 .contains("m_Cli_Runner .[norank].> m_Wire_Codec\n")
