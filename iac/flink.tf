@@ -68,14 +68,14 @@ resource "confluent_flink_materialized_table" "product_lvs" {
   # one row per product, its latest version kept on the compacted topic; the same partition count as the topics
   distribution {
     kind         = "HASH"
-    keys         = ["key"]
+    keys         = ["region", "product_id"]
     bucket_count = local.partitions
   }
   table_options = {
-    "changelog.mode" = "upsert"
-    # the key as every topic of ours carries it: one plain string, region/product_id, no subject
-    "key.format"   = "raw"
-    "value.format" = "proto-registry"
+    "changelog.mode"       = "upsert"
+    "key.format"           = "proto-registry" # the compound key in the registry format we use everywhere; the default is Avro
+    "value.format"         = "proto-registry"
+    "value.fields-include" = "all" # region and product id in the value too, a row that stands alone
   }
   session_options = {
     "sql.current-catalog"  = data.confluent_environment.main.display_name
