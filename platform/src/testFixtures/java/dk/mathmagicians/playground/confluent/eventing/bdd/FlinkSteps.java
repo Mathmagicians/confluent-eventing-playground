@@ -35,7 +35,10 @@ public class FlinkSteps {
     }
 
     @Then("the Flink cluster in the cloud shows in table {word} each product of region {word} once, in its latest version, with its versions counted")
-    public void theFlinkClusterInTheCloudShowsInTableEachProductOfRegionOnce(String table, String region) {
+    public void theFlinkClusterInTheCloudShowsInTableEachProductOfRegionOnce(String table, String word) {
+        // the scenario's region is the word made unique, EMEA-78b1ea77, the one the generator stamped
+        var region = published.region();
+        assertThat(region).as("the scenario's region for %s", word).startsWith(word);
         var products = published.receipts().stream()
                 .filter(receipt -> receipt.topic().equals(environment.getRequiredProperty("topics.products")))
                 .map(receipt -> cluster.value(

@@ -32,9 +32,9 @@ public final class KnowWhatIsLeft implements Story {
     static final String PASSED_BY = "{} paid {} {} gold coins, none of this table's business";
 
     public record Purse(String ownerId, BigDecimal balance) {
-        public static final String SOLD = "{} sold a thing for {} gold coins, the purse jingles with {}";
-        public static final String BOUGHT = "{} bought a thing for {} gold coins, {} left in the purse";
-        public static final String OWES = "{} bought a thing for {} gold coins, but the coins went down a deep rabbit hole: {} short, and the shopping goes on";
+        public static final String SOLD = "{} sold a fine thing for {} gold coins, the purse jingles with {}";
+        public static final String BOUGHT = "{} bought a fine thing {} for {} gold coins, {} left in the purse";
+        public static final String OWES = "{} bought a maybe unnecessary thing {} for {} gold coins, but the coins went down a deep rabbit hole: {} short, and the shopping goes on";
 
         Purse in(BigDecimal price) {
             var nextIncarnation = new Purse(ownerId, balance.add(price));
@@ -42,12 +42,12 @@ public final class KnowWhatIsLeft implements Story {
             return nextIncarnation;
         }
 
-        Purse out(BigDecimal price) {
+        Purse out(BigDecimal price, String thing) {
             var nextIncarnation = new Purse(ownerId, balance.subtract(price));
             if (nextIncarnation.balance().compareTo(BigDecimal.ZERO) < 0) {
-                log.warn(OWES, ownerId, price, nextIncarnation.balance().negate());
+                log.warn(OWES, ownerId, thing, price, nextIncarnation.balance().negate());
             } else {
-                log.info(BOUGHT, ownerId, price, nextIncarnation.balance());
+                log.info(BOUGHT, ownerId, thing, price, nextIncarnation.balance());
             }
             return nextIncarnation;
         }
@@ -103,7 +103,7 @@ public final class KnowWhatIsLeft implements Story {
     private void traded(Transaction transaction) {
         var price = BigDecimal.valueOf(transaction.price());
         purses.computeIfPresent( transaction.sellerId(), (_, purse) -> purse.in(price));
-        purses.computeIfPresent(transaction.customerId(), (_, purse) -> purse.out(price));
+        purses.computeIfPresent(transaction.customerId(), (_, purse) -> purse.out(price, transaction.orderRef().productId()));
         log.debug(PASSED_BY, transaction.customerId(), transaction.sellerId(), transaction.price());
     }
 
