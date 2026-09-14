@@ -4,6 +4,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.google.protobuf.DynamicMessage;
 import com.google.protobuf.Message;
 import dk.mathmagicians.playground.confluent.eventing.adapter.kafka.EnvelopeHeaders;
 import dk.mathmagicians.playground.confluent.eventing.domain.Receipt;
@@ -11,6 +12,8 @@ import io.confluent.kafka.serializers.protobuf.KafkaProtobufDeserializer;
 import io.confluent.kafka.serializers.protobuf.KafkaProtobufDeserializerConfig;
 import jakarta.annotation.PreDestroy;
 import java.time.Duration;
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -80,20 +83,54 @@ class Cluster {
         }
     }
 
+    /// The value of a record as the message its registered schema describes, for a schema with no generated code:
+    /// a table Flink registered.
+    DynamicMessage value(ConsumerRecord<String, byte[]> record) {
+        try (var deserializer = new KafkaProtobufDeserializer<DynamicMessage>()) {
+            deserializer.configure(new HashMap<>(properties.getProperties()), false);
+            return deserializer.deserialize(record.topic(), record.value());
+        }
+    }
+
     /// The record at the offset, headers and raw value.
     ConsumerRecord<String, byte[]> read(String topic, int partition, long offset) {
-        var configs = new HashMap<String, Object>(properties.buildConsumerProperties());
-        configs.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-        configs.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class);
-        configs.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
         var at = new TopicPartition(topic, partition);
-        try (var consumer = new KafkaConsumer<String, byte[]>(configs)) {
+        try (var consumer = new KafkaConsumer<String, byte[]>(rawConsumer())) {
             consumer.assign(List.of(at));
             consumer.seek(at, offset);
             return consumer.poll(Duration.ofSeconds(TIMEOUT_SECONDS)).records(at).stream()
                     .findFirst()
                     .orElseThrow(() -> new IllegalStateException("no record at " + at + " offset " + offset));
         }
+    }
+
+    /// Every record of the topic from the beginning, in offset order within a partition, headers and raw value:
+    /// what a compacted topic holds, a table's rows among them.
+    List<ConsumerRecord<String, byte[]>> readAll(String topic) {
+        try (var consumer = new KafkaConsumer<String, byte[]>(rawConsumer())) {
+            var partitions = consumer.partitionsFor(topic).stream()
+                    .map(info -> new TopicPartition(topic, info.partition()))
+                    .toList();
+            consumer.assign(partitions);
+            consumer.seekToBeginning(partitions);
+            var end = consumer.endOffsets(partitions);
+            var deadline = Instant.now().plusSeconds(TIMEOUT_SECONDS);
+            var records = new ArrayList<ConsumerRecord<String, byte[]>>();
+            while (partitions.stream().anyMatch(partition -> consumer.position(partition) < end.get(partition))) {
+                assertThat(Instant.now()).as("reading %s to its end", topic).isBefore(deadline);
+                consumer.poll(Duration.ofSeconds(1)).forEach(records::add);
+            }
+            return records;
+        }
+    }
+
+    /// a consumer of the `kafka` profile that leaves keys as strings and values as the bytes on the wire
+    private HashMap<String, Object> rawConsumer() {
+        var configs = new HashMap<String, Object>(properties.buildConsumerProperties());
+        configs.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+        configs.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class);
+        configs.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
+        return configs;
     }
 
     private static String header(ConsumerRecord<String, byte[]> record, String name) {

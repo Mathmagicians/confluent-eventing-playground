@@ -34,6 +34,7 @@ Every file outside `.claude/` reads as written by the team, once, in the present
 | the generator | the producer, the load generator |
 | the Flink cluster in the cloud | the cloud, Flink |
 | a table set up with IaC | a table Flink declared |
+| `products.lvs`, the latest value snapshot | the product catalog, a name never chosen by the team |
 | the tea party settles | Flink settles |
 | `test.orders`, the environment first, the dot the only separator | `orders-test`, `orders_test` |
 | the dead-letter topic `<topic>.DLT` | the DLQ |

@@ -218,8 +218,7 @@ properties files. `.env.private.sample` lists them. They live in three places:
 - `.env.<ENV>.private`, `ENV` being `test` or `prod`, git-ignored. `make` sources the file for `ENV`, default
   `test`, into the command it runs.
 - The GitHub environments `confluent-test` and `confluent-prod`: the endpoints as variables, the API keys as
-  secrets. One Confluent cluster serves both, one topic prefix each. `confluent-test` also holds the environment
-  id as a variable and the Flink and Cloud API keys as secrets, for the Flink feature.
+  secrets. One Confluent cluster serves both, one topic prefix each.
 - The Terraform Cloud workspace, as Terraform variables.
 
 #### IaC
@@ -467,7 +466,7 @@ BDD with Cucumber:
 - [x] Stories: a business process as a jar the platform plays, `--story=<name>`, one consumer group each
 - [x] A story built outside the repository against the published platform, `examples/purse/`
 - [ ] Stream consumer service: the tea party settles, the purse counts
-- [ ] Flink beside the stories: the product catalog, a materialized table over the products topic, from `iac/`
+- [ ] Flink beside the stories: `products.lvs`, the latest value snapshot, a materialized table over the products topic, from `iac/`
 - [x] Protobuf via Schema Registry
 - [x] Split into modules
 - [x] Convert to hexagonal

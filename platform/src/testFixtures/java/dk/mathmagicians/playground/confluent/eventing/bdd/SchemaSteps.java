@@ -18,6 +18,11 @@ public class SchemaSteps {
         subject = registry.assertRegistered(topic, file);
     }
 
+    @Then("a Protobuf schema is registered for the {topic}")
+    public void aProtobufSchemaIsRegisteredForTheTopic(String topic) {
+        subject = registry.assertProtobuf(topic);
+    }
+
     @Then("that schema describes the message {word}")
     public void thatSchemaDescribesTheMessage(String message) {
         registry.assertDescribes(subject, message);

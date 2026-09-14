@@ -11,8 +11,11 @@ import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import dk.mathmagicians.playground.confluent.eventing.domain.Payload;
 import org.jmolecules.architecture.hexagonal.PrimaryAdapter;
@@ -41,12 +44,13 @@ import org.springframework.stereotype.Component;
 public final class ConsoleListener implements SmartLifecycle {
 
     private static final Logger log = LoggerFactory.getLogger(ConsoleListener.class);
-    private static final String THREAD = "console";
+    private static final String THREAD = ConsoleListener.class.getSimpleName() + "-Thread";
 
     private final Story story;
     private final Publishing publishing;
     private final InputStream in;
     private final PrintStream out;
+    private final Set<String> typesThatWeListenTo;
     private @Nullable Thread reading;
 
     @Autowired
@@ -54,16 +58,14 @@ public final class ConsoleListener implements SmartLifecycle {
         this(story, publishing, System.in, System.out);
     }
 
-    /// The console over any input and output, another implementation of listening than kafka
+    /// The console over any input and output, the tests' way in.
     ConsoleListener(Story story, Publishing publishing, InputStream in, PrintStream out) {
         this.story = story;
         this.publishing = publishing;
         this.in = in;
         this.out = out;
-        this.typesThatWeListenTo = this.story.listensTo().stream().map(Class::getSimpleName).collect(Collectors.toSet());
+        this.typesThatWeListenTo = story.listensTo().stream().map(Class::getSimpleName).collect(Collectors.toSet());
     }
-
-    private final Set<String> typesThatWeListenTo;
 
     @Override
     public void start() {
@@ -77,7 +79,7 @@ public final class ConsoleListener implements SmartLifecycle {
                             This story - {} -  listens to events from the console, accepting events of type: {}, for region {}.
                         """,
                 story.name(), typesThatWeListenTo, publishing.region());
-        session.help();
+        new Line.Help().act(session);
         reading = Thread.ofPlatform().name(THREAD).start(() -> session.read(in));
 
     }
@@ -100,105 +102,185 @@ public final class ConsoleListener implements SmartLifecycle {
         return reading != null && reading.isAlive();
     }
 
-    /// One session: the story at the table, the region in force, the kinds of line.
-    final class Session {
+    sealed interface Line {
 
-        private String region;
-        final String REGION = "region: ";
+        void act(Session session);
 
-
-        Session() {
-            this.region = publishing.region();
+        static Line of(String line) {
+            var tokens = line.strip().split("\\s+", 2);
+            Stream<Function<String[], Optional<Line>>> streamFroms = Stream.of(Blank::from, Help::from, Quit::from, Region::from, Message::from);
+            return streamFroms.flatMap(kind -> kind.apply(tokens).stream()).findFirst().orElseThrow();
         }
 
-        /// Every line until EOF, each on its own so a bad one costs nothing but its help.
-        void read(InputStream in) {
-            try (var lines = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
-                for (var line = lines.readLine(); line != null; line = lines.readLine()) {
-                    line(line);
-                }
-            } catch (IOException e) {
-                log.debug("The console closed", e);
+        record Blank() implements Line {
+            static Optional<Line> from(String[] tokens) {
+                return tokens.length == 0 || tokens[0].isBlank() ? Optional.of(new Blank()) : Optional.empty();
             }
-            log.info("The console is closed, {} heard everything", story.name());
+
+            @Override
+            public void act(Session session) {
+                session.say("Hey, you entered a blank line, nothing to do, try `help` for instructions. If you dont know whre you are going, any road takes you there.");
+            }
         }
 
-        /// One line: blank is nothing, `help`, `q` or `quit`, `region: <name>`, or a message for the story.
-        void line(String line) {
-            if (line.isBlank()) {
-                out.println(">>> Have some tea, said the March Hare. There is no tea. Type something, like a line, or ask for help, like HELP.");
-                return;
-            }
-            out.println("YOU <<<: " + line);
+        record Help() implements Line {
+            static final String HELP = "help";
 
-            if (line.equalsIgnoreCase("help")) {
-                help();
-            } else if (line.equalsIgnoreCase("q") || line.equalsIgnoreCase("quit")) {
-                quit();
-            } else if (line.toLowerCase().startsWith(REGION)) {
-                var name = line.substring(REGION.length()).trim().toUpperCase();
-                if (name.isEmpty()) {
-                    out.println(">>> A region needs a name; it stays " + region);
-                    return;
+            static Optional<Line> from(String[] tokens) {
+                return tokens.length == 1 && tokens[0].equalsIgnoreCase(HELP) ? Optional.of(new Help()) : Optional.empty();
+            }
+
+            @Override
+            public void act(Session session) {
+                var recordShapes = session.listensTo().
+                        stream().map(Converter::shape).sorted().collect(Collectors.joining("\n"));
+                var helpText = """
+                        The Console Listener accepts three kinds of line:
+                        
+                        * %s <name> sets the region of every message after it, the platform's default is %s.
+                          When you enter a region, every event after it will be stamped with that region.
+                        
+                        * You may enter an event using protobuf text format, starting with the type's name, then its fields, one per line.
+                        
+                        * Type help for instructions, q or quit to end the session, Ctrl+D does the same.
+                        
+                        **************** The types you can input as events are: ****************  
+                        
+                        %s
+                        
+                        **************** Curiouser and curiouser! Type a line and see where it goes; Ctrl+D closes the rabbit hole. **************** 
+                        """.formatted(Region.REGION, session.region(), recordShapes);
+                session.say(helpText);
+            }
+        }
+
+            record Quit() implements Line {
+                static final Set<String> QUIT_COMMANDS = Set.of("q", "quit");
+
+                static Optional<Line> from(String[] tokens) {
+                    return tokens.length == 1 && QUIT_COMMANDS.contains(tokens[0].toLowerCase()) ? Optional.of(new Quit()) : Optional.empty();
                 }
-                region = name;
-                out.println("The region is now " + region);
-                return;
-            } else {
-                var tokens = line.split("\\s+", 2);
-                var type = getTypeByNameFromListenTo(tokens[0]);
-                if (type == null) {
-                    out.println(">>> Unrecognized type: " + tokens[0]);
-                    help();
-                } else {
-                    out.println(">>> You entered a message of type " + tokens[0] + " for region " + region);
-                    Payload payload;
-                    try {
-                        payload = Converter.from(type, tokens.length > 1 ? tokens[1] : "");
-                    } catch (IllegalArgumentException e) {
-                        out.println(">>> The console, with all its might, could not read your message: " + e.getMessage());
-                        help();
-                        return;
+
+                @Override
+                public void act(Session session) {
+                    session.say("You asked to quit, quitting ... ");
+                    session.close();
+                }
+            }
+
+                record Region(String r) implements Line {
+                    static final String REGION = "region:";
+
+                    static Optional<Line> from(String[] tokens) {
+                        return tokens[0].equalsIgnoreCase(REGION)
+                                ? Optional.of(new Region(tokens.length > 1 ? tokens[1] : ""))
+                                : Optional.empty();
                     }
-                    try {
-                        story.on(publishing.envelope(region, payload));
-                        out.println(">>> The story accepted the message, it is now in the story's hands");
-                    } catch (RuntimeException e) {
-                        out.println(">>> The story set the message aside: " + e.getMessage());
+
+                    @Override
+                    public void act(Session session) {
+                        var name = r.trim().toUpperCase();
+                        if (name.isEmpty()) {
+                            session.say(">>> A region needs a name; it stays " + session.region);
+                            return;
+                        }
+                        session.region = name;
+                        session.say("The region is now " + session.region + ", will be used for all the following messages.");
+                    }
+                }
+
+                record Message(String type, String body) implements Line {
+                    static Optional<Line> from(String[] tokens) {
+                        return Optional.of(new Message(tokens[0], tokens.length > 1 ? tokens[1] : ""));
+                    }
+
+                    @Override
+                    public void act(Session session) {
+                        var typeClass = session.findTypeListenedToFromName(type);
+                        if (typeClass.isEmpty()) {
+                            session.say(">>> Unrecognized type: " + type);
+                            new Help().act(session);
+                            return;
+                        }
+                        Payload payload;
+                        try {
+                            payload = Converter.from(typeClass.get(), body);
+                            session.publish(payload);
+                            log.info(">>> Published {} to {} in region {}", payload.id(), typeClass.get().getSimpleName(), session.region());
+                        } catch(IllegalArgumentException e) {
+                            session.say(">>> Failed to read the message: " + e.getMessage());
+                            new Help().act(session);
+                        }
                     }
                 }
             }
-        }
 
-        void help() {
-            var recordShapes = story.listensTo().stream().map(Converter::shape).sorted().collect(Collectors.joining("\n"));
-            var helpText = """
-                    The Console Listener accepts three kinds of line:
-                    
-                    * %s <name> sets the region of every message after it, the platform's default is %s.
-                      When you enter a region, every event after it will be stamped with that region.
-                    
-                    * You may enter an event using protobuf text format, starting with the type's name, then its fields, one per line.
-                    
-                    * Type help for instructions, q or quit to end the session, Ctrl+D does the same.
-                    
-                    **************** The types you can input as events are: ****************  
-                    
-                    %s
-                    
-                    **************** Curiouser and curiouser! Type a line and see where it goes; Ctrl+D closes the rabbit hole. **************** 
-                    """.formatted(REGION, publishing.region(), recordShapes);
-            out.println(helpText);
-        }
+            /// Session controls handling the user input one line at a time
+            final class Session {
 
-        void quit() {
-            out.println(">>> You asked to quit, quiting ... ");
-            stop();
-        }
+                private String region;
 
-        Class<? extends Payload> getTypeByNameFromListenTo(String typeName) {
-            return story.listensTo().stream().filter(type -> type.getSimpleName()
-                    .equalsIgnoreCase(typeName)).findFirst().orElse(null);
+                Session() {
+                    this.region = publishing.region();
+                }
+
+                void say(String message) {
+                    out.println(message);
+                }
+
+                /// The region in force, stamped on every message until the next `region:` line.
+                String region() {
+                    return region;
+                }
+
+                void region(String name) {
+                    region = name;
+                }
+
+                /// The types the story listens to, what a message may be.
+                Set<Class<? extends Payload>> listensTo() {
+                    return story.listensTo();
+                }
+
+                /// return a type the story listens to by its name, case-insensitive, or empty when none is.
+                Optional<Class<? extends Payload>> findTypeListenedToFromName(String word) {
+                    return story.listensTo().stream()
+                            .filter(type -> type.getSimpleName().equalsIgnoreCase(word))
+                            .findFirst();
+                }
+
+                /// The payload to the story, as an envelope of the region in force; what the story throws comes back.
+                void publish(Payload payload) {
+                    story.on(publishing.envelope(region, payload));
+                }
+
+                /// Closes the input, which ends the reading wherever it waits: what quit does, and stop.
+                void close() {
+                    stop();
+                }
+
+                /// Every line until EOF, each on its own so a bad one costs nothing but its help.
+                void read(InputStream in) {
+                    try (var lines = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
+                        for (var line = lines.readLine(); line != null; line = lines.readLine()) {
+                            line(line);
+                        }
+                    } catch (IOException e) {
+                        log.debug("The console closed", e);
+                    }
+                    log.info("The console is closed, {} heard everything", story.name());
+                }
+
+                /// One line: blank is nothing, `help`, `q` or `quit`, `region: <name>`, or a message for the story.
+                void line(String line) {
+                    switch (Line.of(line)) {
+                        case Line.Blank blank -> blank.act(this);
+                        case Line.Help help -> help.act(this);
+                        case Line.Quit quit -> quit.act(this);
+                        case Line.Region region -> region.act(this);
+                        case Line.Message message -> message.act(this);
+                    }
+                }
+
+            }
         }
-    }
-}

@@ -1,7 +1,7 @@
--- The product catalog, a materialized table over the products stream, per environment;
+-- The latest value snapshot of the products, products.lvs, a materialized table over the products stream, per environment;
 -- The placeholder ${env} is substituted by terraform, and it's function is to be the prefix of the materialized table's name.
 -- Every product record is a new version of the same thing: the name stays -it's the id, the description and the producer can be updated.
--- The catalog keeps each product once, as it was last described, and counts its versions.
+-- The snapshot keeps each product once per region, as it was last described, and counts its versions.
 -- This file holds the query alone: the table's name, key, buckets, changelog mode, and format are the resource's arguments in iac/flink.tf.
 -- Terraform prefixes this with CREATE MATERILIZED TABLE ... AS
 

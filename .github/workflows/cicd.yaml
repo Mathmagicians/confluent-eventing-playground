@@ -85,12 +85,6 @@ jobs:
       SCHEMA_REGISTRY_REST_ENDPOINT: ${{ vars.SCHEMA_REGISTRY_REST_ENDPOINT }}
       SCHEMA_REGISTRY_API_KEY: ${{ secrets.SCHEMA_REGISTRY_API_KEY }}
       SCHEMA_REGISTRY_API_SECRET: ${{ secrets.SCHEMA_REGISTRY_API_SECRET }}
-      # the Flink steps: the statements API with the Flink key, the organization and the key's region looked up with the Cloud key
-      ENVIRONMENT_ID: ${{ vars.ENVIRONMENT_ID }}
-      CLOUD_API_KEY: ${{ secrets.CLOUD_API_KEY }}
-      CLOUD_API_SECRET: ${{ secrets.CLOUD_API_SECRET }}
-      FLINK_API_KEY: ${{ secrets.FLINK_API_KEY }}
-      FLINK_API_SECRET: ${{ secrets.FLINK_API_SECRET }}
       # the test classpath holds the architecture-discovery library, from GitHub Packages
       GITHUB_ACTOR: ${{ github.actor }}
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

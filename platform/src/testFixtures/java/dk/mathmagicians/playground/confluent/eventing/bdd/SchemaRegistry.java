@@ -45,13 +45,21 @@ class SchemaRegistry {
     /// keeps the canonical form, so both sides are compared in it. Answers the subject, for the steps that go on
     /// asking about "that schema".
     String assertRegistered(String topic, String file) {
-        var subject = topic + VALUE_SUBJECT;
+        var subject = assertProtobuf(topic);
         var latest = latest(subject);
 
-        assertThat(latest.getSchemaType()).isEqualTo("PROTOBUF");
         assertThat(canonical(latest.getSchema(), latest.getReferences()))
                 .as("%s as the registry keeps it under %s", file, subject)
                 .isEqualTo(canonical(checkedIn(file), latest.getReferences()));
+        return subject;
+    }
+
+    /// The topic's value subject carries a Protobuf schema, whoever registered it: a table set up with IaC
+    /// registers its own. Answers the subject.
+    String assertProtobuf(String topic) {
+        var subject = topic + VALUE_SUBJECT;
+
+        assertThat(latest(subject).getSchemaType()).as("schema type of %s", subject).isEqualTo("PROTOBUF");
         return subject;
     }
 

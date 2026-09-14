@@ -15,9 +15,9 @@ public class ParameterTypes {
         this.environment = environment;
     }
 
-    /// `topic orders` or `dead-letter topic for orders`, resolved through the `topics.*` properties of the profile
-    /// to the name on the cluster: `test.orders`, `test.orders.DLT`.
-    @ParameterType("topic (\\w+)|dead-letter topic for (\\w+)")
+    /// `topic orders`, `topic products.lvs`, or `dead-letter topic for orders`, resolved through the `topics.*`
+    /// properties of the profile to the name on the cluster: `test.orders`, `test.products.lvs`, `test.orders.DLT`.
+    @ParameterType("topic ([\\w.]+)|dead-letter topic for (\\w+)")
     public String topic(String name, String deadLetterOf) {
         return name != null ? named(name) : named(deadLetterOf) + ".DLT";
     }
@@ -34,7 +34,7 @@ public class ParameterTypes {
                 .toList();
     }
 
-    /// The name on the cluster: the profile's `topics.*` property, or, for a table Flink declared itself, the
+    /// The name on the cluster: the profile's `topics.*` property, or, for a table set up with IaC, the
     /// environment prefix of the products topic in front of the name.
     private String named(String payload) {
         var property = environment.getProperty("topics." + payload);

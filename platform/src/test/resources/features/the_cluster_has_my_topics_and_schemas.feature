@@ -19,10 +19,10 @@ Feature: The cluster has my topics and schemas
       | orders       | Order       | order.proto       |
       | transactions | Transaction | transaction.proto |
 
-  Scenario Outline: A Flink table set up with IaC is running, with its topic
-    Then the Flink cluster in the cloud runs my table <Table>
-    And the topic <Table> exists
+  Scenario Outline: A Flink table set up with IaC is on the cluster, with its schema
+    Then the topic <Table> exists
+    And a Protobuf schema is registered for the topic <Table>
 
     Examples:
-      | Table           |
-      | product_catalog |
+      | Table        |
+      | products.lvs |

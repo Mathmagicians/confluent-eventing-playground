@@ -2,7 +2,7 @@
 # what a story writes. The product catalog, a materialized table over the products stream, per environment, the
 # SQL under src/main/flink. The pool and the endpoint come from data.tf, the principal from the variables.
 
-# the headers column on products, a Flink-side addition to the inferred table that the catalog reads: an ALTER, one
+# the headers column on products, a Flink-side addition to the inferred table that the snapshot reads: an ALTER, one
 # shot, whose life is the topic's, re-run exactly when the topic is recreated and never when its text changes
 resource "confluent_flink_statement" "products_headers" {
   for_each = toset(local.environments)
@@ -60,7 +60,7 @@ resource "confluent_flink_materialized_table" "product_lvs" {
   kafka_cluster {
     id = var.kafka_id
   }
-  query = templatefile(local.flink_product_catalog_sql_file, local.flink_sql[each.key])
+  query = templatefile(local.flink_products_lvs_sql_file, local.flink_sql[each.key])
   # one row per product, its latest version kept on the compacted topic; the same partition count as the topics
   distribution {
     kind         = "HASH"
