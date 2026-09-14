@@ -1,11 +1,11 @@
 [%autowidth.stretch, cols="h,a"]
 |===
 |Base package
-|`dk.mathmagicians.playground.confluent.eventing.adapter.console`
+|`dk.mathmagicians.playground.confluent.eventing.adapter.cli.console`
 |Spring components
 |_Primary adapters_
 
-* `d.m.p.c.e.a.c.ConsoleListener`
+* `d.m.p.c.e.a.c.c.ConsoleListener`
 |Bean references
 |* `d.m.p.c.e.a.Stories` (in Application)
 * `d.m.p.c.e.a.Publishing` (in Application)

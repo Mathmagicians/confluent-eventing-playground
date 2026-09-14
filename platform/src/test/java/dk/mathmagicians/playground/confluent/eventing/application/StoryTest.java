@@ -7,10 +7,11 @@ import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException
 import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 
 import java.time.Duration;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 
 /// The defaults of the contract: a story that says only its name listens to nothing, reads under its name, plays
-/// until stopped, and does nothing on start.
+/// until stopped, and does nothing on start. And the two inputs the contract reads, the ttl and the name.
 class StoryTest {
 
     private final Story quiet = named("quiet");
@@ -62,5 +63,27 @@ class StoryTest {
         assertThatIllegalArgumentException()
                 .isThrownBy(() -> Story.ttl("quiet", "soon"))
                 .withMessageContaining("'soon'");
+    }
+
+    @Test
+    void picksTheStoryByName() {
+        var story = Story.named("tea-party", List.of(named("load"), named("tea-party")));
+
+        assertThat(story.name()).isEqualTo("tea-party");
+    }
+
+    @Test
+    void rejectsAnUnknownNameNamingTheKnownOnes() {
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> Story.named("purse", List.of(named("load"), named("tea-party"))))
+                .withMessageContaining("purse")
+                .withMessageContaining("[load, tea-party]");
+    }
+
+    @Test
+    void rejectsTwoStoriesOfOneName() {
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> Story.named("load", List.of(named("load"), named("load"))))
+                .withMessageContaining("two stories are named load");
     }
 }

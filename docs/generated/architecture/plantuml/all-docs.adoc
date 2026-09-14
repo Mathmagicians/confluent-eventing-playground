@@ -13,31 +13,31 @@ include::module-eventing.adapter.protobuf.adoc[]
 plantuml::module-eventing.application.puml[,,format=svg]
 include::module-eventing.application.adoc[]
 
-== Cli
-plantuml::module-eventing.adapter.cli.puml[,,format=svg]
-include::module-eventing.adapter.cli.adoc[]
+== Boot
+plantuml::module-eventing.adapter.cli.boot.puml[,,format=svg]
+include::module-eventing.adapter.cli.boot.adoc[]
 
 == Console
-plantuml::module-eventing.adapter.console.puml[,,format=svg]
-include::module-eventing.adapter.console.adoc[]
+plantuml::module-eventing.adapter.cli.console.puml[,,format=svg]
+include::module-eventing.adapter.cli.console.adoc[]
 
-== Kafka consumer
+== Log
+plantuml::module-eventing.adapter.cli.log.puml[,,format=svg]
+include::module-eventing.adapter.cli.log.adoc[]
+
+== Kafka Consumer
 plantuml::module-eventing.adapter.kafka.consumer.puml[,,format=svg]
 include::module-eventing.adapter.kafka.consumer.adoc[]
 
-== Kafka publisher
+== Kafka Publisher
 plantuml::module-eventing.adapter.kafka.publisher.puml[,,format=svg]
 include::module-eventing.adapter.kafka.publisher.adoc[]
 
-== Log
-plantuml::module-eventing.adapter.log.puml[,,format=svg]
-include::module-eventing.adapter.log.adoc[]
-
-== Load story
+== Load Story
 plantuml::module-stories.load.puml[,,format=svg]
 include::module-stories.load.adoc[]
 
-== Tea party story
+== Tea Party Story
 plantuml::module-stories.teaparty.puml[,,format=svg]
 include::module-stories.teaparty.adoc[]
 

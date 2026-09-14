@@ -5,11 +5,13 @@ import dk.mathmagicians.playground.confluent.eventing.domain.Payload;
 import java.time.Clock;
 import java.util.function.Supplier;
 import java.util.random.RandomGenerator;
+import org.jmolecules.ddd.annotation.Factory;
 import org.jspecify.annotations.Nullable;
 
 /// What every story publishes with, wired once by the platform: the application's name, the region the platform
 /// hands down, the profile's publisher, the clock, and the random source. A story asks for the use case of its
 /// region, or of the platform's when it has none of its own.
+@Factory
 public record Publishing(
         String app, String region, Publisher publisher, Clock clock, Supplier<RandomGenerator> random) {
 

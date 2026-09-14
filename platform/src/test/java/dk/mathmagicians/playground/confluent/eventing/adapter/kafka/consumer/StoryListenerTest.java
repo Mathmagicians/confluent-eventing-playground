@@ -11,12 +11,10 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import dk.mathmagicians.playground.confluent.eventing.application.Stories;
 import dk.mathmagicians.playground.confluent.eventing.application.Story;
 import dk.mathmagicians.playground.confluent.eventing.application.StoryFixtures;
 import dk.mathmagicians.playground.confluent.eventing.domain.Offer;
 import dk.mathmagicians.playground.confluent.eventing.domain.Order;
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
@@ -39,7 +37,7 @@ class StoryListenerTest {
     private final Reader reader = mock(Reader.class);
 
     private StoryListener listener(Story story) {
-        return new StoryListener(new Stories(List.of(story), story.name()), topics(), reader, containers);
+        return new StoryListener(story, topics(), reader, containers);
     }
 
     @Test

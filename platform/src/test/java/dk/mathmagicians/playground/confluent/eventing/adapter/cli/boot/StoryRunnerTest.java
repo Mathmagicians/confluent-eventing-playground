@@ -1,4 +1,4 @@
-package dk.mathmagicians.playground.confluent.eventing.adapter.cli;
+package dk.mathmagicians.playground.confluent.eventing.adapter.cli.boot;
 
 import static dk.mathmagicians.playground.confluent.eventing.application.StoryFixtures.acting;
 import static dk.mathmagicians.playground.confluent.eventing.application.StoryFixtures.listening;
@@ -6,13 +6,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
-import dk.mathmagicians.playground.confluent.eventing.application.Stories;
 import dk.mathmagicians.playground.confluent.eventing.application.Story;
 import dk.mathmagicians.playground.confluent.eventing.domain.Order;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -31,19 +29,17 @@ class StoryRunnerTest {
 
     private final Clock clock = Clock.systemUTC();
 
-    private StoryRunner runner(Story... stories) {
-        return new StoryRunner(new Stories(List.of(stories), stories[0].name()), clock, context);
+    private StoryRunner runner(Story story) {
+        return new StoryRunner(story, clock, context);
     }
 
     @Test
-    void startsTheSelectedStoryOnce() throws InterruptedException {
-        var selected = acting("selected", null);
-        var other = acting("other", null);
+    void startsTheStoryOnce() throws InterruptedException {
+        var story = acting("selected", null);
 
-        runner(selected, other).run(new DefaultApplicationArguments());
+        runner(story).run(new DefaultApplicationArguments());
 
-        assertThat(selected.starts()).hasValue(1);
-        assertThat(other.starts()).hasValue(0);
+        assertThat(story.starts()).hasValue(1);
     }
 
     @Test

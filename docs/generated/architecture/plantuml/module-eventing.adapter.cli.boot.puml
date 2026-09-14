@@ -1,5 +1,5 @@
 @startuml
-title <size:24>Cli</size>
+title <size:24>Boot</size>
 
 set separator none
 top to bottom direction
@@ -18,12 +18,12 @@ top to bottom direction
 System_Boundary("EventingPlatform_boundary", "EventingPlatform", $tags="") {
   Container_Boundary("EventingPlatform.EventingPlatform_boundary", "EventingPlatform", $tags="") {
     Component(EventingPlatform.EventingPlatform.Application, "Application", $techn="Module", $descr="", $tags="", $link="")
-    Component(EventingPlatform.EventingPlatform.Cli, "Cli", $techn="Module", $descr="", $tags="", $link="")
+    Component(EventingPlatform.EventingPlatform.Boot, "Boot", $techn="Module", $descr="", $tags="", $link="")
   }
 
 }
 
-Rel(EventingPlatform.EventingPlatform.Cli, EventingPlatform.EventingPlatform.Application, "uses", $techn="", $tags="", $link="")
+Rel(EventingPlatform.EventingPlatform.Boot, EventingPlatform.EventingPlatform.Application, "uses", $techn="", $tags="", $link="")
 
 SHOW_LEGEND(true)
 hide stereotypes

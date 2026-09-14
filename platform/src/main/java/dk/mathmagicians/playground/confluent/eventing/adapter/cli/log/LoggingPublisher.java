@@ -1,4 +1,4 @@
-package dk.mathmagicians.playground.confluent.eventing.adapter.log;
+package dk.mathmagicians.playground.confluent.eventing.adapter.cli.log;
 
 import dk.mathmagicians.playground.confluent.eventing.application.Publisher;
 import dk.mathmagicians.playground.confluent.eventing.domain.Envelope;

@@ -1,7 +1,7 @@
 package dk.mathmagicians.playground.confluent.eventing.adapter.kafka.consumer;
 
 import dk.mathmagicians.playground.confluent.eventing.adapter.kafka.Topics;
-import dk.mathmagicians.playground.confluent.eventing.application.Stories;
+import dk.mathmagicians.playground.confluent.eventing.application.Story;
 import java.util.Arrays;
 import org.jmolecules.architecture.hexagonal.PrimaryAdapter;
 import org.jspecify.annotations.Nullable;
@@ -25,15 +25,15 @@ public final class StoryListener implements SmartLifecycle {
 
     private static final Logger log = LoggerFactory.getLogger(StoryListener.class);
 
-    private final Stories stories;
+    private final Story story;
     private final Topics topics;
     private final Reader reader;
     private final ConcurrentKafkaListenerContainerFactory<?, ?> containers;
     private @Nullable MessageListenerContainer container;
 
-    StoryListener(Stories stories, Topics topics, Reader reader,
+    StoryListener(Story story, Topics topics, Reader reader,
                   ConcurrentKafkaListenerContainerFactory<?, ?> containers) {
-        this.stories = stories;
+        this.story = story;
         this.topics = topics;
         this.reader = reader;
         this.containers = containers;
@@ -41,7 +41,6 @@ public final class StoryListener implements SmartLifecycle {
 
     @Override
     public void start() {
-        var story = stories.selected();
         var subscribed = story.listensTo().stream().map(topics::of).sorted().toArray(String[]::new);
         if (subscribed.length == 0) {
             log.info("{} listens to nothing, no consumer", story.name());

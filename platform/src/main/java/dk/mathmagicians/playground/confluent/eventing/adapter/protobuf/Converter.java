@@ -1,7 +1,12 @@
 package dk.mathmagicians.playground.confluent.eventing.adapter.protobuf;
 
+import static java.util.stream.Collectors.joining;
+
+import com.google.protobuf.Descriptors.Descriptor;
+import com.google.protobuf.Descriptors.FieldDescriptor;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Message;
+import com.google.protobuf.TextFormat;
 import com.google.protobuf.Timestamp;
 import dk.mathmagicians.playground.confluent.eventing.domain.Offer;
 import dk.mathmagicians.playground.confluent.eventing.domain.Order;
@@ -14,14 +19,13 @@ import dk.mathmagicians.playground.eventing.ProductDTO;
 import dk.mathmagicians.playground.eventing.TransactionDTO;
 import java.time.Instant;
 import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
 import java.util.function.Supplier;
 
 /// The wire format. Outbound, the payload becomes its generated message, one exhaustive switch over the records;
 /// inbound, the message's full name picks the record it becomes, one parser per payload type. `Instant` travels
-/// as `google.protobuf.Timestamp`, a nested record as a nested message. The console names a message by its
-/// record, `Offer`, and fills it from text, so a builder is had by that name.
+/// as `google.protobuf.Timestamp`, a nested record as a nested message. The console types a message as Protobuf
+/// text for a record type, so a record is read from text by its type, and the shape of a type is had as such
+/// text, for the help.
 public final class Converter {
 
     /// From the message's bytes to the payload record of its type.
@@ -37,12 +41,12 @@ public final class Converter {
             TransactionDTO.Transaction.getDescriptor().getFullName(),
             bytes -> from(TransactionDTO.Transaction.parseFrom(bytes)));
 
-    /// A fresh builder per payload type, by the record's simple name, sorted.
-    private static final Map<String, Supplier<Message.Builder>> BUILDERS = new TreeMap<>(Map.of(
-            Product.class.getSimpleName(), ProductDTO.Product::newBuilder,
-            Offer.class.getSimpleName(), OfferDTO.Offer::newBuilder,
-            Order.class.getSimpleName(), OrderDTO.Order::newBuilder,
-            Transaction.class.getSimpleName(), TransactionDTO.Transaction::newBuilder));
+    /// A fresh builder of the message per record type.
+    private static final Map<Class<? extends Payload>, Supplier<Message.Builder>> BUILDERS = Map.of(
+            Product.class, ProductDTO.Product::newBuilder,
+            Offer.class, OfferDTO.Offer::newBuilder,
+            Order.class, OrderDTO.Order::newBuilder,
+            Transaction.class, TransactionDTO.Transaction::newBuilder);
 
     private Converter() {
     }
@@ -153,17 +157,48 @@ public final class Converter {
         return Instant.ofEpochSecond(at.getSeconds(), at.getNanos());
     }
 
-    /// The payload types by name, sorted.
-    public static Set<String> types() {
-        return BUILDERS.keySet();
+    /// The record of the type read from Protobuf text, the fields of its message as the console types them,
+    /// `offer_id: "OFF-1" product_id: "P-TOPH" price: 12.5 seller_id: "MAD_HATTER"`. Text the schema refuses,
+    /// a field it does not know, a value of the wrong kind, fails with the reason.
+    public static <T extends Payload> T from(Class<T> type, String text) {
+        var builder = builder(type);
+        try {
+            TextFormat.merge(text, builder);
+        } catch (TextFormat.ParseException e) {
+            throw new IllegalArgumentException(
+                    "no " + type.getSimpleName() + " in '" + text + "': " + e.getMessage(), e);
+        }
+        return type.cast(from(builder.build()));
     }
 
-    /// A builder of the type's message, to fill from text; a name that is no type is refused with the names.
-    public static Message.Builder builder(String type) {
+    /// The shape of a type as a line the console accepts: its name, then every field with an empty value, `""`
+    /// for text, `0` for a number, `false`, an enum's first value, a nested message with its own fields.
+    public static String shape(Class<? extends Payload> type) {
+        var descriptor = builder(type).getDescriptorForType();
+        return descriptor.getName() + " " + fields(descriptor);
+    }
+
+    private static Message.Builder builder(Class<? extends Payload> type) {
         var builder = BUILDERS.get(type);
         if (builder == null) {
-            throw new IllegalArgumentException(type + " is no payload type, " + types() + " are");
+            throw new IllegalArgumentException("no message for " + type.getName());
         }
         return builder.get();
+    }
+
+    private static String fields(Descriptor message) {
+        return message.getFields().stream()
+                .map(field -> field.getName() + ": " + placeholder(field))
+                .collect(joining(" "));
+    }
+
+    private static String placeholder(FieldDescriptor field) {
+        return switch (field.getJavaType()) {
+            case STRING, BYTE_STRING -> "\"\"";
+            case BOOLEAN -> "false";
+            case ENUM -> field.getEnumType().getValues().getFirst().getName();
+            case MESSAGE -> "{ " + fields(field.getMessageType()) + " }";
+            case INT, LONG, FLOAT, DOUBLE -> "0";
+        };
     }
 }

@@ -1,6 +1,6 @@
-package dk.mathmagicians.playground.confluent.eventing.adapter.cli;
+package dk.mathmagicians.playground.confluent.eventing.adapter.cli.boot;
 
-import dk.mathmagicians.playground.confluent.eventing.application.Stories;
+import dk.mathmagicians.playground.confluent.eventing.application.Story;
 import java.time.Clock;
 import java.time.Duration;
 import org.jmolecules.architecture.hexagonal.PrimaryAdapter;
@@ -18,23 +18,22 @@ import org.springframework.stereotype.Component;
 /// one it lives on until stopped. A record: Spring injects the canonical constructor.
 @PrimaryAdapter
 @Component
-public record StoryRunner(Stories stories, Clock clock, ConfigurableApplicationContext context)
+public record StoryRunner(Story story, Clock clock, ConfigurableApplicationContext context)
         implements ApplicationRunner {
 
     private static final Logger log = LoggerFactory.getLogger(StoryRunner.class);
 
     @Override
     public void run(ApplicationArguments args) throws InterruptedException {
-        var story = stories.selected();
         var consumer = !story.listensTo().isEmpty();
         var ttl = story.playsFor();
         if (ttl.isEmpty() || !consumer) {
-            log.info("Playing {}{}, of {}", story.name(), consumer ? " until stopped" : "", stories.names());
+            log.info("Playing {}{}", story.name(), consumer ? " until stopped" : "");
             story.start();
             return;
         }
         var deadline = clock.instant().plus(ttl.get());
-        log.info("Playing {} until {}, of {}", story.name(), deadline, stories.names());
+        log.info("Playing {} until {}", story.name(), deadline);
         story.start();
         var left = Duration.between(clock.instant(), deadline);
         if (left.isPositive()) {

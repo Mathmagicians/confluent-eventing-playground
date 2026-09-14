@@ -13,12 +13,18 @@ hexagon's edges.
 
 ## Architecture Discovery Pipeline
 
-1. **Stereotypes on types.** jMolecules hexagonal annotations name the role of each type: `@PrimaryPort` on the
-   use cases `PublishMessage` and `GenerateLoad`, `@SecondaryPort` on `Publisher`, `@PrimaryAdapter` on
-   `LoadRunner`, `@SecondaryAdapter` on `LoggingPublisher` and `KafkaPublisher`. Domain types carry none.
+1. **Stereotypes on types and packages.** jMolecules hexagonal annotations name the role of each type:
+   `@PrimaryPort` on `Story`, `PublishMessage`, and every story, `@SecondaryPort` on `Publisher`,
+   `@PrimaryAdapter` on `StoryRunner`, `ConsoleListener`, and `StoryListener`, `@SecondaryAdapter` on
+   `LoggingPublisher` and `KafkaPublisher`. Each adapter package carries its side's stereotype on its
+   `package-info.java` as well, so a class in it without one of its own, `Reader`, has the package's role; the
+   packages both sides share, `adapter.kafka` and `adapter.protobuf`, carry the unqualified `@Adapter`. Domain
+   types carry none.
 2. **Modules on packages.** jMolecules `@Module` on the `package-info.java` of `domain`, `application`,
-   `adapter.cli`, `adapter.log`, and `adapter.kafka`. Spring Modulith takes these as the application modules, set by
-   `spring.modulith.detection-strategy=explicitly-annotated` in `application.properties`.
+   `adapter.cli.boot`, `adapter.cli.console`, `adapter.cli.log`, `adapter.kafka.consumer`,
+   `adapter.kafka.publisher`, `adapter.protobuf`, and each story's package. Spring Modulith takes these as the
+   application modules, set by `spring.modulith.detection-strategy=explicitly-annotated` in
+   `platform.properties`.
 3. **The rule.** `ArchitectureTest` imports the main classes with ArchUnit and runs
    `JMoleculesArchitectureRules.ensureHexagonal()`, a layered architecture whose layers are the stereotypes, at the
    strict depth. It fails when a use case reaches an adapter, an adapter reaches core code that is not a port, a
@@ -91,9 +97,17 @@ docs/generated/architecture/
 |---|---|
 | ![domain](../docs/generated/architecture/svg/module-eventing.domain.svg) | ![application](../docs/generated/architecture/svg/module-eventing.application.svg) |
 
-| `adapter.cli` | `adapter.log` | `adapter.kafka` |
+| `adapter.cli.boot` | `adapter.cli.console` | `adapter.cli.log` |
 |---|---|---|
-| ![cli](../docs/generated/architecture/svg/module-eventing.adapter.cli.svg) | ![log](../docs/generated/architecture/svg/module-eventing.adapter.log.svg) | ![kafka](../docs/generated/architecture/svg/module-eventing.adapter.kafka.svg) |
+| ![boot](../docs/generated/architecture/svg/module-eventing.adapter.cli.boot.svg) | ![console](../docs/generated/architecture/svg/module-eventing.adapter.cli.console.svg) | ![log](../docs/generated/architecture/svg/module-eventing.adapter.cli.log.svg) |
+
+| `adapter.kafka.consumer` | `adapter.kafka.publisher` | `adapter.protobuf` |
+|---|---|---|
+| ![kafka consumer](../docs/generated/architecture/svg/module-eventing.adapter.kafka.consumer.svg) | ![kafka publisher](../docs/generated/architecture/svg/module-eventing.adapter.kafka.publisher.svg) | ![protobuf](../docs/generated/architecture/svg/module-eventing.adapter.protobuf.svg) |
+
+| `stories.load` | `stories.teaparty` |
+|---|---|
+| ![load](../docs/generated/architecture/svg/module-stories.load.svg) | ![tea party](../docs/generated/architecture/svg/module-stories.teaparty.svg) |
 
 ## Limits
 

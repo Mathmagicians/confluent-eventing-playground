@@ -24,29 +24,51 @@ class HexagonDocumenterTest {
         return "card \"" + type + "\\n<size:10>«" + role + "»</size>\"";
     }
 
+    /// A module's hexagon: its package, the last two segments, in the smaller plain font above its bold name.
+    private static String hexagon(String pkg, String name) {
+        return "hexagon \"<size:10>" + pkg + "</size>\\n<b>" + name + "</b>\" as m_" + name + " {";
+    }
+
     /// Module names are Modulith's display names, the last package segment capitalised. A column is a frame
-    /// without a line, its title the only thing seen; a module is a hexagon, padded by such a frame.
+    /// without a line, its title the only thing seen; a module is a hexagon, padded by such a frame, its title
+    /// plain by style so only the name is bold.
     @Test
     void placesModulesByTheStereotypesOfTheirTypes() {
         assertThat(uml)
+                .contains("hexagon { HorizontalAlignment center; FontStyle plain }")
                 .contains("rectangle \"DRIVING ADAPTERS\" as driving #line:transparent {")
-                .contains("hexagon \"Cli\" as m_Cli {")
+                .contains(hexagon("fixture/cli", "Cli"))
                 .contains("rectangle \"<size:1> </size>\" as m_Cli_in #line:transparent {")
                 .contains("rectangle \"APPLICATION\" as core #line:transparent {")
-                .contains("hexagon \"Application\" as m_Application {")
-                .contains("hexagon \"Domain\" as m_Domain {")
+                .contains(hexagon("fixture/application", "Application"))
+                .contains(hexagon("fixture/domain", "Domain"))
                 .contains("rectangle \"DRIVEN ADAPTERS\" as driven #line:transparent {")
-                .contains("hexagon \"Kafka\" as m_Kafka {");
+                .contains(hexagon("fixture/kafka", "Kafka"));
     }
 
     @Test
     void nestsTheDomainInsideTheApplication() {
-        var application = uml.indexOf("hexagon \"Application\"");
-        var domain = uml.indexOf("hexagon \"Domain\"");
+        var application = uml.indexOf(hexagon("fixture/application", "Application"));
+        var domain = uml.indexOf(hexagon("fixture/domain", "Domain"));
         var driven = uml.indexOf("rectangle \"DRIVEN ADAPTERS\"");
 
         assertThat(application).isLessThan(domain);
         assertThat(domain).isLessThan(driven);
+    }
+
+    /// An unseen anchor above each column, in a row, each column hung from its own, and the frames chained: what
+    /// keeps the driving adapters left and the driven ones right.
+    @Test
+    void ordersTheColumnsLeftToRight() {
+        assertThat(uml)
+                .contains("label \" \" as t_driving")
+                .contains("t_driving -[hidden]right-> t_core")
+                .contains("t_core -[hidden]right-> t_driven")
+                .contains("driving -[hidden]right-> core")
+                .contains("core -[hidden]right-> driven")
+                .contains("t_driving -[hidden]down-> m_Cli_Runner")
+                .contains("t_core -[hidden]down-> m_Application_Publish")
+                .contains("t_driven -[hidden]down-> m_Kafka_KafkaPublisher");
     }
 
     /// `Codec` has no stereotype of its own; `@Adapter` on its package gives it the role. Its module is the row of
@@ -128,11 +150,13 @@ class HexagonDocumenterTest {
     /// `Runner` holds a `Publish`, a type reference; `KafkaPublisher` implements `Publisher`, the port; `Publish`
     /// holds a `Publisher` and takes a `Thing`. Both ends have cards, so the arrows join the cards, without a
     /// label: the legend draws each arrow with its relation, in a row hung below the driven adapters and the
-    /// shared adapters, and the text legend names the system.
+    /// shared adapters, and the text legend names the system. `Runner` holds a `Defaults` too, which has no
+    /// stereotype and no card: that arrow ends on the padding inside the Application hexagon.
     @Test
     void drawsTheArrowsWithTheLegendAndNoLabels() {
         assertThat(uml)
                 .contains("m_Cli_Runner .right.> m_Application_Publish\n")
+                .contains("m_Cli_Runner .right.> m_Application_in\n")
                 .contains("m_Kafka_KafkaPublisher .left.|> m_Application_Publisher\n")
                 .contains("m_Application_Publish -right-> m_Application_Publisher\n")
                 .contains("m_Application_Publish ..> m_Domain_Thing\n")

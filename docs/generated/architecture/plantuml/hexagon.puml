@@ -12,35 +12,41 @@ rectangle { HorizontalAlignment center }
 </style>
 
 rectangle "DRIVING ADAPTERS" as driving #line:transparent {
-  hexagon "Cli" as m_Cli {
-    rectangle "<size:1> </size>" as m_Cli_in #line:transparent {
-      card "StoryRunner\n<size:10>«PrimaryAdapter»</size>" as m_Cli_StoryRunner
+  hexagon "<size:10>cli/boot</size>\nBoot" as m_Boot {
+    rectangle "<size:1> </size>" as m_Boot_in #line:transparent {
+      card "StoryRunner\n<size:10>«PrimaryAdapter»</size>" as m_Boot_StoryRunner
     }
   }
-  hexagon "Console" as m_Console {
+  hexagon "<size:10>cli/console</size>\nConsole" as m_Console {
     rectangle "<size:1> </size>" as m_Console_in #line:transparent {
       card "ConsoleListener\n<size:10>«PrimaryAdapter»</size>" as m_Console_ConsoleListener
     }
   }
-  hexagon "Kafka consumer" as m_Kafka_consumer {
-    rectangle "<size:1> </size>" as m_Kafka_consumer_in #line:transparent {
-      card "StoryListener\n<size:10>«PrimaryAdapter»</size>" as m_Kafka_consumer_StoryListener
+  hexagon "<size:10>kafka/consumer</size>\nKafka Consumer" as m_Kafka_Consumer {
+    rectangle "<size:1> </size>" as m_Kafka_Consumer_in #line:transparent {
+      card "DeadLetters\n<size:10>«PrimaryAdapter»</size>" as m_Kafka_Consumer_DeadLetters
+      card "Reader\n<size:10>«PrimaryAdapter»</size>" as m_Kafka_Consumer_Reader
+      card "StoryListener\n<size:10>«PrimaryAdapter»</size>" as m_Kafka_Consumer_StoryListener
+      m_Kafka_Consumer_DeadLetters -[hidden]right-> m_Kafka_Consumer_Reader
+      m_Kafka_Consumer_DeadLetters -[hidden]down-> m_Kafka_Consumer_StoryListener
     }
   }
-  m_Cli_StoryRunner -[hidden]down-> m_Console_ConsoleListener
-  m_Console_ConsoleListener -[hidden]down-> m_Kafka_consumer_StoryListener
+  m_Boot_StoryRunner -[hidden]down-> m_Console_ConsoleListener
+  m_Console_ConsoleListener -[hidden]down-> m_Kafka_Consumer_DeadLetters
 }
 rectangle "APPLICATION" as core #line:transparent {
-  hexagon "Application" as m_Application {
+  hexagon "<size:10>eventing/application</size>\nApplication" as m_Application {
     rectangle "<size:1> </size>" as m_Application_in #line:transparent {
       card "PublishMessage\n<size:10>«PrimaryPort»</size>" as m_Application_PublishMessage
       card "Story\n<size:10>«PrimaryPort»</size>" as m_Application_Story
       card "Publisher\n<size:10>«SecondaryPort»</size>" as m_Application_Publisher
+      card "Publishing\n<size:10>«Factory»</size>" as m_Application_Publishing
       card "Stories\n<size:10>«Service»</size>" as m_Application_Stories
       m_Application_PublishMessage -[hidden]right-> m_Application_Story
       m_Application_Story -[hidden]right-> m_Application_Publisher
-      m_Application_Publisher -[hidden]right-> m_Application_Stories
-      hexagon "Domain" as m_Domain {
+      m_Application_Publisher -[hidden]right-> m_Application_Publishing
+      m_Application_Publishing -[hidden]right-> m_Application_Stories
+      hexagon "<size:10>eventing/domain</size>\nDomain" as m_Domain {
         rectangle "<size:1> </size>" as m_Domain_in #line:transparent {
           card "Wonderland\n<size:10>«Factory»</size>" as m_Domain_Wonderland
           card "Envelope\n<size:10>«ValueObject»</size>" as m_Domain_Envelope
@@ -68,51 +74,62 @@ rectangle "APPLICATION" as core #line:transparent {
       m_Application_PublishMessage -[hidden]down-> m_Domain_Envelope
       m_Application_Story -[hidden]down-> m_Domain_Envelope
       m_Application_Publisher -[hidden]down-> m_Domain_Envelope
+      m_Application_Publishing -[hidden]down-> m_Domain_Envelope
       m_Application_Stories -[hidden]down-> m_Domain_Envelope
     }
   }
-  hexagon "Load story" as m_Load_story {
-    rectangle "<size:1> </size>" as m_Load_story_in #line:transparent {
-      card "GenerateLoad\n<size:10>«PrimaryPort»</size>" as m_Load_story_GenerateLoad
+  hexagon "<size:10>stories/load</size>\nLoad Story" as m_Load_Story {
+    rectangle "<size:1> </size>" as m_Load_Story_in #line:transparent {
+      card "GenerateLoad\n<size:10>«PrimaryPort»</size>" as m_Load_Story_GenerateLoad
     }
   }
-  hexagon "Tea party story" as m_Tea_party_story {
-    rectangle "<size:1> </size>" as m_Tea_party_story_in #line:transparent {
-      card "SettleAtTheTeaParty\n<size:10>«PrimaryPort»</size>" as m_Tea_party_story_SettleAtTheTeaParty
+  hexagon "<size:10>stories/teaparty</size>\nTea Party Story" as m_Tea_Party_Story {
+    rectangle "<size:1> </size>" as m_Tea_Party_Story_in #line:transparent {
+      card "SettleAtTheTeaParty\n<size:10>«PrimaryPort»</size>" as m_Tea_Party_Story_SettleAtTheTeaParty
     }
   }
-  m_Domain_Offer -[hidden]down-> m_Load_story_GenerateLoad
-  m_Domain_Order -[hidden]down-> m_Load_story_GenerateLoad
-  m_Domain_Product -[hidden]down-> m_Load_story_GenerateLoad
-  m_Domain_Transaction -[hidden]down-> m_Load_story_GenerateLoad
-  m_Load_story_GenerateLoad -[hidden]down-> m_Tea_party_story_SettleAtTheTeaParty
+  m_Domain_Offer -[hidden]down-> m_Load_Story_GenerateLoad
+  m_Domain_Order -[hidden]down-> m_Load_Story_GenerateLoad
+  m_Domain_Product -[hidden]down-> m_Load_Story_GenerateLoad
+  m_Domain_Transaction -[hidden]down-> m_Load_Story_GenerateLoad
+  m_Load_Story_GenerateLoad -[hidden]down-> m_Tea_Party_Story_SettleAtTheTeaParty
 }
 rectangle "DRIVEN ADAPTERS" as driven #line:transparent {
-  hexagon "Kafka publisher" as m_Kafka_publisher {
-    rectangle "<size:1> </size>" as m_Kafka_publisher_in #line:transparent {
-      card "KafkaPublisher\n<size:10>«SecondaryAdapter»</size>" as m_Kafka_publisher_KafkaPublisher
+  hexagon "<size:10>kafka/publisher</size>\nKafka Publisher" as m_Kafka_Publisher {
+    rectangle "<size:1> </size>" as m_Kafka_Publisher_in #line:transparent {
+      card "KafkaPublisher\n<size:10>«SecondaryAdapter»</size>" as m_Kafka_Publisher_KafkaPublisher
     }
   }
-  hexagon "Log" as m_Log {
+  hexagon "<size:10>cli/log</size>\nLog" as m_Log {
     rectangle "<size:1> </size>" as m_Log_in #line:transparent {
       card "LoggingPublisher\n<size:10>«SecondaryAdapter»</size>" as m_Log_LoggingPublisher
     }
   }
-  m_Kafka_publisher_KafkaPublisher -[hidden]down-> m_Log_LoggingPublisher
+  m_Kafka_Publisher_KafkaPublisher -[hidden]down-> m_Log_LoggingPublisher
 }
 rectangle "SHARED ADAPTERS" as shared #line:transparent {
-  hexagon "Protobuf" as m_Protobuf {
+  hexagon "<size:10>adapter/protobuf</size>\nProtobuf" as m_Protobuf {
     rectangle "<size:1> </size>" as m_Protobuf_in #line:transparent {
       card "Converter\n<size:10>«Adapter»</size>" as m_Protobuf_Converter
     }
   }
 }
+label " " as t_driving
+t_driving -[hidden]down-> m_Boot_StoryRunner
+label " " as t_core
+t_driving -[hidden]right-> t_core
+driving -[hidden]right-> core
+t_core -[hidden]down-> m_Application_Publisher
+label " " as t_driven
+t_core -[hidden]right-> t_driven
+core -[hidden]right-> driven
+t_driven -[hidden]down-> m_Kafka_Publisher_KafkaPublisher
 m_Domain_Offer -[hidden]down-> m_Protobuf_Converter
 m_Domain_Order -[hidden]down-> m_Protobuf_Converter
 m_Domain_Product -[hidden]down-> m_Protobuf_Converter
 m_Domain_Transaction -[hidden]down-> m_Protobuf_Converter
-m_Load_story_GenerateLoad -[hidden]down-> m_Protobuf_Converter
-m_Tea_party_story_SettleAtTheTeaParty -[hidden]down-> m_Protobuf_Converter
+m_Load_Story_GenerateLoad -[hidden]down-> m_Protobuf_Converter
+m_Tea_Party_Story_SettleAtTheTeaParty -[hidden]down-> m_Protobuf_Converter
 
 m_Application_PublishMessage -right-> m_Application_Publisher
 m_Application_PublishMessage ..> m_Domain_Envelope
@@ -120,31 +137,35 @@ m_Application_PublishMessage ..> m_Domain_Payload
 m_Application_PublishMessage ..> m_Domain_Receipt
 m_Application_Publisher ..> m_Domain_Envelope
 m_Application_Publisher ..> m_Domain_Receipt
+m_Application_Publishing .right.> m_Application_PublishMessage
+m_Application_Publishing -right-> m_Application_Publisher
+m_Application_Publishing ..> m_Domain_Envelope
+m_Application_Publishing ..> m_Domain_Payload
 m_Application_Stories -right-> m_Application_Story
 m_Application_Story ..> m_Domain_Envelope
 m_Application_Story ..> m_Domain_Payload
-m_Cli_StoryRunner -right-> m_Application_Stories
-m_Cli_StoryRunner .right.> m_Application_Story
-m_Console_ConsoleListener -right-> m_Application
+m_Boot_StoryRunner -right-> m_Application_Stories
+m_Boot_StoryRunner .right.> m_Application_Story
+m_Console_ConsoleListener -right-> m_Application_Publishing
 m_Console_ConsoleListener -right-> m_Application_Stories
 m_Console_ConsoleListener .right.> m_Application_Story
-m_Kafka_consumer .[norank].> m_Protobuf_Converter
-m_Kafka_consumer_StoryListener -right-> m_Application_Stories
-m_Kafka_consumer_StoryListener .right.> m_Application_Story
-m_Kafka_publisher_KafkaPublisher .left.|> m_Application_Publisher
-m_Kafka_publisher_KafkaPublisher .[norank].> m_Protobuf_Converter
-m_Load_story_GenerateLoad --> m_Application_PublishMessage
-m_Load_story_GenerateLoad ..|> m_Application_Story
-m_Load_story_GenerateLoad ..> m_Domain_Payload
+m_Kafka_Consumer_Reader .[norank].> m_Protobuf_Converter
+m_Kafka_Consumer_StoryListener -right-> m_Application_Stories
+m_Kafka_Consumer_StoryListener .right.> m_Application_Story
+m_Kafka_Publisher_KafkaPublisher .left.|> m_Application_Publisher
+m_Kafka_Publisher_KafkaPublisher .[norank].> m_Protobuf_Converter
+m_Load_Story_GenerateLoad --> m_Application_PublishMessage
+m_Load_Story_GenerateLoad ..|> m_Application_Story
+m_Load_Story_GenerateLoad ..> m_Domain_Payload
 m_Log_LoggingPublisher .left.|> m_Application_Publisher
-m_Tea_party_story_SettleAtTheTeaParty --> m_Application_PublishMessage
-m_Tea_party_story_SettleAtTheTeaParty ..|> m_Application_Story
-m_Tea_party_story_SettleAtTheTeaParty ..> m_Domain_Envelope
-m_Tea_party_story_SettleAtTheTeaParty ..> m_Domain_Offer
-m_Tea_party_story_SettleAtTheTeaParty ..> m_Domain_Order
-m_Tea_party_story_SettleAtTheTeaParty ..> m_Domain_Payload
-m_Tea_party_story_SettleAtTheTeaParty ..> m_Domain_Receipt
-m_Tea_party_story_SettleAtTheTeaParty ..> m_Domain_Transaction
+m_Tea_Party_Story_SettleAtTheTeaParty --> m_Application_PublishMessage
+m_Tea_Party_Story_SettleAtTheTeaParty ..|> m_Application_Story
+m_Tea_Party_Story_SettleAtTheTeaParty ..> m_Domain_Envelope
+m_Tea_Party_Story_SettleAtTheTeaParty ..> m_Domain_Offer
+m_Tea_Party_Story_SettleAtTheTeaParty ..> m_Domain_Order
+m_Tea_Party_Story_SettleAtTheTeaParty ..> m_Domain_Payload
+m_Tea_Party_Story_SettleAtTheTeaParty ..> m_Domain_Receipt
+m_Tea_Party_Story_SettleAtTheTeaParty ..> m_Domain_Transaction
 
 rectangle "<size:10>legend</size>" as legend #line:BBBBBB;text:666666 {
   label " " as l_uses_from

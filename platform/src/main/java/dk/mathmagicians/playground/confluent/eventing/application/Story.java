@@ -3,8 +3,10 @@ package dk.mathmagicians.playground.confluent.eventing.application;
 import dk.mathmagicians.playground.confluent.eventing.domain.Envelope;
 import dk.mathmagicians.playground.confluent.eventing.domain.Payload;
 import java.time.Duration;
+import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeMap;
 import org.jmolecules.architecture.hexagonal.PrimaryPort;
 import org.jspecify.annotations.Nullable;
 
@@ -70,5 +72,23 @@ public interface Story {
             throw refused;
         }
         return Optional.of(Duration.ofSeconds(seconds));
+    }
+
+    /// A single word, the name of a story, matching one of the stories on the classpath, the beans of type
+    /// `Story`.
+    static Story named(String name, Collection<Story> stories) {
+        var byName = new TreeMap<String, Story>();
+        for (var story : stories) {
+            var other = byName.put(story.name(), story);
+            if (other != null) {
+                throw new IllegalArgumentException("two stories are named " + story.name() + ": "
+                        + other.getClass().getName() + " and " + story.getClass().getName());
+            }
+        }
+        var story = byName.get(name);
+        if (story == null) {
+            throw new IllegalArgumentException("story " + name + " is unknown, the stories are " + byName.keySet());
+        }
+        return story;
     }
 }

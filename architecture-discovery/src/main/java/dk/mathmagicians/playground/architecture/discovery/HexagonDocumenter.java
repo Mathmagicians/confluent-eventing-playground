@@ -11,6 +11,7 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.List;
@@ -211,17 +212,22 @@ public final class HexagonDocumenter {
         out.add("skinparam ArrowFontSize " + SMALL_FONT_SIZE);
         out.add("skinparam ArrowFontColor #" + LEGEND_TEXT);
         out.add("<style>");
-        out.add("hexagon { HorizontalAlignment center }");
+        out.add("hexagon { HorizontalAlignment center; FontStyle plain }");
         out.add("rectangle { HorizontalAlignment center }");
         out.add("</style>");
         out.add("");
         var cards = new TreeMap<String, String>();
-        column(out, Ring.DRIVING, rings.getOrDefault(Ring.DRIVING, List.of()), List.of(), cards);
-        var core = column(out, Ring.CORE, rings.getOrDefault(Ring.CORE, List.of()),
-                rings.getOrDefault(Ring.DOMAIN, List.of()), cards);
-        column(out, Ring.DRIVEN, rings.getOrDefault(Ring.DRIVEN, List.of()), List.of(), cards);
+        var columns = new EnumMap<Ring, Cell>(Ring.class);
+        column(out, Ring.DRIVING, rings.getOrDefault(Ring.DRIVING, List.of()), List.of(), cards)
+                .ifPresent(cell -> columns.put(Ring.DRIVING, cell));
+        column(out, Ring.CORE, rings.getOrDefault(Ring.CORE, List.of()), rings.getOrDefault(Ring.DOMAIN, List.of()),
+                cards)
+                .ifPresent(cell -> columns.put(Ring.CORE, cell));
+        column(out, Ring.DRIVEN, rings.getOrDefault(Ring.DRIVEN, List.of()), List.of(), cards)
+                .ifPresent(cell -> columns.put(Ring.DRIVEN, cell));
         var shared = column(out, Ring.SHARED, rings.getOrDefault(Ring.SHARED, List.of()), List.of(), cards);
-        var anchors = core.map(Cell::bottom).orElse(List.of());
+        order(out, columns);
+        var anchors = Optional.ofNullable(columns.get(Ring.CORE)).map(Cell::bottom).orElse(List.of());
         shared.ifPresent(row -> anchors.forEach(anchor -> out.add(anchor + " -[hidden]down-> " + row.top())));
         out.add("");
         arrows(out, rings, cards);
@@ -255,7 +261,7 @@ public final class HexagonDocumenter {
         if (members.isEmpty() && nested.isEmpty()) {
             return Optional.empty();
         }
-        out.add(FRAME + " \"" + ring.label + "\" as " + ring.name().toLowerCase() + UNSEEN + " {");
+        out.add(FRAME + " \"" + ring.label + "\" as " + frame(ring) + UNSEEN + " {");
         var cells = new ArrayList<Cell>();
         if (members.isEmpty()) {
             nested.forEach(module -> cells.add(box(out, module, INDENT, List.of(), cards)));
@@ -269,8 +275,35 @@ public final class HexagonDocumenter {
         return Optional.of(new Cell(cell.left(), cell.right(), cell.top(), bottom));
     }
 
-    /// One module: its hexagon, padded by an unseen frame, since PlantUML's hexagon cuts its corners through what
-    /// sits there. Inside, the cards of its hexagonal types, grouped by role; then the types of every other role,
+    /// The columns in their order, left to right: an unseen anchor above each, the anchors in a row, each column
+    /// hung from its own, and the frames chained the same way. Without it the layout engine mirrors the columns,
+    /// or lowers one whose adapters the shared row pulls at.
+    private static void order(List<String> out, Map<Ring, Cell> columns) {
+        Ring previous = null;
+        for (var entry : columns.entrySet()) {
+            var ring = entry.getKey();
+            out.add("label \" \" as " + anchor(ring));
+            if (previous != null) {
+                out.add(anchor(previous) + " -[hidden]right-> " + anchor(ring));
+                out.add(frame(previous) + " -[hidden]right-> " + frame(ring));
+            }
+            out.add(anchor(ring) + " -[hidden]down-> " + entry.getValue().top());
+            previous = ring;
+        }
+    }
+
+    private static String frame(Ring ring) {
+        return ring.name().toLowerCase();
+    }
+
+    private static String anchor(Ring ring) {
+        return "t_" + frame(ring);
+    }
+
+    /// One module: its hexagon, its package in the small plain font above its bold name, since a hexagon's title
+    /// is bold as a whole and the style sets it plain, padded by an unseen frame, since
+    /// PlantUML's hexagon cuts its corners through what sits there. Inside, the cards of its hexagonal types,
+    /// grouped by role; then the types of every other role,
     /// up to the options' maximum and an ellipsis line beyond it; then the modules nested inside it, each a
     /// hexagon of its own. The cards sit in a near-square grid, at least as wide as the widest family; each sealed
     /// type's permitted types hang from it in a row of their own below the grid; the nested modules come last, and
@@ -279,9 +312,10 @@ public final class HexagonDocumenter {
     /// itself when it has none.
     private Cell box(List<String> out, ApplicationModule module, String indent, List<ApplicationModule> nested,
                      Map<String, String> cards) {
-        out.add(indent + MODULE + " \"" + module.getDisplayName() + "\" as " + alias(module) + " {");
+        out.add(indent + MODULE + " \"<size:" + SMALL_FONT_SIZE + ">" + packageLine(module) + "</size>\\n<b>"
+                + module.getDisplayName() + "</b>\" as " + alias(module) + " {");
         var inner = indent + INDENT;
-        out.add(inner + FRAME + " " + UNSEEN_TEXT + " as " + alias(module) + "_in" + UNSEEN + " {");
+        out.add(inner + FRAME + " " + UNSEEN_TEXT + " as " + padding(module) + UNSEEN + " {");
         var hexagonal = new TreeMap<String, List<JavaClass>>();
         var others = new TreeMap<String, List<JavaClass>>();
         var permitted = permittedTypes(module);
@@ -420,8 +454,8 @@ public final class HexagonDocumenter {
                         .filter(dependency -> core.contains(dependency.getTargetModule())
                                 || shared.contains(dependency.getTargetModule()))
                         .forEach(dependency -> {
-                            var source = cardOr(cards, dependency.getSourceType(), alias(module));
-                            var target = cardOr(cards, dependency.getTargetType(), alias(dependency.getTargetModule()));
+                            var source = cardOr(cards, dependency.getSourceType(), module);
+                            var target = cardOr(cards, dependency.getTargetType(), dependency.getTargetModule());
                             var direction = shared.contains(dependency.getTargetModule())
                                     ? Ring.SHARED.inbound
                                     : ring.direction;
@@ -482,10 +516,12 @@ public final class HexagonDocumenter {
         });
     }
 
-    /// The card of the type, or of the top-level type it is nested in, `Recipe` inside `GenerateLoad`; the module's
-    /// hexagon when neither has one.
-    private static String cardOr(Map<String, String> cards, JavaClass type, String module) {
-        return cards.getOrDefault(topLevel(type).getName(), module);
+    /// The card of the type, or of the top-level type it is nested in, `Recipe` inside `GenerateLoad`; the hexagon
+    /// of the module it belongs to when neither has one, so a dependency on a type without a stereotype still
+    /// points where it belongs. The arrow ends on the padding inside the hexagon: aimed at the hexagon itself,
+    /// the head would sit on its bounding box, outside the cut corner.
+    private static String cardOr(Map<String, String> cards, JavaClass type, ApplicationModule module) {
+        return cards.getOrDefault(topLevel(type).getName(), padding(module));
     }
 
     private static JavaClass topLevel(JavaClass type) {
@@ -599,5 +635,17 @@ public final class HexagonDocumenter {
 
     private static String alias(ApplicationModule module) {
         return "m_" + module.getDisplayName().replaceAll("[^A-Za-z0-9]", "_");
+    }
+
+    /// The unseen frame padding the module's hexagon, where an arrow to the module ends.
+    private static String padding(ApplicationModule module) {
+        return alias(module) + "_in";
+    }
+
+    /// The module's package as the title's first line: its last two segments, `cli/log`.
+    private static String packageLine(ApplicationModule module) {
+        var segments = module.getBasePackage().getName().split("\\.");
+        var from = Math.max(0, segments.length - 2);
+        return String.join("/", Arrays.asList(segments).subList(from, segments.length));
     }
 }

@@ -1,5 +1,5 @@
 @startuml
-title <size:24>Kafka consumer</size>
+title <size:24>Kafka Consumer</size>
 
 set separator none
 top to bottom direction
@@ -20,14 +20,14 @@ System_Boundary("EventingPlatform_boundary", "EventingPlatform", $tags="") {
     Component(EventingPlatform.EventingPlatform.Domain, "Domain", $techn="Module", $descr="", $tags="", $link="")
     Component(EventingPlatform.EventingPlatform.Protobuf, "Protobuf", $techn="Module", $descr="", $tags="", $link="")
     Component(EventingPlatform.EventingPlatform.Application, "Application", $techn="Module", $descr="", $tags="", $link="")
-    Component(EventingPlatform.EventingPlatform.Kafkaconsumer, "Kafka consumer", $techn="Module", $descr="", $tags="", $link="")
+    Component(EventingPlatform.EventingPlatform.KafkaConsumer, "Kafka Consumer", $techn="Module", $descr="", $tags="", $link="")
   }
 
 }
 
-Rel(EventingPlatform.EventingPlatform.Kafkaconsumer, EventingPlatform.EventingPlatform.Domain, "depends on", $techn="", $tags="", $link="")
-Rel(EventingPlatform.EventingPlatform.Kafkaconsumer, EventingPlatform.EventingPlatform.Protobuf, "depends on", $techn="", $tags="", $link="")
-Rel(EventingPlatform.EventingPlatform.Kafkaconsumer, EventingPlatform.EventingPlatform.Application, "uses", $techn="", $tags="", $link="")
+Rel(EventingPlatform.EventingPlatform.KafkaConsumer, EventingPlatform.EventingPlatform.Domain, "depends on", $techn="", $tags="", $link="")
+Rel(EventingPlatform.EventingPlatform.KafkaConsumer, EventingPlatform.EventingPlatform.Protobuf, "depends on", $techn="", $tags="", $link="")
+Rel(EventingPlatform.EventingPlatform.KafkaConsumer, EventingPlatform.EventingPlatform.Application, "uses", $techn="", $tags="", $link="")
 Rel(EventingPlatform.EventingPlatform.Protobuf, EventingPlatform.EventingPlatform.Domain, "depends on", $techn="", $tags="", $link="")
 Rel(EventingPlatform.EventingPlatform.Application, EventingPlatform.EventingPlatform.Domain, "depends on", $techn="", $tags="", $link="")
 

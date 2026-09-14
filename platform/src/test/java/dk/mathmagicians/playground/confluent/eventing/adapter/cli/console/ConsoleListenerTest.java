@@ -1,4 +1,4 @@
-package dk.mathmagicians.playground.confluent.eventing.adapter.console;
+package dk.mathmagicians.playground.confluent.eventing.adapter.cli.console;
 
 import static dk.mathmagicians.playground.confluent.eventing.application.StoryFixtures.acting;
 import static dk.mathmagicians.playground.confluent.eventing.application.StoryFixtures.publishing;
@@ -12,7 +12,6 @@ import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixture
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-import dk.mathmagicians.playground.confluent.eventing.application.Stories;
 import dk.mathmagicians.playground.confluent.eventing.application.Story;
 import dk.mathmagicians.playground.confluent.eventing.domain.Envelope;
 import dk.mathmagicians.playground.confluent.eventing.domain.Offer;
@@ -65,7 +64,7 @@ class ConsoleListenerTest {
     private ConsoleListener console(Story story, String... lines) {
         var typed = String.join("\n", lines) + "\n";
         return new ConsoleListener(
-                new Stories(List.of(story), story.name()),
+                story,
                 publishing(published, () -> dice()),
                 new ByteArrayInputStream(typed.getBytes(StandardCharsets.UTF_8)),
                 new PrintStream(screen, true, StandardCharsets.UTF_8));
@@ -153,7 +152,7 @@ class ConsoleListenerTest {
     void stopClosesTheInputAndEndsTheReading() throws Exception {
         var open = new java.io.PipedInputStream();
         var console = new ConsoleListener(
-                new Stories(List.of(story), story.name()),
+                story,
                 publishing(published, () -> dice()),
                 open,
                 new PrintStream(screen, true, StandardCharsets.UTF_8));

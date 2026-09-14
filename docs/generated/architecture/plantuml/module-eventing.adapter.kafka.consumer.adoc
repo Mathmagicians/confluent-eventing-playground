@@ -5,11 +5,8 @@
 |Spring components
 |_Primary adapters_
 
-* `d.m.p.c.e.a.k.c.StoryListener`
-
-_Others_
-
 * `d.m.p.c.e.a.k.c.Reader`
+* `d.m.p.c.e.a.k.c.StoryListener`
 |Bean references
 |* `d.m.p.c.e.a.Stories` (in Application)
 |===
