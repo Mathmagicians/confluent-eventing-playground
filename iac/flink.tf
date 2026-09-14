@@ -28,6 +28,10 @@ resource "confluent_flink_statement" "products_headers" {
     "sql.current-catalog"  = data.confluent_environment.main.display_name
     "sql.current-database" = data.confluent_kafka_cluster.main.display_name
   }
+  # a one-shot DDL: the text that ran is the column, an edit cannot re-run against it, a rebuild recreates it
+  lifecycle {
+    ignore_changes = [statement]
+  }
 
   depends_on = [confluent_schema.topic]
 }

@@ -37,11 +37,13 @@ The plan is the review, the human approves it, and nothing in the code second-gu
   resource file builds from them, never a second list.
 - Outputs are the facts `make` reads: the cluster, the registry, the topics, the schema versions, the compute pool
   with its endpoint, principal, catalog and database, and per environment the Flink tables and statements by name.
-- No lifecycle brakes. No `prevent_destroy`, no `ignore_changes`, no `replace_triggered_by`. A destructive change is
-  named in the proposal in one line and decided in the plan review. `terraform destroy` followed by an apply rebuilds
-  everything in order, and that is tested, not assumed.
-- A one-shot DDL is a plain `confluent_flink_statement`, created with the topics, gone with them on a destroy. An edit
-  re-runs it, and a re-run against what already exists is a visible red apply, which is right.
+- No lifecycle brakes. No `prevent_destroy`, no `replace_triggered_by`, no `ignore_changes` beyond the one-shot DDL
+  below. A destructive change is named in the proposal in one line and decided in the plan review. `terraform
+  destroy` followed by an apply rebuilds everything in order, and that is tested, not assumed.
+- A one-shot DDL is a `confluent_flink_statement` with `ignore_changes = [statement]`, the one lifecycle setting we
+  keep: created with the topics, gone with them on a destroy, never re-run for an edit of its text. Its text is part
+  of the statement, comments included, and a re-run of an `ADD` against its own column fails; the column goes with
+  the topic, so a destroy followed by an apply rebuilds it cleanly, verified.
 - Data sources for what exists and is not ours: the organization, the environment, the cluster, the compute pool, the
   region. The pool's cloud and region give the Flink REST endpoint, the environment's and the cluster's display
   names give the catalog and the database a statement resolves names in.
