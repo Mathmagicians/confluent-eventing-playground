@@ -6,6 +6,7 @@ import static java.util.stream.Collectors.toMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+import com.google.protobuf.Descriptors.FieldDescriptor;
 import com.google.protobuf.DynamicMessage;
 import dk.mathmagicians.playground.eventing.ProductDTO;
 import io.cucumber.java.en.Then;
@@ -74,7 +75,9 @@ public class FlinkSteps {
     /// a column of a row as text; a nullable column travels in a wrapper message whose one field is `value`
     private static String text(DynamicMessage row, String column) {
         var field = row.getDescriptorForType().findFieldByName(column);
-        assertThat(field).as("column %s of %s", column, row.getDescriptorForType().getName()).isNotNull();
+        assertThat(field)
+                .as("column %s among %s", column, row.getDescriptorForType().getFields().stream().map(FieldDescriptor::getName).toList())
+                .isNotNull();
         var value = row.getField(field);
         if (value instanceof DynamicMessage wrapped) {
             var inner = wrapped.getDescriptorForType().findFieldByName("value");

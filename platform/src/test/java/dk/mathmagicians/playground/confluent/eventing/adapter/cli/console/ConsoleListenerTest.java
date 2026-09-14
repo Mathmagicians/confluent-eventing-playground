@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 /// The console over a string as its input: what a session types is what the story gets, as envelopes.
@@ -173,5 +174,46 @@ class ConsoleListenerTest {
         console.stop();
 
         await().atMost(SOON).until(() -> !console.isRunning());
+    }
+
+    /// What a line is, from its text alone: the keywords in any case, the region's name as typed, and anything
+    /// else a message of its first word, with an empty body when that is all there is.
+    @Nested
+    class Lines {
+
+        @Test
+        void aBlankLineIsBlank() {
+            assertThat(ConsoleListener.Line.of("   ")).isEqualTo(new ConsoleListener.Line.Blank());
+        }
+
+        @Test
+        void helpInAnyCaseIsHelp() {
+            assertThat(ConsoleListener.Line.of("HELP")).isEqualTo(new ConsoleListener.Line.Help());
+        }
+
+        @Test
+        void qAndQuitAreQuit() {
+            assertThat(ConsoleListener.Line.of("q")).isEqualTo(new ConsoleListener.Line.Quit());
+            assertThat(ConsoleListener.Line.of("Quit")).isEqualTo(new ConsoleListener.Line.Quit());
+        }
+
+        @Test
+        void aRegionLineCarriesItsNameAsTyped() {
+            assertThat(ConsoleListener.Line.of("region: amer")).isEqualTo(new ConsoleListener.Line.Region("amer"));
+            assertThat(ConsoleListener.Line.of("region:")).isEqualTo(new ConsoleListener.Line.Region(""));
+        }
+
+        @Test
+        void anythingElseIsAMessageOfItsFirstWord() {
+            assertThat(ConsoleListener.Line.of("Offer offer_id: \"OFF-1\""))
+                    .isEqualTo(new ConsoleListener.Line.Message("Offer", "offer_id: \"OFF-1\""));
+            assertThat(ConsoleListener.Line.of("Offer")).isEqualTo(new ConsoleListener.Line.Message("Offer", ""));
+        }
+
+        /// Ties the kinds `of` asks to the sealed set, so a new kind without a place in the order fails here.
+        @Test
+        void everyKindOfLineHasItsPlaceInTheOrder() {
+            assertThat(ConsoleListener.Line.class.getPermittedSubclasses()).hasSize(5);
+        }
     }
 }

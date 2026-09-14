@@ -4,12 +4,14 @@ import dk.mathmagicians.playground.confluent.eventing.application.Story;
 import dk.mathmagicians.playground.confluent.eventing.domain.Envelope;
 import dk.mathmagicians.playground.confluent.eventing.domain.Payload;
 import dk.mathmagicians.playground.confluent.eventing.domain.Transaction;
+
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
+
 import org.jmolecules.architecture.hexagonal.PrimaryPort;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -32,15 +34,24 @@ public final class KnowWhatIsLeft implements Story {
     static final String OWES = "{} bought a thing for {} gold coins, but the coins went down a deep rabbit hole: {} short, and the shopping goes on";
     static final String PASSED_BY = "{} paid {} {} gold coins, none of this table's business";
 
-    // FIXME a domain record Purse(ownerId, BigDecimal balance): in(price) and out(price), pure functions answering
-    // FIXME a new purse; this map then holds a Purse per owner id, and balance() below reads the purse's
-    private final TreeMap<String, BigDecimal> purses = new TreeMap<>();
+    record Purse(String ownerId, BigDecimal balance) {
+        Purse in(BigDecimal price) {
+            return new Purse(ownerId, balance.add(price));
+        }
+
+        Purse out(BigDecimal price) {
+            return new Purse(ownerId, balance.subtract(price));
+        }
+
+    }
+
+    private final Map<String, Purse> purses = new TreeMap<>();
     private final @Nullable Duration ttl;
 
     /// The purses at this table, by owner id, with the coins each opens with, and how long the table sits, nothing
     /// for until stopped.
     public KnowWhatIsLeft(Map<String, BigDecimal> openings, @Nullable Duration ttl) {
-        purses.putAll(openings);
+        purses.putAll(openings.entrySet().stream().map(entry -> Map.entry(entry.getKey(), new Purse(entry.getKey(), entry.getValue()))).toList());
         this.ttl = ttl;
     }
 
@@ -74,22 +85,33 @@ public final class KnowWhatIsLeft implements Story {
     }
 
     private void traded(Transaction transaction) {
-        // FIXME the price is money here, BigDecimal.valueOf(transaction.price()), the wire's double stays outside
-        // FIXME the seller's purse, when at this table: price in, log.info(SOLD, seller, price, balance)
-        // FIXME the customer's purse, when at this table: price out, log.info(BOUGHT, customer, price, balance);
-        // FIXME a balance below zero is what the owner owes, log.error(OWES, customer, price, balance.negate())
-        // FIXME a trade between two others: nothing but the line below
+        var price = BigDecimal.valueOf(transaction.price());
+        var sellerPurse = purses.getOrDefault(transaction.sellerId(), null);
+        if( sellerPurse != null) {
+            purses.put(transaction.sellerId(), sellerPurse.in(price));
+            log.info(SOLD, transaction.sellerId(), price, sellerPurse.balance());
+        }
+        var buyerPurse = purses.getOrDefault(transaction.customerId(), null);
+        if( buyerPurse != null) {
+            var newBalance = buyerPurse.balance().subtract(price);
+            purses.put(transaction.customerId(), buyerPurse.out(price));
+            if (newBalance.compareTo(BigDecimal.ZERO) < 0) {
+                log.info(OWES, transaction.customerId(), price, newBalance.negate());
+            } else {
+                log.warn(BOUGHT, transaction.customerId(), price, newBalance);
+            }
+        }
         log.debug(PASSED_BY, transaction.customerId(), transaction.sellerId(), transaction.price());
     }
 
     /// The balance of the owner's purse, what is left, or what the owner owes when it is negative; nobody's purse
     /// is a mistake.
     public BigDecimal balance(String ownerId) {
-        var balance = purses.get(ownerId);
-        if (balance == null) {
+        var purse = purses.get(ownerId);
+        if (purse == null) {
             throw new IllegalArgumentException(
                     ownerId + " has no purse at this table, only " + purses.keySet() + " do; off with their head");
         }
-        return balance;
+        return purse.balance();
     }
 }
