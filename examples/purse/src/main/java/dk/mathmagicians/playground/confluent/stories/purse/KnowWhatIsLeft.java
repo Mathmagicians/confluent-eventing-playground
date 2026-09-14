@@ -29,18 +29,27 @@ public final class KnowWhatIsLeft implements Story {
 
     /// What the purse says, one line per trade of an owner: owner, price, balance. INFO when coins come or go,
     /// ERROR when the coins are gone and the owner shops on, DEBUG for a trade that is none of its business.
-    static final String SOLD = "{} sold a thing for {} gold coins, the purse jingles with {}";
-    static final String BOUGHT = "{} bought a thing for {} gold coins, {} left in the purse";
-    static final String OWES = "{} bought a thing for {} gold coins, but the coins went down a deep rabbit hole: {} short, and the shopping goes on";
     static final String PASSED_BY = "{} paid {} {} gold coins, none of this table's business";
 
     record Purse(String ownerId, BigDecimal balance) {
+        static final String SOLD = "{} sold a thing for {} gold coins, the purse jingles with {}";
+        static final String BOUGHT = "{} bought a thing for {} gold coins, {} left in the purse";
+        static final String OWES = "{} bought a thing for {} gold coins, but the coins went down a deep rabbit hole: {} short, and the shopping goes on";
+
         Purse in(BigDecimal price) {
-            return new Purse(ownerId, balance.add(price));
+            var nextIncarnation = new Purse(ownerId, balance.add(price));
+            log.info(SOLD, ownerId, price, nextIncarnation.balance());
+            return nextIncarnation;
         }
 
         Purse out(BigDecimal price) {
-            return new Purse(ownerId, balance.subtract(price));
+            var nextIncarnation = new Purse(ownerId, balance.subtract(price));
+            if (nextIncarnation.balance().compareTo(BigDecimal.ZERO) < 0) {
+                log.info(OWES, ownerId, price, nextIncarnation.balance().negate());
+            } else {
+                log.warn(BOUGHT, ownerId, price, nextIncarnation.balance());
+            }
+            return nextIncarnation;
         }
 
     }
@@ -51,7 +60,7 @@ public final class KnowWhatIsLeft implements Story {
     /// The purses at this table, by owner id, with the coins each opens with, and how long the table sits, nothing
     /// for until stopped.
     public KnowWhatIsLeft(Map<String, BigDecimal> openings, @Nullable Duration ttl) {
-        purses.putAll(openings.entrySet().stream().map(entry -> Map.entry(entry.getKey(), new Purse(entry.getKey(), entry.getValue()))).toList());
+        openings.forEach((k, v) -> purses.put(k, new Purse(k, v)));
         this.ttl = ttl;
     }
 
@@ -86,21 +95,8 @@ public final class KnowWhatIsLeft implements Story {
 
     private void traded(Transaction transaction) {
         var price = BigDecimal.valueOf(transaction.price());
-        var sellerPurse = purses.getOrDefault(transaction.sellerId(), null);
-        if( sellerPurse != null) {
-            purses.put(transaction.sellerId(), sellerPurse.in(price));
-            log.info(SOLD, transaction.sellerId(), price, sellerPurse.balance());
-        }
-        var buyerPurse = purses.getOrDefault(transaction.customerId(), null);
-        if( buyerPurse != null) {
-            var newBalance = buyerPurse.balance().subtract(price);
-            purses.put(transaction.customerId(), buyerPurse.out(price));
-            if (newBalance.compareTo(BigDecimal.ZERO) < 0) {
-                log.info(OWES, transaction.customerId(), price, newBalance.negate());
-            } else {
-                log.warn(BOUGHT, transaction.customerId(), price, newBalance);
-            }
-        }
+        purses.computeIfPresent( transaction.sellerId(), (_, purse) -> purse.in(price));
+        purses.computeIfPresent(transaction.customerId(), (_, purse) -> purse.out(price));
         log.debug(PASSED_BY, transaction.customerId(), transaction.sellerId(), transaction.price());
     }
 

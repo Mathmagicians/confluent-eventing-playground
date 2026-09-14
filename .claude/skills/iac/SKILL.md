@@ -87,6 +87,10 @@ The plan is the review, the human approves it, and nothing in the code second-gu
   `enforced = false`, `table_options` for the `WITH` clause, `session_options` for catalog and database, and
   `kafka_cluster`. Upsert mode needs the bucket key equal to the primary key, and a primary key column cannot be
   nullable, so a header column is wrapped in `COALESCE`.
+- The key of a table is one plain string, `key.format = raw`, built in the query the way the producers build
+  theirs, `CONCAT_WS('/', region, product_id) AS key`, and named in `distribution`. The defaults are the other way,
+  `key.format = avro-registry` with a `-key` subject and `value.fields-include = except-key`, which leaves the key
+  columns out of the value; a raw single key keeps them in.
 - A `GROUP BY` query keeps one row per key and updates it: `LAST_VALUE` for the latest fields, `COUNT(*)` for the
   versions, `MAX($rowtime)` for when. `at` is a reserved word.
 - Verification is by name. `flink-verify` reads each object Terraform declared, from `tf output flink`: a table under
