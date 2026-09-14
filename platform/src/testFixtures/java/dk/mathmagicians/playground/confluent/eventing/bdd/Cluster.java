@@ -31,8 +31,10 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.GroupIdNotFoundException;
+import org.apache.kafka.common.errors.GroupNotEmptyException;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
+import org.awaitility.Awaitility;
 import org.springframework.boot.kafka.autoconfigure.KafkaProperties;
 import org.springframework.core.env.Environment;
 
@@ -60,20 +62,30 @@ public class Cluster {
     }
 
     /// Forgets a consumer group's offsets, so the next story under that group starts afresh; a group the cluster
-    /// never saw is nothing to forget.
+    /// never saw is nothing to forget. A group whose last member is still leaving, a story stopped a moment ago,
+    /// is asked again until the session timeout has let it go.
     public void forget(String group) {
-        try {
-            client.deleteConsumerGroups(List.of(group)).all().get(TIMEOUT_SECONDS, SECONDS);
-        } catch (ExecutionException e) {
-            if (!(e.getCause() instanceof GroupIdNotFoundException)) {
-                throw new IllegalStateException("the cluster refused: " + e.getCause().getMessage(), e);
-            }
-        } catch (TimeoutException e) {
-            throw new IllegalStateException("the cluster did not answer within " + TIMEOUT_SECONDS + " s", e);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException("interrupted while asking the cluster", e);
-        }
+        Awaitility.await().atMost(Duration.ofSeconds(60))
+                .pollInterval(Duration.ofSeconds(2))
+                .ignoreException(GroupNotEmptyException.class)
+                .untilAsserted(() -> {
+                    try {
+                        client.deleteConsumerGroups(List.of(group)).all().get(TIMEOUT_SECONDS, SECONDS);
+                    } catch (ExecutionException e) {
+                        switch (e.getCause()) {
+                            case GroupIdNotFoundException _ -> {}
+                            case GroupNotEmptyException notEmpty -> throw notEmpty;
+                            default -> throw new IllegalStateException(
+                                    "the cluster refused: " + e.getCause().getMessage(), e);
+                        }
+                    } catch (TimeoutException e) {
+                        throw new IllegalStateException(
+                                "the cluster did not answer within " + TIMEOUT_SECONDS + " s", e);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        throw new IllegalStateException("interrupted while asking the cluster", e);
+                    }
+                });
     }
 
     /// Publishes the envelope as a story would, headers and message on the payload's topic, and answers the
