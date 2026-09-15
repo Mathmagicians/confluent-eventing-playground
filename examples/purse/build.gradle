@@ -1,0 +1,20 @@
+// A story's own build, the example: the purse, a story of one jar, and the platform it plays on. The Boot plugin
+// makes it a distribution, one image with the platform inside; platform.gradle gives it everything else.
+
+plugins {
+    id 'org.springframework.boot' version '4.1.1'
+    id 'io.spring.dependency-management' version '1.1.7'
+}
+
+apply from: findProperty('platformGradle')
+
+description = 'the purse story: what Alice has left'
+
+dependencies {
+    // the platform, the version gradle.properties pins
+    implementation "dk.mathmagicians.playground:platform:${platformVersion}"
+
+    // the shared BDD and the architecture tests' tools come with the platform's test fixtures
+    testImplementation testFixtures("dk.mathmagicians.playground:platform:${platformVersion}")
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}

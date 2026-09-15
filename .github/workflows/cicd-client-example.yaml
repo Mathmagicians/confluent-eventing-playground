@@ -1,0 +1,69 @@
+name: cicd-client-example
+
+# the cicd of a client's story, the example in examples/purse/, on the same triggers as cicd. The job always runs,
+# so it can be a required check on main, and does its work when the example, the shared build files, or this file
+# changed; a run with nothing to do is green in seconds. The platform comes from GitHub Packages, the version the
+# example pins, published by the cicd workflow
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  cicd-client-example:
+    runs-on: ubuntu-latest
+    environment: confluent-test
+    defaults:
+      run:
+        working-directory: examples/purse
+    env:
+      KAFKA_BOOTSTRAP_SERVERS: ${{ vars.KAFKA_BOOTSTRAP_SERVERS }}
+      KAFKA_API_KEY: ${{ secrets.KAFKA_API_KEY }}
+      KAFKA_API_SECRET: ${{ secrets.KAFKA_API_SECRET }}
+      SCHEMA_REGISTRY_REST_ENDPOINT: ${{ vars.SCHEMA_REGISTRY_REST_ENDPOINT }}
+      SCHEMA_REGISTRY_API_KEY: ${{ secrets.SCHEMA_REGISTRY_API_KEY }}
+      SCHEMA_REGISTRY_API_SECRET: ${{ secrets.SCHEMA_REGISTRY_API_SECRET }}
+      # the platform and architecture-discovery resolve from GitHub Packages, which needs a token even to read
+      GITHUB_ACTOR: ${{ github.actor }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0   # the diff below needs the base of the pull request or the pushed range; the version comes from git tags
+      - name: changes under examples/purse/ or the shared build files since the base of the pull request or the pushed range; a dispatch or an unknown base always works
+        id: changes
+        working-directory: .
+        run: echo "purse=$(make -s changed BASE='${{ github.event.pull_request.base.sha || github.event.before }}' PATHS='examples/purse/ platform.mk platform.gradle .github/workflows/cicd-client-example.yaml')" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-java@v6
+        if: steps.changes.outputs.purse == 'true'
+        with:
+          distribution: temurin
+          java-version: 25
+      - uses: gradle/actions/setup-gradle@v6
+        if: steps.changes.outputs.purse == 'true'
+        with:
+          add-job-summary: never
+      - name: compile, unit tests, the architecture, jar
+        if: steps.changes.outputs.purse == 'true'
+        run: make build
+      - name: container image, the platform and the purse
+        if: steps.changes.outputs.purse == 'true'
+        run: make docker-image
+      - name: the purse's features against the image
+        if: steps.changes.outputs.purse == 'true'
+        run: make bdd
+      - uses: docker/login-action@v4
+        if: steps.changes.outputs.purse == 'true'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: publish the image to ghcr.io under its version
+        if: steps.changes.outputs.purse == 'true'
+        run: make docker-publish

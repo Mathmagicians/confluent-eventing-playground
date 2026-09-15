@@ -1,0 +1,13 @@
+[%autowidth.stretch, cols="h,a"]
+|===
+|Base package
+|`dk.mathmagicians.playground.confluent.stories.purse`
+|Spring components
+|_Primary ports_
+
+* `d.m.p.c.s.p.KnowWhatIsLeft`
+
+_Configuration properties_
+
+* `d.m.p.c.s.p.PurseProperties`
+|===

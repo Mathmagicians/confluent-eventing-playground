@@ -1,0 +1,17 @@
+// The tea party story: reads offers and orders, settles an order at the latest offer, publishes the transaction.
+// A jar the distribution puts on the classpath; Boot finds its auto-configuration through META-INF/spring. Its
+// feature runs from bdd against the distribution's image.
+
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+}
+
+description = 'the tea party story: where an order meets an offer'
+
+dependencies {
+    api project(':platform')
+
+    testImplementation testFixtures(project(':platform'))
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}

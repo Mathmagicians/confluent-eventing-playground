@@ -1,0 +1,16 @@
+// The load story: the generator, a story that publishes and listens to nothing. A jar the distribution puts on
+// the classpath; Boot finds its auto-configuration through META-INF/spring.
+
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+}
+
+description = 'the load story: a generator of products, offers, and orders'
+
+dependencies {
+    api project(':platform')
+
+    testImplementation testFixtures(project(':platform'))
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}

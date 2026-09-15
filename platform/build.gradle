@@ -1,0 +1,70 @@
+// The substrate: the domain, the application ring with the story contract, and the adapters. A library with a
+// main class, so a distribution is any Boot project that depends on it and names the main class. Its test
+// fixtures are the shared BDD: the drivers, the steps about the cluster and the schemas, the Cucumber wiring.
+
+plugins {
+    id 'java-library'
+    id 'java-test-fixtures'
+    id 'maven-publish'
+    id 'com.google.protobuf'
+}
+
+description = 'the eventing platform: domain, story contract, Kafka and log adapters'
+
+dependencies {
+    api 'org.springframework.boot:spring-boot-starter'
+    api 'org.springframework.boot:spring-boot-starter-kafka'
+    api 'com.google.protobuf:protobuf-java'
+    api 'io.confluent:kafka-protobuf-serializer:8.3.1' // Confluent's own, not in the Boot BOM, 2026-09-07
+    api platform('org.jmolecules:jmolecules-bom:2025.0.2') // not in the Boot BOM, 2026-09-07
+    api 'org.jmolecules:jmolecules-hexagonal-architecture'
+    api 'org.jmolecules:jmolecules-ddd' // @Module on the packages Spring Modulith documents
+    compileOnly platform('org.springframework.modulith:spring-modulith-bom:2.1.1') // not in the Boot BOM, 2026-09-08
+    compileOnly 'org.springframework.modulith:spring-modulith-api' // @Modulithic and @ApplicationModule, read by the test suite, absent from the image
+
+    testImplementation testFixtures(project)
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+    // what a project with features needs: the drivers' clients, Cucumber on the JUnit Platform, the image runner
+    testFixturesApi 'org.springframework.boot:spring-boot-starter-test'
+    testFixturesApi platform('io.cucumber:cucumber-bom:7.34.7') // not in the Boot BOM, 2026-09-03
+    testFixturesApi 'io.cucumber:cucumber-java'
+    testFixturesApi 'io.cucumber:cucumber-junit-platform-engine'
+    testFixturesApi 'io.cucumber:cucumber-spring'
+    testFixturesApi 'org.junit.platform:junit-platform-suite'
+    testFixturesApi 'org.testcontainers:testcontainers'
+    testFixturesApi 'org.awaitility:awaitility'
+    testFixturesApi 'io.confluent:kafka-schema-registry-client:8.3.1' // Confluent's own, not in the Boot BOM, 2026-09-07
+    // what a distribution's architecture tests need: the hexagonal rule, the module verification, the hexagon writer
+    testFixturesApi 'org.jmolecules.integrations:jmolecules-archunit'
+    testFixturesApi 'com.tngtech.archunit:archunit-junit5:1.5.0' // not in the Boot BOM, 2026-09-07
+    testFixturesApi platform('org.springframework.modulith:spring-modulith-bom:2.1.1') // not in the Boot BOM, 2026-09-08
+    testFixturesApi 'org.springframework.modulith:spring-modulith-starter-test'
+    testFixturesApi 'dk.mathmagicians.playground:architecture-discovery:latest.integration' // ours, the newest published, see architecture-discovery/
+}
+
+protobuf {
+    protoc {
+        // same version as protobuf-java from the Boot BOM
+        artifact = "com.google.protobuf:protoc:${dependencyManagement.importedProperties['protobuf-java.version']}"
+    }
+    generateProtoTasks {
+        all().configureEach { task ->
+            task.notCompatibleWithConfigurationCache('protobuf-gradle-plugin 0.10.0 keeps Project state in the task')
+            if (task.sourceSet.name == 'main') {
+                // generated code is committed, see README: Repository layout
+                task.outputBaseDirProperty.set(layout.projectDirectory.dir('src/generated'))
+            }
+        }
+    }
+}
+
+// the schemas stay at the repository root, iac/ registers them from there; generated code is committed here and
+// compiled from src/generated, regenerated with make proto-gen. Plain directories, so no build depends on the
+// generate tasks.
+sourceSets {
+    main {
+        proto.srcDirs = ["${rootDir}/src/main/proto"]
+        java.srcDirs = ['src/main/java', 'src/generated/java']
+    }
+}

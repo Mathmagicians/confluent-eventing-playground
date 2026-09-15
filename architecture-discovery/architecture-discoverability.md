@@ -13,12 +13,18 @@ hexagon's edges.
 
 ## Architecture Discovery Pipeline
 
-1. **Stereotypes on types.** jMolecules hexagonal annotations name the role of each type: `@PrimaryPort` on the
-   use cases `PublishMessage` and `GenerateLoad`, `@SecondaryPort` on `Publisher`, `@PrimaryAdapter` on
-   `LoadRunner`, `@SecondaryAdapter` on `LoggingPublisher` and `KafkaPublisher`. Domain types carry none.
+1. **Stereotypes on types and packages.** jMolecules hexagonal annotations name the role of each type:
+   `@PrimaryPort` on `Story`, `PublishMessage`, and every story, `@SecondaryPort` on `Publisher`,
+   `@PrimaryAdapter` on `StoryRunner`, `ConsoleListener`, and `StoryListener`, `@SecondaryAdapter` on
+   `LoggingPublisher` and `KafkaPublisher`. Each adapter package carries its side's stereotype on its
+   `package-info.java` as well, so a class in it without one of its own, `Reader`, has the package's role; the
+   packages both sides share, `adapter.kafka` and `adapter.protobuf`, carry the unqualified `@Adapter`. Domain
+   types carry none.
 2. **Modules on packages.** jMolecules `@Module` on the `package-info.java` of `domain`, `application`,
-   `adapter.cli`, `adapter.log`, and `adapter.kafka`. Spring Modulith takes these as the application modules, set by
-   `spring.modulith.detection-strategy=explicitly-annotated` in `application.properties`.
+   `adapter.cli.boot`, `adapter.cli.console`, `adapter.cli.log`, `adapter.kafka.consumer`,
+   `adapter.kafka.publisher`, `adapter.protobuf`, and each story's package. Spring Modulith takes these as the
+   application modules, set by `spring.modulith.detection-strategy=explicitly-annotated` in
+   `platform.properties`.
 3. **The rule.** `ArchitectureTest` imports the main classes with ArchUnit and runs
    `JMoleculesArchitectureRules.ensureHexagonal()`, a layered architecture whose layers are the stereotypes, at the
    strict depth. It fails when a use case reaches an adapter, an adapter reaches core code that is not a port, a
@@ -31,9 +37,12 @@ hexagon's edges.
    component diagram of the modules and their dependencies, one `.puml` per module with its direct dependencies,
    one `.adoc` canvas per module, and `all-docs.adoc` linking them. Then it runs `HexagonDocumenter` from the
    `architecture-discovery` library into `hexagon.puml`: the modules as a hexagon, driving adapters left, driven
-   adapters right, the application in the centre with the domain nested inside it. Inside each module, the types
-   with a hexagonal stereotype are listed with their role; types of other roles are listed up to ten per role,
-   then an ellipsis line with the total.
+   adapters right, the application in the centre with the domain nested inside it, the application's own types
+   in a row above the domain, and the adapters both sides share, jMolecules' unqualified `@Adapter`, in a row
+   below it. A hexagonal stereotype on a package is the role of every type in it that declares none of its own.
+   Inside each module, every type with a stereotype is a card with its role, laid out
+   in a grid, the permitted types of a sealed type in a row under it, implementing it. `HexagonDocumenter.Options`
+   caps the types listed per role, unlimited by default, an ellipsis line with the total beyond the cap.
    The roles come from jMolecules' stereotype catalogs, the `META-INF/jmolecules-stereotypes.json` in each jar,
    read by `jmolecules-stereotype`.
 6. **Rendering.** The Gradle task `renderDiagrams` runs PlantUML over the `.puml` files and writes one `.svg` per
@@ -82,18 +91,23 @@ docs/generated/architecture/
     module-eventing.<module>.svg
 ```
 
-The diagram draws two kinds of arrows: "uses" where a Spring bean of one module is injected into another, `cli` to
-`application`, and "depends on" where a type of one module refers to a type of another.
-
 ## Modules
 
 | `domain` | `application` |
 |---|---|
 | ![domain](../docs/generated/architecture/svg/module-eventing.domain.svg) | ![application](../docs/generated/architecture/svg/module-eventing.application.svg) |
 
-| `adapter.cli` | `adapter.log` | `adapter.kafka` |
+| `adapter.cli.boot` | `adapter.cli.console` | `adapter.cli.log` |
 |---|---|---|
-| ![cli](../docs/generated/architecture/svg/module-eventing.adapter.cli.svg) | ![log](../docs/generated/architecture/svg/module-eventing.adapter.log.svg) | ![kafka](../docs/generated/architecture/svg/module-eventing.adapter.kafka.svg) |
+| ![boot](../docs/generated/architecture/svg/module-eventing.adapter.cli.boot.svg) | ![console](../docs/generated/architecture/svg/module-eventing.adapter.cli.console.svg) | ![log](../docs/generated/architecture/svg/module-eventing.adapter.cli.log.svg) |
+
+| `adapter.kafka.consumer` | `adapter.kafka.publisher` | `adapter.protobuf` |
+|---|---|---|
+| ![kafka consumer](../docs/generated/architecture/svg/module-eventing.adapter.kafka.consumer.svg) | ![kafka publisher](../docs/generated/architecture/svg/module-eventing.adapter.kafka.publisher.svg) | ![protobuf](../docs/generated/architecture/svg/module-eventing.adapter.protobuf.svg) |
+
+| `stories.load` | `stories.teaparty` |
+|---|---|
+| ![load](../docs/generated/architecture/svg/module-stories.load.svg) | ![tea party](../docs/generated/architecture/svg/module-stories.teaparty.svg) |
 
 ## Limits
 
