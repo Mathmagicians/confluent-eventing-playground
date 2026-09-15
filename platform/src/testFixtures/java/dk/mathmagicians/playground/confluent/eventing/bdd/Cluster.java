@@ -60,6 +60,7 @@ public class Cluster {
     private final Environment environment;
     private final Topics topics;
     private final AdminClient client;
+    private final Map<String, KafkaProtobufDeserializer<?>> deserializers = new HashMap<>();
 
     Cluster(KafkaProperties properties, Environment environment) {
         this.properties = properties;
@@ -209,25 +210,37 @@ public class Cluster {
     @PreDestroy
     void close() {
         client.close();
+        deserializers.values().forEach(KafkaProtobufDeserializer::close);
     }
 
     /// The value of a record as its message, resolved through the registry like a consumer would.
     <T extends Message> T value(ConsumerRecord<String, byte[]> record, Class<T> type) {
-        var configs = new HashMap<String, Object>(properties.getProperties());
-        configs.put(KafkaProtobufDeserializerConfig.SPECIFIC_PROTOBUF_VALUE_TYPE, type.getName());
-        try (var deserializer = new KafkaProtobufDeserializer<T>()) {
-            deserializer.configure(configs, false);
-            return deserializer.deserialize(record.topic(), record.value());
-        }
+        @SuppressWarnings("unchecked")
+        var deserializer = (KafkaProtobufDeserializer<T>) deserializer(type.getName());
+        return deserializer.deserialize(record.topic(), record.value());
     }
 
     /// The value of a record as the message its registered schema describes, for a schema with no generated code:
     /// a table Flink registered.
     DynamicMessage value(ConsumerRecord<String, byte[]> record) {
-        try (var deserializer = new KafkaProtobufDeserializer<DynamicMessage>()) {
-            deserializer.configure(new HashMap<>(properties.getProperties()), false);
-            return deserializer.deserialize(record.topic(), record.value());
-        }
+        @SuppressWarnings("unchecked")
+        var deserializer = (KafkaProtobufDeserializer<DynamicMessage>) deserializer("");
+        return deserializer.deserialize(record.topic(), record.value());
+    }
+
+    /// One deserializer per message type for the life of the driver, and one for the dynamic form, the empty
+    /// name: each holds a registry client with its connection and its schema cache, and a record is a lookup
+    /// in that cache, not a round trip.
+    private KafkaProtobufDeserializer<?> deserializer(String type) {
+        return deserializers.computeIfAbsent(type, name -> {
+            var configs = new HashMap<String, Object>(properties.getProperties());
+            if (!name.isEmpty()) {
+                configs.put(KafkaProtobufDeserializerConfig.SPECIFIC_PROTOBUF_VALUE_TYPE, name);
+            }
+            var deserializer = new KafkaProtobufDeserializer<>();
+            deserializer.configure(configs, false);
+            return deserializer;
+        });
     }
 
     /// The record at the offset, headers and raw value.
