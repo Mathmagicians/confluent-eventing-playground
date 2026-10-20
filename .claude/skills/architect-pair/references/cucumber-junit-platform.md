@@ -47,3 +47,21 @@
   the registry's latest id for the subject.
 - Schema equality goes through `ProtobufSchema.canonicalString()` on both sides, references resolved from the
   registry by subject and version.
+
+## A story under test
+
+- `StoryContainer`, scenario-scoped, starts the image with `--story`, the story's settings as `--<name>.<key>`,
+  the group `<story>-testrun-<salt>` through `spring.kafka.consumer.group-id`, which `StoryListener` honours over
+  the story's own, and `auto-offset-reset=latest`. It waits for "partitions assigned" and records the topics' end
+  offsets at start.
+- Isolation is a salt: `Region`, scenario-scoped, salts the feature's region word, `EMEA-<8 hex>`, and the group.
+  A story with a region hears its region only, so scenarios share the topics and never each other's records.
+- Caught up means the group's committed offsets reached the end offsets, or nothing new was written since the
+  start. Awaitility polls with `pollInSameThread()`: a scenario-scoped bean is not visible from another thread.
+- The container stops with SIGTERM, `stopContainerCmd(...).withTimeout(20)`, before `stop()`, so the consumer
+  leaves the group; the group is deleted afterwards, retried while "The group is not empty".
+- What the scenario published is read back once into `Published`, receipts and payloads. The oracle is what the
+  scenario placed, the result is the topic: an order is settled when a transaction names it.
+- The platform's steps are the technology: the keys, the generator, the streams of offers, orders, and
+  transactions, the reading. A story's glue adds its own outcomes through a driver like `TeaPartyTable`, and its
+  README carries the table: scenarios, unique steps, of the platform, of the story.

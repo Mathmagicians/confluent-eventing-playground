@@ -18,8 +18,10 @@ DISCOVERY := architecture-discovery/gradlew -p architecture-discovery
 WITH_GH := GITHUB_ACTOR=$${GITHUB_ACTOR:-$$(gh api user -q .login)} GITHUB_TOKEN=$${GITHUB_TOKEN:-$$(gh auth token)}
 TF := terraform -chdir=iac
 CONFLUENT_API := https://api.confluent.cloud
+# the talk has its own make in slides/; it gets the committed diagrams and the PDF to write
+SLIDES := $(MAKE) --no-print-directory -C slides DIAGRAMS=$(CURDIR)/docs/generated/architecture/svg PDF=$(CURDIR)/docs/generated/slides/architecture-discoverability.pdf
 
-.PHONY: generated-check proto-gen proto-check run-tiny docker-smoke up-product up-offer up-order up-tea-party tf-init tf-check tf-format tf-plan tf-output confluent-lookup flink-statements flink-verify discovery-build discovery-install discovery-publish platform-install platform-publish git-tag git-release gh-main-protection
+.PHONY: generated-check proto-gen proto-check run-tiny docker-smoke up-product up-offer up-order up-tea-party tf-init tf-check tf-format tf-plan tf-output confluent-lookup flink-statements flink-verify discovery-build discovery-install discovery-publish platform-install platform-publish slides slides-pdf git-tag git-release gh-main-protection
 
 ##@ Generated code and documents
 generated-check: proto-check arch-check   ## fail when generated code or documents are stale
@@ -116,6 +118,13 @@ platform-install:  ## the platform, its test fixtures, and the stories into the 
 
 platform-publish:  ## the platform, its test fixtures, and the stories to GitHub Packages, where a story's build takes them from
 	@$(WITH_GH) $(GRADLE) publish --no-configuration-cache
+
+##@ Slides, the talk in slides/, which has its own make
+slides:       ## present the talk, live reload and presenter notes
+	@$(SLIDES) present
+
+slides-pdf:   ## write the talk to docs/generated/slides/architecture-discoverability.pdf
+	@$(SLIDES) pdf
 
 ##@ Repository, git tags and GitHub settings
 git-tag:   ## tag v<RELEASE> on HEAD and push it; RELEASE defaults to the next version

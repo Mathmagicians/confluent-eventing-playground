@@ -1,0 +1,4 @@
+node_modules/
+dist/
+# copied from docs/generated/architecture/svg on every run
+public/generated/

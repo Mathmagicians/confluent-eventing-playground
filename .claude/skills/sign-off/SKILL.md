@@ -37,7 +37,9 @@ full stop.
 ## Fix means the findings
 
 "Fix it" after a review means apply the findings, one edit at a time, in the human's names and structure. A
-restructure, a rename, a move is a proposal of its own. The human's structure is their intent.
+restructure, a rename, a move is a proposal of its own. The human's structure is their intent. A go on one thing
+never covers a move, a trim, or a rewrite of the human's code folded into it: their `Converter` moved and trimmed
+under a go for the console was the sixth incident, and the rule now stands in CLAUDE.md.
 
 ## A skeleton
 
