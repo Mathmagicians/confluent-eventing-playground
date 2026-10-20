@@ -1,7 +1,7 @@
 {
   "name": "slides",
   "private": true,
-  "description": "The talk, Architecture Discoverability and Verification; make slides and make slides-pdf run it",
+  "description": "The talk, Architecture Discoverability and Verification; make slides-present and make slides-pdf run it",
   "engines": {
     "node": ">=22.12.0"
   },

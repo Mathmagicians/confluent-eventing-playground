@@ -260,9 +260,14 @@ Owner: pair. Turns green: the PR's checks, and the CI rule of the map.
 
 ## Slides alongside
 
-Owner: pair. The deck in [slides/](../../../slides/slides.md), with `make slides` and `make slides-pdf`. The PDF in
-`docs/generated/slides` carries the first titles; `make slides-pdf` brings it to the current ones. Each idea fills
-its section of the deck as it lands.
+Owner: pair. The deck in [slides/](../../../slides/slides.md), with `make slides-present` and `make slides-pdf`. Each
+idea fills its section of the deck as it lands.
+
+- The talk plays in the `slides` service of [compose.yaml](../../../compose.yaml), from
+  [slides/Dockerfile](../../../slides/Dockerfile); Node and Chromium live in the image. Spike played and signed
+  2026-10-20.
+- One compose plays Wonderland and the talk, signed 2026-10-20.
+- The PDF in `docs/generated/slides` is the export of 2026-10-20.
 
 ## README
 

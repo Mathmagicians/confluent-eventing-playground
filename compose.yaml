@@ -1,6 +1,6 @@
 # The flock: one generator per event type, and the tea party that settles their orders. `make up` starts them all,
 # `make up-<type>` one generator, `make up-tea-party` the tea party, against ENV. Defaults live here; override with
-# environment variables, e.g. OFFER_CONCURRENT=50 TTL=300 make up-offer.
+# environment variables, e.g. OFFER_CONCURRENT=50 TTL=300 make up-offer. Beside the flock, the talk.
 name: confluent-eventing-playground
 
 x-generator: &generator
@@ -51,3 +51,18 @@ services:
       - --story=tea-party
       - --tea-party.region=${REGION:-EMEA}
       - --tea-party.ttl=${TTL:-60}
+
+  # the talk, Slidev over slides/ and the committed diagrams, on localhost:3030, `make slides-present`; the export writes
+  # the PDF to docs/generated/slides, `make slides-pdf`. Its profile keeps it out of `make up`.
+  slides:
+    profiles: [slides]
+    build: slides
+    command: [slides.md, --remote, --port=3030]
+    ports:
+      - 127.0.0.1:3030:3030
+    volumes:
+      - ./slides:/slides
+      # the image's packages, over the folder's
+      - /slides/node_modules
+      - ./docs/generated/architecture/svg:/slides/public/generated:ro
+      - ./docs/generated/slides:/pdf

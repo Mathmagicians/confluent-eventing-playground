@@ -27,7 +27,17 @@ layout: section
 
 ---
 
-# Why Java? Enterprise.
+# Tech stack
+
+- Why Java? Enterprise.
+- Eventing
+  - Confluent, expensive
+  - Strimzi, a Kafka distribution
+  - Cloudflare
+- Docker + Docker Compose to run it
+- Cucumber for BDD
+
+*... and the slides you see run from a cosy Docker container with Slidev*
 
 ---
 

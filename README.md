@@ -19,7 +19,7 @@ generator and stream consumers, against **Confluent Cloud**.
 - jMolecules + ArchUnit - hexagonal stereotypes on ports, adapters, and application services, and the rule that
   enforces them
 - Testcontainers - runs the image under test in the BDD suite
-- Docker + Compose - starts the flock: the load generators and the stories that read them
+- Docker + Compose - starts the flock: the load generators and the stories that read them; and plays the talk
 - GitHub Actions - CICD + publish to GH registry, and hourly load runs
 - Terraform + Terraform Cloud - topics, schemas, and Flink tables on Confluent Cloud, provider `confluentinc/confluent`
 - Container image - deployment unit, built with `./gradlew bootBuildImage`
@@ -163,7 +163,7 @@ only, both reach the shared adapters, which reach the domain only, and nothing i
 ├── Makefile                  the entry point for humans and CI: what only this repository has
 ├── platform.mk               the make targets every build on the platform shares, included by the Makefile and a story's own
 ├── platform.gradle           the Gradle conventions every build on the platform shares, applied by build.gradle and a story's own
-├── compose.yaml              the flock: generators per region, the tea party
+├── compose.yaml              the flock: generators per region, the tea party; beside it the talk
 ├── build.gradle / settings.gradle
 ├── platform/                 the eventing platform: domain, the Story contract, the adapters; its test fixtures are the shared BDD
 ├── stories/                  the stories of this repository, one jar each: load, tea-party
@@ -174,7 +174,11 @@ only, both reach the shared adapters, which reach the domain only, and nothing i
 ├── iac/                      Terraform: topics, schemas, and Flink tables on the Confluent cluster, applied by Terraform Cloud
 ├── .github/workflows/        cicd.yaml, load-run.yaml, iac.yaml, architecture-discovery.yaml, cicd-client-example.yaml
 ├── architecture-discovery/   the library behind the hexagon diagram, and architecture-discoverability.md: its own build, its own workflow, published to GitHub Packages
-└── docs/                     generated/architecture from the code, make arch-gen
+├── slides/                   the talk, Architecture Discoverability and Verification, played by compose: make slides-present
+└── docs/
+    ├── generated/            the architecture from the code, make arch-gen; the slides as PDF, make slides-pdf
+    ├── releases/             a folder per release: the overview with the catalog of its ideas, and one file per phase
+    └── adr.md                the architecture decisions
 ```
 
 Root package: `dk.mathmagicians.playground.confluent`. Packages by ring inside the platform: `domain` in the
@@ -440,6 +444,22 @@ BDD with Cucumber:
 - `main` is protected: changes arrive by pull request with a green `ci`, `cd`, `iac`, `architecture-discovery`,
   and `cicd-client-example`, no force pushes, linear history.
   `.github/branch-protection.json` is the setting, `make gh-main-protection` applies it.
+
+## How we work
+
+Spec driven, in Cucumber's BDD vocabulary. A release is a rotation from idea to Wonderland in production, and holds
+the ideas we put in it. Its plan lives in `docs/releases/`: the overview, the catalog of the release's ideas and the
+state of their rules, and one file per phase.
+
+| Phase | What happens | Gate that closes it |
+|---|---|---|
+| Discovery | example mapping: the story, its rules, an example per rule, the questions | Examples agreed |
+| Formulation | the examples become Gherkin scenarios and architecture rules, the steps pending | Spec signed |
+| Automation | step bodies, drivers, unit tests, code, and plumbing turn the spec green | Spec green, the ADRs complied with |
+| Verification | the release checks on the pull request, then Wonderland in each of its environments | In production |
+
+A rule moves through the phases on its own. Each gate is signed with its date and its evidence. Architecture
+decisions are recorded in `docs/adr.md`, each with the rule or test that enforces it.
 
 ## Definition of done
 
