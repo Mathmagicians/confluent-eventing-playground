@@ -1,4 +1,4 @@
-rootProject.name = 'confluent-eventing-playground'
+rootProject.name = 'wonderland-eventing-playground'
 
 // the substrate, the stories it runs in this repository, and the distribution that puts them in one image
 include 'platform'

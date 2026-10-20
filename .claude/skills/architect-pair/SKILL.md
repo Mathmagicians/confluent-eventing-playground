@@ -12,8 +12,8 @@ runs, and keeps what this stack taught us in `references/`.
 ## Off limits
 
 `.env.*.private` is never read, opened, or sourced by an agent. Git is read-only for an agent: no `add`, `commit`,
-`push`, `pull`, `checkout`, `rebase`, `tag`, `stash`, `config`, no branch changes. When something needs staging,
-name the paths in one line and stop.
+`push`, `pull`, `checkout`, `rebase`, `tag`, `stash`, `config`, no branch changes. Staging is the human's; a report
+names what changed, never paths to stage.
 
 ## A step
 

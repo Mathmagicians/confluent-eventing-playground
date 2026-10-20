@@ -1,10 +1,10 @@
 # Event Streaming Refresher
 
-[![cicd](https://github.com/Mathmagicians/confluent-eventing-playground/actions/workflows/cicd.yaml/badge.svg?branch=main)](https://github.com/Mathmagicians/confluent-eventing-playground/actions/workflows/cicd.yaml)
-[![iac](https://github.com/Mathmagicians/confluent-eventing-playground/actions/workflows/iac.yaml/badge.svg?branch=main)](https://github.com/Mathmagicians/confluent-eventing-playground/actions/workflows/iac.yaml)
-[![load-run](https://github.com/Mathmagicians/confluent-eventing-playground/actions/workflows/load-run.yaml/badge.svg)](https://github.com/Mathmagicians/confluent-eventing-playground/actions/workflows/load-run.yaml)
-[![architecture-discovery](https://github.com/Mathmagicians/confluent-eventing-playground/actions/workflows/architecture-discovery.yaml/badge.svg?branch=main)](https://github.com/Mathmagicians/confluent-eventing-playground/actions/workflows/architecture-discovery.yaml)
-[![cicd-client-example](https://github.com/Mathmagicians/confluent-eventing-playground/actions/workflows/cicd-client-example.yaml/badge.svg?branch=main)](https://github.com/Mathmagicians/confluent-eventing-playground/actions/workflows/cicd-client-example.yaml)
+[![cicd](https://github.com/Mathmagicians/wonderland-eventing-playground/actions/workflows/cicd.yaml/badge.svg?branch=main)](https://github.com/Mathmagicians/wonderland-eventing-playground/actions/workflows/cicd.yaml)
+[![iac](https://github.com/Mathmagicians/wonderland-eventing-playground/actions/workflows/iac.yaml/badge.svg?branch=main)](https://github.com/Mathmagicians/wonderland-eventing-playground/actions/workflows/iac.yaml)
+[![load-run](https://github.com/Mathmagicians/wonderland-eventing-playground/actions/workflows/load-run.yaml/badge.svg)](https://github.com/Mathmagicians/wonderland-eventing-playground/actions/workflows/load-run.yaml)
+[![architecture-discovery](https://github.com/Mathmagicians/wonderland-eventing-playground/actions/workflows/architecture-discovery.yaml/badge.svg?branch=main)](https://github.com/Mathmagicians/wonderland-eventing-playground/actions/workflows/architecture-discovery.yaml)
+[![cicd-client-example](https://github.com/Mathmagicians/wonderland-eventing-playground/actions/workflows/cicd-client-example.yaml/badge.svg?branch=main)](https://github.com/Mathmagicians/wonderland-eventing-playground/actions/workflows/cicd-client-example.yaml)
 
 Reference implementation of an **eventing platform**, a proof of concept, that plays **stories**, a Kafka load
 generator and stream consumers, against **Confluent Cloud**.
@@ -242,10 +242,10 @@ The application is a container image that plays one story per process, `--story=
 the flock with compose, see `compose.yaml` and the Flock section of `make help`, or start the image on its own:
 
 ```bash
-docker run --rm confluent-eventing-playground:$(make version)
-docker run --rm confluent-eventing-playground:$(make version) --load.type=order --load.concurrent=20 --load.interval=100 --load.region=APAC --load.ttl=120
-docker run --rm ghcr.io/mathmagicians/confluent-eventing-playground:latest --load.type=product
-docker run --rm ghcr.io/mathmagicians/confluent-eventing-playground:latest --story=tea-party --tea-party.region=EMEA
+docker run --rm wonderland-eventing-playground:$(make version)
+docker run --rm wonderland-eventing-playground:$(make version) --load.type=order --load.concurrent=20 --load.interval=100 --load.region=APAC --load.ttl=120
+docker run --rm ghcr.io/mathmagicians/wonderland-eventing-playground:latest --load.type=product
+docker run --rm ghcr.io/mathmagicians/wonderland-eventing-playground:latest --story=tea-party --tea-party.region=EMEA
 ```
 A story's settings are the bundle of its name, and every story takes `--<name>.ttl`, the seconds it plays before
 the process ends; left empty, `--tea-party.ttl=`, a consumer reads until stopped. The tea party takes
@@ -417,7 +417,7 @@ BDD with Cucumber:
 - `cicd.yaml`, job `ci`, runs on pull requests to `main`, on pushes to `main`, and on `workflow_dispatch`:
   generated-check, arch-verify, build with unit tests, the platform, its test fixtures, and the stories as a
   snapshot to GitHub Packages, container image, then publishes the build to
-  `ghcr.io/mathmagicians/confluent-eventing-playground` as a candidate tagged `sha-<short sha>`. A pull request
+  `ghcr.io/mathmagicians/wonderland-eventing-playground` as a candidate tagged `sha-<short sha>`. A pull request
   adds `pr-<number>`, a push to `main` adds `latest`. Only `main` moves `latest`.
 - `cicd.yaml`, job `cd`, follows `ci`: it deploys to test by running the integration tests, `make bdd-published`,
   against the candidate, with the credentials of the `confluent-test` environment. A green `cd` on a pull request

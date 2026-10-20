@@ -231,10 +231,17 @@ Owner: pair. Turns green: the PR's checks, and the CI rule of the map.
 
 - `cicd.yaml`, job `cd`: `make bdd-published TAG=... TRANSPORT=kafka`, with the broker on the runner.
 - `cicd-client-example.yaml`: the purse's features on `kafka`, per its question 2.
-- `load-run.yaml`: `workflow_dispatch` only, the input `transport` and the branch pick `<transport>-<test|prod>`,
-  prod from `main`, in [load-run.yaml](../../../.github/workflows/load-run.yaml); the environments set by
-  `make gh-main-protection` from `TRANSPORTS`, 2026-10-20. Open: the `FIXME`
-  there, `TRANSPORT` into make once `platform.mk` takes it; the `kafka-*` and `cloudflare-*` environments filled.
+
+## Load on demand: the transport and its environment
+
+Owner: pair. Turns green: the dispatches of the map.
+
+- [load-run.yaml](../../../.github/workflows/load-run.yaml): `workflow_dispatch` only; `transport` and the branch
+  pick `<transport>-<test|prod>`, prod from `main`, 2026-10-20.
+- The environments: `TRANSPORTS` in the [Makefile](../../../Makefile), `.github/environment-test.json` and
+  `environment-prod.json`, applied by `make gh-main-protection`, 2026-10-20.
+- Open: the `FIXME` in `load-run.yaml`, `TRANSPORT` into make once `platform.mk` takes it, with Messaging
+  capability; the `kafka-*` and `cloudflare-*` environments filled.
 
 ## Stories describe themselves
 
@@ -263,13 +270,37 @@ Owner: pair. Turns green: the PR's checks, and the CI rule of the map.
 ## Slides alongside
 
 Owner: pair. The deck in [slides/](../../../slides/slides.md), with `make slides-present` and `make slides-pdf`. Each
-idea fills its section of the deck as it lands.
+idea fills its section of the deck as it lands. The talk plays from compose, [Slides spike](#slides-spike-the-talk-plays-from-compose).
+
+- The PDF in `docs/generated/slides` is the export of 2026-10-20.
+
+## Slides spike: the talk plays from compose
+
+Owner: pair.
 
 - The talk plays in the `slides` service of [compose.yaml](../../../compose.yaml), from
-  [slides/Dockerfile](../../../slides/Dockerfile); Node and Chromium live in the image. Spike played and signed
-  2026-10-20.
+  [slides/Dockerfile](../../../slides/Dockerfile); Node and Chromium live in the image. `make slides-present` opens
+  the browser, `make slides-pdf` exports.
 - One compose plays Wonderland and the talk, signed 2026-10-20.
-- The PDF in `docs/generated/slides` is the export of 2026-10-20.
+- Spec green, signed 2026-10-20: themathmagician played the talk, "y it works nicely", and `make slides-pdf` wrote
+  `docs/generated/slides/architecture-discoverability.pdf` from the container.
+
+## One name: wonderland-eventing-playground
+
+Owner: pair; the repository renamed by themathmagician. Turns green: the rule of the map.
+
+- The repository `Mathmagicians/wonderland-eventing-playground`, renamed 2026-10-21.
+- The spellings, 2026-10-21: the badges in the [README](../../../README.md) and
+  [examples/purse/README.md](../../../examples/purse/README.md), `IMAGE` in the [Makefile](../../../Makefile),
+  [compose.yaml](../../../compose.yaml), [platform.gradle:45](../../../platform.gradle#L45),
+  [architecture-discovery/build.gradle:57](../../../architecture-discovery/build.gradle#L57),
+  [settings.gradle:1](../../../settings.gradle#L1),
+  [app/.../application.properties:1](../../../app/src/main/resources/application.properties#L1), and
+  `EventFixtures.APP`.
+- Evidence for Spec green, 2026-10-21: `grep -rIi confluent-eventing-playground` finds no file outside the build
+  output; `make build` green.
+- Open: `origin` at the new name, the Terraform Cloud workspace's VCS connection, and the visibility of the new
+  ghcr package after the first push.
 
 ## README
 

@@ -1,8 +1,8 @@
-# confluent-eventing-playground: the eventing platform, the stories it plays, and the distribution that puts them
+# wonderland-eventing-playground: the eventing platform, the stories it plays, and the distribution that puts them
 # in one image against Confluent Cloud. `make` builds, `make help` lists the targets. What every build on the
 # platform shares is in platform.mk; this file adds what only this repository has.
 
-IMAGE := confluent-eventing-playground
+IMAGE := wonderland-eventing-playground
 BOOT := :app
 # the load story at its smallest: one producer, about one event, then exit
 MINIMUM := --load.concurrent=1 --load.interval=1000 --load.ttl=2

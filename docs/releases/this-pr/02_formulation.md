@@ -18,6 +18,13 @@ from the rule's row in the catalog.
 |---|---|---|
 | `@confluent` on the two Confluent Cloud features | themathmagician | `make bdd TRANSPORT=kafka` leaves them out |
 
+## Load on demand: the transport and its environment
+
+| Task | Owner | Done when |
+|---|---|---|
+| The spec: the Git and CI bullet on `load-run.yaml` in the README, and `.github/environment-test.json` and `environment-prod.json`, applied by `make gh-main-protection` | pair | themathmagician signs it |
+| The red run: a dispatch from `eventing-without-confluent` with `transport=kafka`, in the empty `kafka-test` | pair | the run shown, red at startup |
+
 ## Stories describe themselves
 
 | Task | Owner | Done when |

@@ -51,17 +51,14 @@ and the decisions it raises for [docs/adr.md](../../adr.md).
 
 ## CI off Confluent
 
-**Story:** CI plays the spec, and the load plays on demand, with Confluent Cloud out of service.
+**Story:** CI plays the spec with Confluent Cloud out of service. The load run is its own idea,
+[Load on demand](#load-on-demand-the-transport-and-its-environment).
 
 ### Rule: CI plays the spec on kafka; the features about Confluent Cloud carry @confluent and run on confluent
 - a pull request: `cd` and `cicd-client-example` run the features on a broker on the runner, green.
 - [the_cluster_has_my_topics_and_schemas.feature](../../../platform/src/test/resources/features/the_cluster_has_my_topics_and_schemas.feature)
   and [the_flink_cluster_in_the_cloud_keeps_the_latest_value_snapshot.feature](../../../platform/src/test/resources/features/the_flink_cluster_in_the_cloud_keeps_the_latest_value_snapshot.feature)
   carry `@confluent`.
-- `load-run.yaml` runs on `workflow_dispatch`, with the transport, `confluent`, `kafka`, or `cloudflare`, and the
-  load arguments as inputs; it plays in the GitHub environment `<transport>-prod` from `main` and in
-  `<transport>-test` from any other branch, and the `kafka-*` and `cloudflare-*` environments start empty. Set by
-  themathmagician 2026-10-20.
 
 **Questions**
 1. Production is the environments Wonderland plays in, `test` and `prod`: which transport each plays on, with
@@ -71,6 +68,37 @@ and the decisions it raises for [docs/adr.md](../../adr.md).
 
 **Decisions for docs/adr.md, by title**
 - CI plays the spec on a local broker
+
+## Load on demand: the transport and its environment
+
+**Story:** I play the load when I choose, on the transport I pick: in test from a branch, in prod from `main`.
+
+Examples agreed by themathmagician 2026-10-20.
+
+### Rule: load-run.yaml runs on dispatch, with the transport confluent, kafka, or cloudflare, and the load arguments
+- a dispatch with `transport=kafka` and no arguments: `make docker-smoke`, the minimum.
+- a dispatch with arguments: `make docker-run` with them.
+- the hour turns: nothing runs.
+
+### Rule: from main the load plays in <transport>-prod, from any other branch in <transport>-test
+- a dispatch from `eventing-without-confluent` with `transport=kafka`: the job runs in `kafka-test`, with `ENV=test`.
+- a dispatch from `main` with `transport=confluent`: the job runs in `confluent-prod`, with `ENV=prod`.
+- `<transport>-prod` takes deployments from `main` only; `make gh-main-protection` sets each transport's two
+  environments.
+- the `kafka-*` and `cloudflare-*` environments start empty.
+
+## One name: wonderland-eventing-playground
+
+**Story:** the project carries one name, without a vendor: Confluent is one of the transports it serves.
+
+Examples agreed by themathmagician 2026-10-21.
+
+### Rule: every spelling of the project's name is wonderland-eventing-playground
+- the repository `Mathmagicians/wonderland-eventing-playground`, its badges, the GitHub Packages Maven URL, and
+  `rootProject.name`.
+- the image `ghcr.io/mathmagicians/wonderland-eventing-playground` and the compose project.
+- `spring.application.name`, on the wire as `ce_source`.
+- the Java package `dk.mathmagicians.playground.confluent` stays.
 
 ## Stories describe themselves
 

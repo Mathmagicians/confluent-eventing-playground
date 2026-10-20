@@ -145,8 +145,8 @@ keys, topics, and layering.
 - Docs stay consistent in the same change. Plumbing that adds or renames a variable, target, profile, image name,
   or workflow updates the README and the Makefile `##` comments together with the code. Every Makefile target
   carries a `##` comment, since `make help` is built from them.
-- Git writes are the human's, see Security settings. When something needs staging or committing, say which paths
-  in one line and leave it there.
+- Git writes are the human's, see Security settings, and so is knowing what to stage: a report names what changed,
+  never paths to stage.
 - One plumbing concern per change.
 - Nothing external enters the repository unapproved: a dependency, a plugin, a Gradle repository, a GitHub Action,
   a tool installed in a workflow. Name it with its origin in the proposal, community projects as such, and add it

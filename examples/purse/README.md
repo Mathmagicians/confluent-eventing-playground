@@ -1,6 +1,6 @@
 # The purse, a story of its own
 
-[![cicd-client-example](https://github.com/Mathmagicians/confluent-eventing-playground/actions/workflows/cicd-client-example.yaml/badge.svg?branch=main)](https://github.com/Mathmagicians/confluent-eventing-playground/actions/workflows/cicd-client-example.yaml)
+[![cicd-client-example](https://github.com/Mathmagicians/wonderland-eventing-playground/actions/workflows/cicd-client-example.yaml/badge.svg?branch=main)](https://github.com/Mathmagicians/wonderland-eventing-playground/actions/workflows/cicd-client-example.yaml)
 
 A story is a business process the eventing platform runs: it says what it listens to, the platform hands it every
 message of those kinds, and what it wants to publish, it publishes through the platform. This folder is one story,
@@ -15,7 +15,7 @@ feature, its own CI. Copy it, rename it, and you have your own.
 | `dk.mathmagicians.playground:platform`, test fixtures       | the BDD drivers and steps, the parameter types, the architecture tests and the hexagon writer |
 | `platform.gradle`                                           | the Gradle conventions: version from git tags, repositories, the Boot BOM, the tasks |
 | `platform.mk`                                               | the make targets: build, test, image, features, architecture                        |
-| `ghcr.io/mathmagicians/confluent-eventing-playground`       | the platform's own distribution, the generators and the tea party your story trades with |
+| `ghcr.io/mathmagicians/wonderland-eventing-playground`      | the platform's own distribution, the generators and the tea party your story trades with |
 
 The jars are on GitHub Packages, published by the platform's CI: a release under its version, `0.1.0`, and the
 snapshot of the next one between releases. GitHub Packages needs a token even to read, so `GITHUB_ACTOR` and

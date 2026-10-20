@@ -42,7 +42,7 @@ tasks.register('nextVersion') {
 // the environment, CI's or gh's; the same repository resolves them and receives them
 def githubPackages = {
     name = 'GitHubPackages'
-    url = 'https://maven.pkg.github.com/mathmagicians/confluent-eventing-playground'
+    url = 'https://maven.pkg.github.com/mathmagicians/wonderland-eventing-playground'
     credentials {
         username = System.getenv('GITHUB_ACTOR')
         password = System.getenv('GITHUB_TOKEN')

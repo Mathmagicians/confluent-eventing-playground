@@ -1,10 +1,10 @@
 # The flock: one generator per event type, and the tea party that settles their orders. `make up` starts them all,
 # `make up-<type>` one generator, `make up-tea-party` the tea party, against ENV. Defaults live here; override with
 # environment variables, e.g. OFFER_CONCURRENT=50 TTL=300 make up-offer. Beside the flock, the talk.
-name: confluent-eventing-playground
+name: wonderland-eventing-playground
 
 x-generator: &generator
-  image: confluent-eventing-playground:${VERSION:?set by make, the version is Gradle's}   # make docker-image
+  image: wonderland-eventing-playground:${VERSION:?set by make, the version is Gradle's}   # make docker-image
   # the profile is the environment; make sources what the image reads from .env.<ENV>.private
   environment:
     SPRING_PROFILES_ACTIVE: ${ENV:?set by make, test or prod}

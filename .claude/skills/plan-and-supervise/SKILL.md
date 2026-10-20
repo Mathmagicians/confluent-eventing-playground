@@ -105,7 +105,7 @@ Files: create / modify / delete
 Red first: <the scenario or test that fails before and passes after>
 Questions: <none | list>
 Agent: <agent type>
-themathmagician's actions: <paths to stage, a secret to set, none>
+themathmagician's actions: <a secret to set, a command to run, none>
 ```
 
 Wait for the yes. Launch one agent per task with the brief, the phase skill, and the README sections it touches.

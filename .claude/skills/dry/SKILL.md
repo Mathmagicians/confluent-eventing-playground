@@ -34,7 +34,7 @@ is the trigger to extract, and the question before writing anything is: where do
 - `.env.*.private`: never read, never opened, never sourced. `make` carries the values into the one command that
   needs them, and that is the whole contact.
 - Git writes: no `add`, `commit`, `push`, `pull`, `checkout`, `rebase`, `tag`, `stash`, `config`, no branch
-  changes. An agent names the paths to stage and stops there.
+  changes. Staging is the human's.
 - `.claude/settings.json`: the human's guard. A rule that blocks a task is a finding, never an edit.
 
 ## Unavoidable copies
