@@ -231,8 +231,10 @@ Owner: pair. Turns green: the PR's checks, and the CI rule of the map.
 
 - `cicd.yaml`, job `cd`: `make bdd-published TAG=... TRANSPORT=kafka`, with the broker on the runner.
 - `cicd-client-example.yaml`: the purse's features on `kafka`, per its question 2.
-- `load-run.yaml`: `workflow_dispatch` with the inputs `transport`, a choice of `cli`, `kafka`, `confluent`, and the
-  load arguments.
+- `load-run.yaml`: `workflow_dispatch` only, the input `transport` and the branch pick `<transport>-<test|prod>`,
+  prod from `main`, in [load-run.yaml](../../../.github/workflows/load-run.yaml); the environments set by
+  `make gh-main-protection` from `TRANSPORTS`, 2026-10-20. Open: the `FIXME`
+  there, `TRANSPORT` into make once `platform.mk` takes it; the `kafka-*` and `cloudflare-*` environments filled.
 
 ## Stories describe themselves
 
@@ -277,4 +279,4 @@ Owner: themathmagician, with the lines from pair.
 - Spring Boot: secrets fail fast at startup, named by `ConfluentKeys`.
 - Play and Definition of done: `make run TRANSPORT=cli`, and `make run-tiny` per its question 5.
 - Tech Stack: Apache Kafka and the schema registry for the local and the CI runs.
-- Git and CI: `load-run.yaml` on dispatch, `cd` and `cicd-client-example` on the local broker.
+- Git and CI: `cd` and `cicd-client-example` on the local broker.

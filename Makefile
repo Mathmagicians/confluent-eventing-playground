@@ -18,8 +18,10 @@ DISCOVERY := architecture-discovery/gradlew -p architecture-discovery
 WITH_GH := GITHUB_ACTOR=$${GITHUB_ACTOR:-$$(gh api user -q .login)} GITHUB_TOKEN=$${GITHUB_TOKEN:-$$(gh auth token)}
 TF := terraform -chdir=iac
 CONFLUENT_API := https://api.confluent.cloud
-# the talk has its own make in slides/; it gets the committed diagrams and the PDF to write
-# compose reads the whole of compose.yaml, the flock's environment included, so the talk runs with it from here
+# the transports the load plays on, each with the GitHub environments <transport>-test and <transport>-prod
+TRANSPORTS := confluent kafka cloudflare
+# the talk has its own make in slides/; compose reads the whole of compose.yaml, the flock's environment included,
+# so the talk runs with it from here
 SLIDES := $(MAKE) --no-print-directory -C slides COMPOSE='cd $(CURDIR) && $(COMPOSE)'
 
 .PHONY: generated-check proto-gen proto-check run-tiny docker-smoke up-product up-offer up-order up-tea-party tf-init tf-check tf-format tf-plan tf-output confluent-lookup flink-statements flink-verify discovery-build discovery-install discovery-publish platform-install platform-publish slides-present slides-pdf git-tag git-release gh-main-protection
@@ -134,5 +136,10 @@ git-tag:   ## tag v<RELEASE> on HEAD and push it; RELEASE defaults to the next v
 git-release: git-tag   ## the tag, plus <RELEASE> on the candidate image TAG in the registry
 	@docker buildx imagetools create -t $(REPO):$(RELEASE) $(REPO):$(TAG)
 
-gh-main-protection:   ## apply .github/branch-protection.json to main
+gh-main-protection:   ## apply .github/branch-protection.json to main, and .github/environment-<test|prod>.json to each transport's environments, prod from main only
 	@gh api --method PUT repos/$(GITHUB_REPO)/branches/main/protection --input .github/branch-protection.json
+	@set -e; for t in $(TRANSPORTS); do \
+	  for e in test prod; do gh api --method PUT repos/$(GITHUB_REPO)/environments/$$t-$$e --input .github/environment-$$e.json --silent; done; \
+	  gh api repos/$(GITHUB_REPO)/environments/$$t-prod/deployment-branch-policies --jq '.branch_policies[].name' | grep -qx main \
+	    || gh api --method POST repos/$(GITHUB_REPO)/environments/$$t-prod/deployment-branch-policies -f name=main -f type=branch --silent; \
+	done

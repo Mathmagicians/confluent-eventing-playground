@@ -20,7 +20,7 @@ generator and stream consumers, against **Confluent Cloud**.
   enforces them
 - Testcontainers - runs the image under test in the BDD suite
 - Docker + Compose - starts the flock: the load generators and the stories that read them; and plays the talk
-- GitHub Actions - CICD + publish to GH registry, and hourly load runs
+- GitHub Actions - CICD + publish to GH registry, and load runs on demand
 - Terraform + Terraform Cloud - topics, schemas, and Flink tables on Confluent Cloud, provider `confluentinc/confluent`
 - Container image - deployment unit, built with `./gradlew bootBuildImage`
 
@@ -38,7 +38,7 @@ generator and stream consumers, against **Confluent Cloud**.
 ## Purpose
 
 - Playground for refreshing event-streaming fundamentals against a managed Confluent cluster: keys, partitions, ordering, idempotence, schemas.
-- Generate repeatable load from GitHub Actions (hourly cron) and from a developer machine.
+- Generate repeatable load from GitHub Actions (on demand) and from a developer machine.
 - Use stream processing capabilities from Confluent to consume over several topics
 
 One topic per payload type, each keyed for a different ordering guarantee. Kafka keeps the records of one partition
@@ -77,7 +77,7 @@ in order, and the key picks the partition, so records with the same key stay in 
 
 | Service           | Role                                                                                                                                  | Runs where                              |
 |-------------------|---------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------|
-| `load`            | The generator: produces one payload type to its topic. One image, many instances distinguished by type and region (`EMEA`, `AMER`, `APAC`, ...). | Compose flock, GitHub Actions cron |
+| `load`            | The generator: produces one payload type to its topic. One image, many instances distinguished by type and region (`EMEA`, `AMER`, `APAC`, ...). | Compose flock, GitHub Actions on demand |
 | `tea-party`       | Reads a region's offers and orders, settles an order at the latest offer, publishes the transaction.                                | Compose flock                           |
 | `purse`           | Reads the transactions, keeps what its owner has left. The example of a story built outside, `examples/purse/`.                     | Its own image                           |
 
@@ -139,7 +139,7 @@ only, both reach the shared adapters, which reach the domain only, and nothing i
 ### Data flow
 
 ```
- GitHub Actions cron (hourly)          developer machine
+ GitHub Actions on demand              developer machine
           |                                   |
           v                                   v
    load story (EMEA)   ...   load story (region N)
@@ -206,11 +206,11 @@ CI gate.
 
 #### Environments
 
-| Profile | Publishes to    | Runs from                                                      |
-|---------|-----------------|----------------------------------------------------------------|
-| `local` | the log         | Developer machine, no credentials                              |
-| `test`  | `test.<topic>`  | Developer machine, the `cd` job on every pull request          |
-| `prod`  | `prod.<topic>`  | `load-run.yaml` hourly cron, developer machine with `ENV=prod` |
+| Profile | Publishes to    | Runs from                                                                            |
+|---------|-----------------|--------------------------------------------------------------------------------------|
+| `local` | the log         | Developer machine, no credentials                                                    |
+| `test`  | `test.<topic>`  | Developer machine, the `cd` job on every pull request, `load-run.yaml` from a branch |
+| `prod`  | `prod.<topic>`  | `load-run.yaml` from `main`, developer machine with `ENV=prod`                       |
 
 `test` and `prod` run against Confluent Cloud.
 
@@ -222,7 +222,9 @@ properties files. `.env.private.sample` lists them. They live in three places:
 - `.env.<ENV>.private`, `ENV` being `test` or `prod`, git-ignored. `make` sources the file for `ENV`, default
   `test`, into the command it runs.
 - The GitHub environments `confluent-test` and `confluent-prod`: the endpoints as variables, the API keys as
-  secrets. One Confluent cluster serves both, one topic prefix each.
+  secrets. One Confluent cluster serves both, one topic prefix each. `load-run.yaml` plays in `<transport>-prod`
+  from `main` and in `<transport>-test` from any other branch; the `kafka-*` and `cloudflare-*` environments start
+  empty.
 - The Terraform Cloud workspace, as Terraform variables.
 
 #### IaC
@@ -351,7 +353,7 @@ Test layers:
 |-------|---------------------------------------------------|------------------------------------------------|---------|
 | Unit  | JUnit 5, AssertJ, Mockito                         | One class in isolation                         | ms      |
 | BDD   | Cucumber, Testcontainers running the image        | One feature end to end: the image against the Confluent test cluster | seconds |
-| Load  | GitHub Actions against Confluent Cloud            | the latest image, hourly, measured             | minutes |
+| Load  | GitHub Actions on the transport picked            | the latest image, on demand, measured          | minutes |
 
 Unit tests:
 
@@ -427,9 +429,10 @@ BDD with Cucumber:
 - A minor or major version is a `workflow_dispatch` of `cicd.yaml` on `main` with the version. The merge before
   it would tag the next patch by itself, so pause the workflow around the merge: `gh workflow disable cicd.yaml`,
   merge, `gh workflow enable cicd.yaml`, then `gh workflow run cicd.yaml --ref main -f version=<version>`.
-- `load-run.yaml` runs hourly (`0 * * * *`) and on `workflow_dispatch` with one input, the load arguments. It
-  generates load in production: the `latest` image with the `prod` profile, `make docker-smoke` when the arguments
-  are empty and `make docker-run` otherwise, with the credentials of the `confluent-prod` environment. No `latest`
+- `load-run.yaml` runs on `workflow_dispatch` with two inputs, the transport, `confluent`, `kafka`, or
+  `cloudflare`, and the load arguments. It generates load with the `latest` image, `make docker-smoke` when the
+  arguments are empty and `make docker-run` otherwise: from `main` with the `prod` profile and the credentials of
+  the GitHub environment `<transport>-prod`, from any other branch with `test` and `<transport>-test`. No `latest`
   image, no run.
 - `iac.yaml` runs on the same events as `cicd.yaml` and does its work when `iac/` changed, so it can be a required
   check while a run with nothing to do is green in seconds: `make tf-check`, then `make tf-plan`, the speculative plan
@@ -443,7 +446,9 @@ BDD with Cucumber:
   and its image to the registry, as a client's own cicd would.
 - `main` is protected: changes arrive by pull request with a green `ci`, `cd`, `iac`, `architecture-discovery`,
   and `cicd-client-example`, no force pushes, linear history.
-  `.github/branch-protection.json` is the setting, `make gh-main-protection` applies it.
+  `.github/branch-protection.json` is the setting, and `.github/environment-test.json` and
+  `.github/environment-prod.json` set each transport's environments, `<transport>-prod` deployed from `main` only.
+  `make gh-main-protection` applies them.
 
 ## How we work
 
@@ -493,7 +498,7 @@ decisions are recorded in `docs/adr.md`, each with the rule or test that enforce
 - [x] Split into modules
 - [x] Convert to hexagonal
 - [x] GitHub Actions `cicd.yaml`
-- [x] GitHub Actions `load-run.yaml`, hourly cron
+- [x] GitHub Actions `load-run.yaml`, load on demand
 - [x] Auto discover architecture, verify architecture rules, generate diagrams, and check for drift
 
 ## License

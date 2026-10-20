@@ -1,10 +1,13 @@
 name: load-run
 
 on:
-  schedule:
-    - cron: '0 * * * *'
   workflow_dispatch:
     inputs:
+      transport:
+        description: where the load plays, the GitHub environment <transport>-prod from main, <transport>-test from any other branch
+        type: choice
+        # the TRANSPORTS of the Makefile
+        options: [confluent, kafka, cloudflare]
       args:
         description: load arguments, e.g. --load.type=order --load.concurrent=10 --load.ttl=60. Empty runs the minimum.
         default: ''
@@ -18,8 +21,10 @@ concurrency: load-run
 jobs:
   run:
     runs-on: ubuntu-latest
-    environment: confluent-prod
+    # main plays prod, every other branch test; the environment sees no env context, so the two lines carry it
+    environment: ${{ inputs.transport }}-${{ github.ref == 'refs/heads/main' && 'prod' || 'test' }}
     env:
+      ENV: ${{ github.ref == 'refs/heads/main' && 'prod' || 'test' }}
       KAFKA_BOOTSTRAP_SERVERS: ${{ vars.KAFKA_BOOTSTRAP_SERVERS }}
       KAFKA_API_KEY: ${{ secrets.KAFKA_API_KEY }}
       KAFKA_API_SECRET: ${{ secrets.KAFKA_API_SECRET }}
@@ -39,7 +44,8 @@ jobs:
       - name: no latest image, nothing to run
         if: steps.latest.outputs.present == 'false'
         run: echo "::notice::no latest image in the registry, skipping"
-      - name: generate load in production, the latest image with the prod profile
+      - name: generate load in ${{ env.ENV }}, the latest image with the ${{ env.ENV }} profile
         if: steps.latest.outputs.present == 'true'
+        # FIXME the transport reaches make, TRANSPORT=${{ inputs.transport }}, once platform.mk takes it
         run: |
-          if [ -n "${{ inputs.args }}" ]; then make docker-run ENV=prod ARGS="${{ inputs.args }}"; else make docker-smoke ENV=prod; fi
+          if [ -n "${{ inputs.args }}" ]; then make docker-run ARGS="${{ inputs.args }}"; else make docker-smoke; fi

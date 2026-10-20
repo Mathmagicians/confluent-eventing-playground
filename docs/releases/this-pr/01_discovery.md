@@ -7,8 +7,7 @@ and the decisions it raises for [docs/adr.md](../../adr.md).
 
 - Confluent Cloud answers the keys of `confluent-test` and `confluent-prod` with `SaslAuthenticationException:
   Authentication failed`, in every `load-run` since 2026-09-29 12:08 UTC. The cluster stays out of service.
-- `cd` and `cicd-client-example` run the features against that cluster; `load-run.yaml` plays the load on it hourly,
-  `0 * * * *`.
+- `cd` and `cicd-client-example` run the features against that cluster.
 - A process has one switch, its profile: `local` publishes to the log, `test` and `prod` to Confluent Cloud through
   `kafka.properties`, imported at [application-test.properties:2](../../../platform/src/main/resources/application-test.properties#L2).
 
@@ -59,8 +58,10 @@ and the decisions it raises for [docs/adr.md](../../adr.md).
 - [the_cluster_has_my_topics_and_schemas.feature](../../../platform/src/test/resources/features/the_cluster_has_my_topics_and_schemas.feature)
   and [the_flink_cluster_in_the_cloud_keeps_the_latest_value_snapshot.feature](../../../platform/src/test/resources/features/the_flink_cluster_in_the_cloud_keeps_the_latest_value_snapshot.feature)
   carry `@confluent`.
-- `load-run.yaml` runs on `workflow_dispatch`, with the transport, `cli`, `kafka`, or `confluent`, and the load
-  arguments as inputs.
+- `load-run.yaml` runs on `workflow_dispatch`, with the transport, `confluent`, `kafka`, or `cloudflare`, and the
+  load arguments as inputs; it plays in the GitHub environment `<transport>-prod` from `main` and in
+  `<transport>-test` from any other branch, and the `kafka-*` and `cloudflare-*` environments start empty. Set by
+  themathmagician 2026-10-20.
 
 **Questions**
 1. Production is the environments Wonderland plays in, `test` and `prod`: which transport each plays on, with
