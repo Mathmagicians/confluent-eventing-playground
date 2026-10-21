@@ -39,7 +39,7 @@ for overview in docs/releases/*/release-*.md; do
     while IFS="$sep" read -r line feature cell state; do
         option=$(jq -r --arg s "$state" '.options[] | select((.name | ascii_downcase) == ($s | ascii_downcase)) | .name' <<<"$field")
         [ -n "$option" ] || { echo "the issue field phase has no option for $state, the state of $feature" >&2; exit 1; }
-        body=$(printf '**State** %s · **Release** %s · written from the release plan in docs/releases on every push\n' "$state" "$version"
+        body=$(printf '**State** %s · **Release** %s · written from the release plan in docs/releases on %s\n' "$state" "$version" "$branch"
             for phase in Discovery Formulation Automation Verification; do
                 for file in "$dir"/*"$(tr '[:upper:]' '[:lower:]' <<<"$phase")".md; do [ -f "$file" ] && section "$feature" "$phase" "$file"; done
             done)
