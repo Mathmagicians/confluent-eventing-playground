@@ -96,6 +96,8 @@ Examples agreed 2026-10-21.
 
 **Story:** CI plays the spec on each transport we run, and a transport that sits out says why.
 
+Examples agreed 2026-10-22.
+
 ### Rule: the bdd job plays a matrix of the transports; a transport that sits out carries its reason
 - a pull request: `bdd (cli)` plays, then `cd` publishes the image, and `ci`, `cd`, and `cicd-client-example` are
   green.
@@ -119,4 +121,4 @@ Examples agreed 2026-10-21.
 1. The default of `TRANSPORT`: `cli`, which plays without a broker and without keys. Decided 2026-10-21.
 
 **Decisions for docs/adr.md, by title**
-- CI plays each transport in a matrix
+- [ADR-001 CI plays each transport in a matrix](../../adr.md#adr-001-ci-plays-each-transport-in-a-matrix)

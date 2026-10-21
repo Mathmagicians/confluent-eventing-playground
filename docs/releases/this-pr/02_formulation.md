@@ -30,6 +30,8 @@ Spec signed 2026-10-21. The spec is
 
 ## CI plays each transport
 
+Spec signed 2026-10-22: `make bdd` on cli, red before `Transport`.
+
 | Task | Owner | Done when |
 |---|---|---|
 | `@confluent` on the cluster's and the Flink table's features | pair | done 2026-10-22: `make bdd-snippets TRANSPORT=cli` lists none of them |

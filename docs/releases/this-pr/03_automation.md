@@ -54,7 +54,7 @@ Owner: pair; the repository renamed by themathmagician. Turns green: the rule of
 | The issue field `phase`, 2026-10-21; the board's columns by phase, its swimlanes by milestone, and its auto-add workflow on `is:issue` | themathmagician | done 2026-10-21: the board shows a column per phase and a swimlane per release |
 | `plan-and-supervise`: the overview's Issue column and the board | pair | done 2026-10-22: the skill says what the overview holds and when the board is synced |
 
-Spec green, signed 2026-10-22: themathmagician ran `make gh-project-sync`, "it is confirmed to work".
+Spec green 2026-10-22: `make gh-project-sync`.
 
 ## CI plays each transport
 

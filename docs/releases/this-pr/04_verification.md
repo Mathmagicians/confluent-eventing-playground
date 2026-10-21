@@ -16,7 +16,7 @@ checks passed, and Wonderland playing in each of its environments.
 
 | ADR | Checked by | Evidence |
 |---|---|---|
-| CI plays each transport in a matrix | review of `cicd.yaml` and `cicd-client-example.yaml` | |
+| [ADR-001 CI plays each transport in a matrix](../../adr.md#adr-001-ci-plays-each-transport-in-a-matrix) | `make ci-transports`, and review of `cicd.yaml` and `cicd-client-example.yaml` | |
 
 ## In production
 
