@@ -223,6 +223,12 @@ passes the flock's addresses on `kafka`, beside the six variables `confluent` ta
 - On `kafka`, `CI_TRANSPORTS` of [CI plays each transport](../this-pr/03_automation.md#ci-plays-each-transport)
   takes `kafka` in, its broker on the runner, for the `bdd` job and the purse, per question 5.
 
+### The console hears its story's region
+
+| Task | Owner | Turns green |
+|---|---|---|
+| [ConsoleListener.java:258](../../../platform/src/main/java/dk/mathmagicians/playground/confluent/eventing/adapter/cli/console/ConsoleListener.java#L258) hands the story what `story.hears`, as [StoryListener.java:64](../../../platform/src/main/java/dk/mathmagicians/playground/confluent/eventing/adapter/kafka/consumer/StoryListener.java#L64) does | themathmagician | `ConsoleListenerTest`: an envelope of another region is not heard |
+
 ## The catalog follows the board
 
 `project.yaml` plays [Project sync](../this-pr/03_automation.md#project-sync-the-board-follows-the-catalog) on every

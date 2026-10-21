@@ -9,7 +9,7 @@ checks passed, and Wonderland playing in each of its environments.
 |---|---|---|
 | `make check` green | | |
 | `ci`, `cd`, `iac`, `architecture-discovery`, `cicd-client-example` green on the PR | | |
-| Review findings above Nit resolved, or deferred with a reason | | |
+| Review findings above Nit resolved, or deferred with a reason | the console's region check: 0.0.7, [Messaging capability](../release-0.0.7/automation.md#the-console-hears-its-storys-region) | |
 | README, `make help`, and `docs/adr.md` say what the code does | | |
 
 ## ADR compliance
