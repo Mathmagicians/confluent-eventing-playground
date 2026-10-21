@@ -10,7 +10,7 @@
   `cucumber.publish.quiet=true`.
 - `-PdryRun` sets `cucumber.execution.dry-run`: every step undefined, the reports still written, no credentials
   needed.
-- Reports under `build/reports/cucumber/`; the `cd` job prints `pretty.txt` in its summary and uploads the
+- Reports under `build/reports/cucumber/`; the `bdd` job prints `pretty.txt` in its summary and uploads the
   directory as an artifact.
 
 ## The Spring context

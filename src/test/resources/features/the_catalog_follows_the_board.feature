@@ -50,7 +50,7 @@ Feature: The catalog follows the board
 
     Scenario: The sync writes the branch into the milestone
       Given the overview of 0.0.6 names the branch eventing-without-confluent
-      When I push the branch
+      When I sync the board
       Then the milestone 0.0.6 has the description eventing-without-confluent
 
     Scenario: A move in a release without a branch goes back

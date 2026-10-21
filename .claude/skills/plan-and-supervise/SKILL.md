@@ -58,6 +58,10 @@ groups the features it releases, as many as themathmagician decides. Each phase 
   feature with its state, Discovery, Formulation, Automation, Verification, or Parked, and the date of each gate it
   passed, linked to its evidence; a feature's rules live in its map. Beside it the branch's `cicd` badge. Its
   header: **Version** | **Date** | **Updated** | **Branch**.
+- The board, Mathmagicians project 5, follows the catalogs: `make gh-project-sync` gives each row its issue, linked
+  in the Issue cell, its milestone the overview's version, its body the feature's sections of the phase files, and
+  its issue field `phase` the row's state. themathmagician runs it after a gate is signed or a row moves to another
+  release.
 - A planned folder moves into `this-pr/` when its branch starts. Once the release is in production, `this-pr/` moves
   to `archived/release-<version>/`; `main` takes changes by pull request, so the move rides in the next release's
   first one. Plain `mv`, themathmagician stages. A feature the release does not ship moves to the next release's

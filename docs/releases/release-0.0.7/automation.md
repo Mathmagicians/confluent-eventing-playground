@@ -10,20 +10,18 @@ is linked from the feature's row in the catalog.
 
 Owner: pair for the properties, themathmagician for the annotations. Turns green: every scenario of the map.
 
-[platform.properties](../../../platform/src/main/resources/platform.properties), shared by every distribution, takes
-the default from [app/.../application.properties:6](../../../app/src/main/resources/application.properties#L6) and
-[examples/purse/.../application.properties:6](../../../examples/purse/src/main/resources/application.properties#L6):
+[platform.properties](../../../platform/src/main/resources/platform.properties), shared by every distribution, holds
+the default, `spring.profiles.default=cli`, at
+[platform.properties:6](../../../platform/src/main/resources/platform.properties#L6), and takes the group:
 
 ```properties
-# the transport when none is given: the console and the log
-spring.profiles.default=cli
 # Confluent Cloud is Kafka with credentials
 spring.profiles.group.confluent=kafka
 ```
 
 `platform/src/main/resources/application-kafka.properties` is
-[kafka.properties](../../../platform/src/main/resources/kafka.properties) with the local defaults, lines 7 to 39 as
-they are:
+[kafka.properties](../../../platform/src/main/resources/kafka.properties) with the local defaults, lines 7 to 18 and
+23 to 39 as they are:
 
 ```properties
 # the broker and the registry of make kafka-up, unless the environment names others
@@ -32,7 +30,8 @@ spring.kafka.properties.schema.registry.url=${SCHEMA_REGISTRY_REST_ENDPOINT:http
 ```
 
 `platform/src/main/resources/application-confluent.properties` holds what Confluent Cloud adds, and the values
-`ConfluentKeys` checks:
+`ConfluentKeys` checks, in place of its import of `kafka.properties`,
+[application-confluent.properties:2](../../../platform/src/main/resources/application-confluent.properties#L2):
 
 ```properties
 # Confluent Cloud: SASL_SSL with PLAIN, the cluster API key as the credentials, the registry key as basic auth
@@ -53,12 +52,11 @@ confluent.registry-api-secret=${SCHEMA_REGISTRY_API_SECRET:}
 
 `application-test.properties` and `application-prod.properties` hold the topic names.
 
-The annotations:
+The console and log adapters carry `@Profile("cli")`. The Kafka adapters' annotations:
 
 | File | Current | Replacement |
 |---|---|---|
-| [LoggingPublisher.java:18](../../../platform/src/main/java/dk/mathmagicians/playground/confluent/eventing/adapter/cli/log/LoggingPublisher.java#L18), [ConsoleListener.java:44](../../../platform/src/main/java/dk/mathmagicians/playground/confluent/eventing/adapter/cli/console/ConsoleListener.java#L44) | `@Profile("local")` | `@Profile("cli")` |
-| [KafkaPublisher.java:26](../../../platform/src/main/java/dk/mathmagicians/playground/confluent/eventing/adapter/kafka/publisher/KafkaPublisher.java#L26), [StoryListener.java:26](../../../platform/src/main/java/dk/mathmagicians/playground/confluent/eventing/adapter/kafka/consumer/StoryListener.java#L26), [Reader.java:18](../../../platform/src/main/java/dk/mathmagicians/playground/confluent/eventing/adapter/kafka/consumer/Reader.java#L18), [DeadLetters.java:23](../../../platform/src/main/java/dk/mathmagicians/playground/confluent/eventing/adapter/kafka/consumer/DeadLetters.java#L23), [Topics.java:14](../../../platform/src/main/java/dk/mathmagicians/playground/confluent/eventing/adapter/kafka/Topics.java#L14) | `@Profile("!local")` | `@Profile("kafka")` |
+| [KafkaPublisher.java:26](../../../platform/src/main/java/dk/mathmagicians/playground/confluent/eventing/adapter/kafka/publisher/KafkaPublisher.java#L26), [StoryListener.java:26](../../../platform/src/main/java/dk/mathmagicians/playground/confluent/eventing/adapter/kafka/consumer/StoryListener.java#L26), [Reader.java:18](../../../platform/src/main/java/dk/mathmagicians/playground/confluent/eventing/adapter/kafka/consumer/Reader.java#L18), [DeadLetters.java:23](../../../platform/src/main/java/dk/mathmagicians/playground/confluent/eventing/adapter/kafka/consumer/DeadLetters.java#L23), [Topics.java:14](../../../platform/src/main/java/dk/mathmagicians/playground/confluent/eventing/adapter/kafka/Topics.java#L14) | `@Profile("confluent")` | `@Profile("kafka")` |
 
 ### ConfluentKeys, checked at startup
 
@@ -105,7 +103,7 @@ public record ConfluentKeys(String bootstrapServers, String apiKey, String apiSe
 
 Owner: pair. Turns green: the `kafka` examples. The images enter on a go on their names: `apache/kafka:4.2.1`
 (Apache Software Foundation, Apache 2.0), the version of the `kafka-clients` the Boot BOM brings, and the registry
-of question 4.
+of question 6.
 
 [compose.yaml](../../../compose.yaml) gains a `kafka` compose profile. The broker creates a topic on first use with
 the partition count of [iac/locals.tf:8](../../../iac/locals.tf#L8), as the README's test containers do:
@@ -130,7 +128,7 @@ the partition count of [iac/locals.tf:8](../../../iac/locals.tf#L8), as the READ
 
   # the local registry, make kafka-up; make kafka-init registers the schemas
   registry:
-    image: confluentinc/cp-schema-registry:8.3.1   # question 4
+    image: confluentinc/cp-schema-registry:8.3.1   # question 6
     profiles: [kafka]
     depends_on: [kafka]
     ports: ["8081:8081"]
@@ -151,22 +149,19 @@ The `x-generator` anchor takes the profiles from make, and the variables as make
 
 ### TRANSPORT in platform.mk
 
-Owner: pair. Turns green: the make examples of the map. `TRANSPORT` and the scenarios each transport carries land
-with [CI plays each transport](../this-pr/03_automation.md#ci-plays-each-transport); this feature adds the profiles,
-`kafka-up`, and the flock's addresses.
+Owner: pair. Turns green: the make examples of the map. `TRANSPORT`, `PROFILES`, and the scenarios each transport
+carries are [platform.mk:39](../../../platform.mk#L39), from
+[CI plays each transport](../this-pr/03_automation.md#ci-plays-each-transport); this feature adds `kafka-up` and the
+flock's addresses.
 
 ```make
-# where a story plays: cli, the console and the log; kafka, the broker of make kafka-up; confluent, Confluent Cloud
-# with the keys from .env.<ENV>.private
-TRANSPORT ?= cli
-PROFILES = $(TRANSPORT),$(ENV)
 # the addresses of the local broker and registry on the flock's network
 FLOCK_KAFKA := KAFKA_BOOTSTRAP_SERVERS=kafka:19092 SCHEMA_REGISTRY_REST_ENDPOINT=http://registry:8081
 # the broker comes up first when the story plays on it
 NEEDS = $(if $(filter kafka,$(TRANSPORT)),kafka-up)
 COMPOSE := $(WITH_ENV) $(if $(filter kafka,$(TRANSPORT)),$(FLOCK_KAFKA)) PROFILES=$(PROFILES) VERSION=$(VERSION) docker compose
 
-run: $(NEEDS)   ## from source on TRANSPORT, default cli, with the topics of ENV, default test; ARGS pick the story and its settings
+run: $(NEEDS)   ## from source on TRANSPORT and ENV; ARGS pick the story and its settings
 	@$(WITH_ENV) SPRING_PROFILES_ACTIVE=$(PROFILES) $(GRADLE) $(BOOT):bootRun $(if $(ARGS),--args="$(ARGS)")
 
 ##@ Kafka, the local broker and registry the kafka transport plays on
@@ -209,26 +204,24 @@ kafka-init:   ## register the schemas of ENV on the local registry, as iac/ does
 
 Owner: pair for the Gradle wiring, themathmagician for the drivers. Turns green: every feature on `kafka`.
 
-The `bdd` task in [platform.gradle:103](../../../platform.gradle#L103) passes the profiles and the broker's network
-to the suite, from `make bdd`:
+The `bdd` task in [platform.gradle:115](../../../platform.gradle#L115) takes the transport and the profiles from
+`make bdd`, and the suite and its containers play them; this feature adds the broker's network:
 
 ```groovy
-        // where the image under test plays, -Pprofiles=<transport>,<env>, and the network of the local broker
-        systemProperty 'bdd.profiles', providers.gradleProperty('profiles').getOrElse('kafka,test')
+        // the network of the local broker, -Pnetwork=<network>, from make on kafka
         systemProperty 'bdd.network', providers.gradleProperty('network').getOrElse('')
 ```
 
-The drivers read them where they set `test`:
-[GeneratorContainer.java:70](../../../platform/src/testFixtures/java/dk/mathmagicians/playground/confluent/eventing/bdd/GeneratorContainer.java#L70),
-[StoryContainer.java:71](../../../platform/src/testFixtures/java/dk/mathmagicians/playground/confluent/eventing/bdd/StoryContainer.java#L71),
-and the suite's own context at
-[CucumberSpringConfiguration.java:17](../../../platform/src/testFixtures/java/dk/mathmagicians/playground/confluent/eventing/bdd/CucumberSpringConfiguration.java#L17).
+The drivers join it where they hand the containers the profiles:
+[GeneratorContainer.java:78](../../../platform/src/testFixtures/java/dk/mathmagicians/playground/confluent/eventing/bdd/GeneratorContainer.java#L78)
+and
+[StoryContainer.java:62](../../../platform/src/testFixtures/java/dk/mathmagicians/playground/confluent/eventing/bdd/StoryContainer.java#L62).
 `GeneratorContainer.credentials()`, at
-[GeneratorContainer.java:87](../../../platform/src/testFixtures/java/dk/mathmagicians/playground/confluent/eventing/bdd/GeneratorContainer.java#L87),
-passes the flock's addresses on `kafka` and the six variables on `confluent`.
+[GeneratorContainer.java:103](../../../platform/src/testFixtures/java/dk/mathmagicians/playground/confluent/eventing/bdd/GeneratorContainer.java#L103),
+passes the flock's addresses on `kafka`, beside the six variables `confluent` takes.
 
-- On `kafka`, the matrix of [CI plays each transport](../this-pr/03_automation.md#ci-plays-each-transport) takes
-  `kafka` in, its broker on the runner, for `cd` and the purse, per question 5.
+- On `kafka`, `CI_TRANSPORTS` of [CI plays each transport](../this-pr/03_automation.md#ci-plays-each-transport)
+  takes `kafka` in, its broker on the runner, for the `bdd` job and the purse, per question 5.
 
 ## The catalog follows the board
 
@@ -285,8 +278,8 @@ feature fills its section of the deck as it lands. The talk plays from compose,
 
 Owner: themathmagician, pair secretary.
 
-- Configuration, Environments: the transports beside the environments.
+- Configuration, Environments: `kafka` in the transports' table.
 - Spring Boot: secrets fail fast at startup, named by `ConfluentKeys`.
-- Play and Definition of done: `make run TRANSPORT=cli`, and `make run-tiny` per its question 5.
+- Play: `make run TRANSPORT=kafka`, `make kafka-up`, and `make kafka-down`.
 - Tech Stack: Apache Kafka and the schema registry for the local and the CI runs.
-- Git and CI: `cd` and `cicd-client-example` on the local broker.
+- Git and CI: `bdd (kafka)` and `cicd-client-example` on the local broker.

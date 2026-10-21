@@ -58,16 +58,17 @@ snapshot of the next one between releases. GitHub Packages needs a token even to
 make build         # compile, unit tests, the architecture verified, the jar
 make arch-gen      # the hexagon and the module canvases under docs/generated/architecture
 make docker-image  # one image: the platform and your story, purse:<version>
-make bdd           # your features against that image and the Confluent test cluster
-make run ARGS="--purse.owners=Alice:1000"     # from source, against the test cluster
-make run ENV=local ARGS="--purse.ttl="        # from source, the console standing in for the topics: type help
+make bdd           # your features against that image, on TRANSPORT, default cli
+make run ARGS="--purse.ttl="                  # from source, the console standing in for the topics: type help
+make run TRANSPORT=confluent ARGS="--purse.owners=Alice:1000"   # from source, against the test cluster
 make docker-run ARGS="--purse.owners=Alice:1000"   # the published image
 make up            # the image from compose.yaml, OWNERS and TTL as environment variables; make down stops it
 make help          # every target
 ```
 
-The credentials of the test cluster come from `.env.test.private`, the platform's `.env.private.sample` lists them;
-`ENV_DIR` in the Makefile says where the file is. In CI they are in the environment.
+On `TRANSPORT=confluent` the credentials of the test cluster come from `.env.test.private`, the platform's
+`.env.private.sample` lists them; `ENV_DIR` in the Makefile says where the file is. In CI they are in the
+environment.
 
 ## The feature
 

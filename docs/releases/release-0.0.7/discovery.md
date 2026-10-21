@@ -10,8 +10,9 @@ questions, and the decisions it raises for [docs/adr.md](../../adr.md).
 
 - Confluent Cloud answers the keys of `confluent-test` and `confluent-prod` with `SaslAuthenticationException:
   Authentication failed`, in every `load-run` since 2026-09-29 12:08 UTC. The cluster stays out of service.
-- A process has one switch, its profile: `local` publishes to the log, `test` and `prod` to Confluent Cloud through
-  `kafka.properties`, imported at [application-test.properties:2](../../../platform/src/main/resources/application-test.properties#L2).
+- `cli` publishes to the log, `confluent` to Confluent Cloud through `kafka.properties`, imported at
+  [application-confluent.properties:2](../../../platform/src/main/resources/application-confluent.properties#L2);
+  the Kafka adapters carry `@Profile("confluent")`, and `kafka` has no profile yet.
 - 0.0.6 ships the transports `cli` and `confluent`, with
   [CI plays each transport](../this-pr/01_discovery.md#ci-plays-each-transport), its matrix played on `cli`; 0.0.7
   adds `kafka`. Decided 2026-10-22.
@@ -100,10 +101,10 @@ says so.
 - the card of One name set to `archive`: the row reads Archive; In production is the release's gate, signed in
   `04_verification.md`.
 - that commit's push starts no run, and the issue's body says the new state.
-- a Phase written by `make project-sync`: the run finds the row in that state and commits nothing.
+- a Phase written by `make gh-project-sync`: the run finds the row in that state and commits nothing.
 
 ### Rule: a release's milestone names its branch
-- `make project-sync` on `eventing-without-confluent`: the milestone 0.0.6 has the description
+- `make gh-project-sync` on `eventing-without-confluent`: the milestone 0.0.6 has the description
   `eventing-without-confluent`, the overview's Branch.
 - a card of 0.0.7 moved, its overview naming no branch: its Phase goes back to the row's state, and the job summary
   names the card.
@@ -117,6 +118,8 @@ says so.
    on its passing BDD tests, or on a manual verification where BDD tests are not feasible. Decided 2026-10-21.
 3. Phase in place of Status, one field on the board: Project sync writes Phase, and the project's Status stays
    unused. Decided 2026-10-21.
+4. A shipped feature's issue is closed by `closes #N` in a commit, when the commit reaches `main`; the pull moves its
+   card to `archive`. Decided 2026-10-22.
 
 **Decisions for docs/adr.md, by title**
 - The board writes a feature's phase to the catalog through the issue field Phase

@@ -52,7 +52,7 @@ Owner: pair; the repository renamed by themathmagician. Turns green: the rule of
 | The Issue column in each catalog, after Feature | pair | done 2026-10-21: every row of 0.0.6, 0.0.7, and 0.0.8 linked |
 | `make gh-project-sync`: the missing issues and milestones, each body from the phase files, the issue's milestone from the overview's file name, the issue's Phase | pair | done 2026-10-21: the first run created issues #7 to #19 and the milestones 0.0.6, 0.0.7, and 0.0.8 |
 | The issue field `phase`, 2026-10-21; the board's columns by phase, its swimlanes by milestone, and its auto-add workflow on `is:issue` | themathmagician | done 2026-10-21: the board shows a column per phase and a swimlane per release |
-| `plan-and-supervise`: the overview's Issue column and the board | pair | the skill says what the overview holds and when the board is synced |
+| `plan-and-supervise`: the overview's Issue column and the board | pair | done 2026-10-22: the skill says what the overview holds and when the board is synced |
 
 Spec green, signed 2026-10-22: themathmagician ran `make gh-project-sync`, "it is confirmed to work".
 

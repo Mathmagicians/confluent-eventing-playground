@@ -33,7 +33,7 @@
 ## Images and profiles
 
 - A buildpack image takes `--load.*` arguments after the image name; the profile is `SPRING_PROFILES_ACTIVE`, which
-  `docker-run`, the compose targets, and the BDD container all set. Without it the image falls back to `local` and
-  writes to the log.
+  `docker-run`, the compose targets, and the BDD container all set. Without it the image plays `cli`,
+  `spring.profiles.default`, and writes to the log.
 - The one-shot generator exits after its TTL; the minimum load is one producer, one second interval, two seconds,
   defined once in the Makefile as `MINIMUM`.

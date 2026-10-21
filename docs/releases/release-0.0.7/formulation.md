@@ -9,7 +9,7 @@ feature's row in the catalog.
 | Task | Owner | Done when |
 |---|---|---|
 | The map's scenarios in `platform/src/test/resources/features/i_can_pick_where_a_story_plays.feature` | themathmagician | each example of the map is a scenario |
-| An architecture rule: the Kafka adapters carry `@Profile("kafka")`, the console and log adapters `@Profile("cli")` | themathmagician | it fails on `@Profile("!local")` |
+| An architecture rule: the Kafka adapters carry `@Profile("kafka")`, the console and log adapters `@Profile("cli")` | themathmagician | it fails on today's `@Profile("confluent")` |
 | Step skeletons for the new steps, each throwing `PendingException` | pair | `make bdd-snippets` finds every step defined |
 
 ## The catalog follows the board
