@@ -24,7 +24,7 @@ is the trigger to extract, and the question before writing anything is: where do
 | How anything runs | the Makefile | humans, every workflow step, compose, the README's commands |
 | Environments and names | `locals` in `iac/` | every `for_each`, never a second list |
 | What we do and how | README | `CLAUDE.md` and the skills point at it and never restate it |
-| A release's ideas, rules, and gate dates | the overview, `docs/releases/<folder>/release-<version>.md` | the folder's phase files, by link |
+| A release's features, their states, and gate dates | the overview's catalog in `docs/releases/<folder>/`, headed `# Release <version>` | the folder's phase files, by link; a feature's rules are its map's |
 | Architecture decisions | `docs/adr.md` | plans by `ADR-NNN [Title]`, the enforcing rules by name |
 | Generated code and documents | their generator | committed output; `proto-check`, `arch-check`, `generated-check` catch drift |
 | History | git, written by the human | agents read: `status`, `diff`, `log`, `show` |

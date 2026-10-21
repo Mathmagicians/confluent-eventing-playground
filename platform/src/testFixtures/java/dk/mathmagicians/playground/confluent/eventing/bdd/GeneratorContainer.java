@@ -3,6 +3,7 @@ package dk.mathmagicians.playground.confluent.eventing.bdd;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import dk.mathmagicians.playground.confluent.eventing.domain.Receipt;
+import io.cucumber.spring.ScenarioScope;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
@@ -11,19 +12,25 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.startupcheck.OneShotStartupCheckStrategy;
 import org.testcontainers.utility.DockerImageName;
 
-/// Test driver running the image under test as a container: one generator against the test cluster, the minimum
+/// Test driver running the image under test as a container: one generator on the suite's transport, the minimum
 /// load or a handful, and the receipts it logs. The image is the `bdd.image` system property, set by the Gradle
-/// `bdd` task.
+/// `bdd` task, and it plays the profiles the suite plays. One per scenario, keeping what its generators logged.
+@Component
+@ScenarioScope
 public class GeneratorContainer {
 
     private static final Logger log = LoggerFactory.getLogger(GeneratorContainer.class);
 
     static final DockerImageName IMAGE = DockerImageName.parse(System.getProperty("bdd.image"));
+
+    /// `<transport>,<env>`, the profiles the Gradle `bdd` task gives the suite
+    static final String PROFILES = System.getProperty("spring.profiles.active");
 
     /// What the image reads, by the names of `.env.<ENV>.private` and the GitHub environments, passed through
     private static final List<String> CREDENTIALS =
@@ -46,11 +53,14 @@ public class GeneratorContainer {
     private static final List<String> A_HANDFUL =
             List.of("--load.concurrent=3", "--load.interval=500", "--load.ttl=2", RECEIPTS_AT_DEBUG);
 
-    /// `Published <envelope id> to <topic>-<partition> at offset <offset>`, as `KafkaPublisher` logs it
+    /// `Published <envelope id> to <topic>-<partition> at offset <offset>`, as `KafkaPublisher` and
+    /// `LoggingPublisher` log it
     private static final Pattern RECEIPT = Pattern.compile("Published (\\S+) to (\\S+)-(\\d+) at offset (\\d+)");
 
     /// image pull, JVM start, the load, and the exit
     private static final Duration TIMEOUT = Duration.ofMinutes(3);
+
+    private final StringBuilder logs = new StringBuilder();
 
     /// One generator per payload type, in turn, each a handful of events: every receipt, in the order logged.
     public List<Receipt> publish(List<String> types, String region) {
@@ -59,7 +69,7 @@ public class GeneratorContainer {
 
     /// Runs one generator of the payload type in the region to completion and answers the first receipt it
     /// logged. The container's output goes to the test log.
-    Receipt publishOne(String type, String region) {
+    public Receipt publishOne(String type, String region) {
         return run(type, region, MINIMUM).getFirst();
     }
 
@@ -67,29 +77,38 @@ public class GeneratorContainer {
         try (var generator = new GenericContainer<>(IMAGE)) {
             generator
                     .withEnv(credentials())
-                    .withEnv("SPRING_PROFILES_ACTIVE", "test")
+                    .withEnv("SPRING_PROFILES_ACTIVE", PROFILES)
                     .withCommand(command(type, region, load))
                     .withStartupCheckStrategy(new OneShotStartupCheckStrategy().withTimeout(TIMEOUT))
                     .withLogConsumer(new Slf4jLogConsumer(log))
                     .start();
-            return receipts(generator.getLogs());
+            var logged = generator.getLogs();
+            logs.append(logged);
+            return receipts(logged);
         }
     }
 
+    /// Everything the scenario's generators logged, in the order they ran.
+    public String logs() {
+        return logs.toString();
+    }
+
     /// The receipt names the envelope and where it landed.
-    void assertReceived(Receipt receipt) {
+    public void assertReceived(Receipt receipt) {
         assertThat(receipt.envelopeId()).isNotBlank();
         assertThat(receipt.partition()).isNotNegative();
         assertThat(receipt.offset()).isNotNegative();
     }
 
-    /// The credentials of the test cluster from the environment, for any container of the image.
+    /// The credentials the environment has, for any container of the image; a transport that needs one the
+    /// environment lacks fails the image's startup, naming it.
     static Map<String, String> credentials() {
         var env = new HashMap<String, String>();
         for (var name : CREDENTIALS) {
             var value = System.getenv(name);
-            assertThat(value).as("%s, from .env.<ENV>.private", name).isNotBlank();
-            env.put(name, value);
+            if (value != null && !value.isBlank()) {
+                env.put(name, value);
+            }
         }
         return env;
     }

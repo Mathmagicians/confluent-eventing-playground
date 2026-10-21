@@ -1,19 +1,14 @@
-# Release 0.0.7
+# Release
 
-**Version:** 0.0.7 | **Date:** 2026-10-20 | **Updated:** 2026-10-20 | **Branch:** to be named when it starts
+**Date:** 2026-10-21 | **Updated:** 2026-10-21 | **Branch:** to be named when it starts
 
-The release ends In production, [verification.md](verification.md).
+The platform's work. The release ends In production, [verification.md](verification.md).
 
 ## Catalog
 
-| Idea | State | Map |
-|---|---|---|
-| Eventing over Cloudflare | Parked | [discovery.md](discovery.md#eventing-over-cloudflare) |
-
-## Rules
-
-| Rule | Idea | Phase | Examples agreed | Spec signed | Spec green |
-|---|---|---|---|---|---|
-| a generator publishes each payload type to a queue of its own | Eventing over Cloudflare | Parked | | | |
-| a listening story pulls its queues and acknowledges what it handled | Eventing over Cloudflare | Parked | | | |
-| a story handles a repeated message as it handled the first | Eventing over Cloudflare | Parked | | | |
+| Feature | Issue | State | Examples agreed | Spec signed | Spec green | Map |
+|---|---|---|---|---|---|---|
+| Stories describe themselves | [#8](https://github.com/Mathmagicians/wonderland-eventing-playground/issues/8) | Discovery | | | | [discovery.md](discovery.md#stories-describe-themselves) |
+| Architecture discovery: one model, three levels | [#9](https://github.com/Mathmagicians/wonderland-eventing-playground/issues/9) | Discovery | | | | [discovery.md](discovery.md#architecture-discovery-one-model-three-levels) |
+| The skill generate-platform-client | [#10](https://github.com/Mathmagicians/wonderland-eventing-playground/issues/10) | Discovery | | | | [discovery.md](discovery.md#the-skill-generate-platform-client) |
+| Slides alongside | [#11](https://github.com/Mathmagicians/wonderland-eventing-playground/issues/11) | Automation | | | | [automation.md](automation.md#slides-alongside) |

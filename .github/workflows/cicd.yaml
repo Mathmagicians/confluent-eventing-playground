@@ -20,6 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.tags.outputs.tag }}
+      transports: ${{ steps.transports.outputs.list }}
     env:
       # the architecture-discovery library resolves from GitHub Packages, published by its own workflow; the
       # registry needs a token even to read
@@ -36,6 +37,9 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
         with:
           add-job-summary: never   # the job summary carries our own tables only
+      - name: the transports bdd plays
+        id: transports
+        run: echo "list=$(make -s ci-transports)" >> "$GITHUB_OUTPUT"
       - name: generated code and documents match the sources
         run: make generated-check
       - name: architecture verified, the hexagonal rule and the module boundaries
@@ -46,35 +50,29 @@ jobs:
         run: make platform-publish
       - name: container image
         run: make docker-image
-      - name: tags, every build is a candidate under its sha; a pull request adds pr-<number>, main adds latest
+      - name: the candidate's tag, its sha
         id: tags
-        run: |
-          sha=sha-${GITHUB_SHA::7}
-          echo "tag=$sha" >> "$GITHUB_OUTPUT"
-          if [ "${{ github.event_name }}" = pull_request ]; then
-            echo "tags=$sha pr-${{ github.event.number }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "tags=$sha latest" >> "$GITHUB_OUTPUT"
-          fi
+        run: echo "tag=sha-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
       - uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: publish the candidate to ghcr.io
-        run: make docker-publish TAGS="${{ steps.tags.outputs.tags }}"
+        run: make docker-publish TAGS="${{ steps.tags.outputs.tag }}"
       - name: the published image into the job summary
         run: |
           repo=$(make docker-repo)
-          printf '### Published\n\n| Image | Digest |\n|---|---|\n' >> "$GITHUB_STEP_SUMMARY"
-          for tag in ${{ steps.tags.outputs.tags }}; do
-            printf '| `%s:%s` | `%s` |\n' "$repo" "$tag" "$(docker inspect --format '{{index .RepoDigests 0}}' "$repo:$tag" | cut -d@ -f2)" >> "$GITHUB_STEP_SUMMARY"
-          done
+          tag=${{ steps.tags.outputs.tag }}
+          printf '### Published\n\n| Image | Digest |\n|---|---|\n| `%s:%s` | `%s` |\n' "$repo" "$tag" "$(docker inspect --format '{{index .RepoDigests 0}}' "$repo:$tag" | cut -d@ -f2)" >> "$GITHUB_STEP_SUMMARY"
 
-  cd:
+  bdd:
     needs: ci
+    strategy:
+      matrix:
+        transport: ${{ fromJSON(needs.ci.outputs.transports) }}
     runs-on: ubuntu-latest
-    environment: confluent-test
+    environment: ${{ matrix.transport }}-test
     permissions:
       contents: read
       packages: read
@@ -104,20 +102,50 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: deploy to test, the BDD suite against the candidate
+      - name: the BDD suite against the candidate, on the transport in test
         id: bdd
-        run: make bdd-published TAG=${{ needs.ci.outputs.tag }}
+        run: make bdd-published TAG=${{ needs.ci.outputs.tag }} TRANSPORT=${{ matrix.transport }}
       - name: the result and the scenarios into the job summary
         if: ${{ !cancelled() && steps.bdd.outcome != 'skipped' }}
         run: |
-          printf '### Tested\n\n| Image | Result |\n|---|---|\n| `%s:%s` | %s |\n\n' "$(make docker-repo)" "${{ needs.ci.outputs.tag }}" "${{ steps.bdd.outcome }}" >> "$GITHUB_STEP_SUMMARY"
+          printf '### Tested on %s\n\n| Image | Result |\n|---|---|\n| `%s:%s` | %s |\n\n' "${{ matrix.transport }}" "$(make docker-repo)" "${{ needs.ci.outputs.tag }}" "${{ steps.bdd.outcome }}" >> "$GITHUB_STEP_SUMMARY"
           { printf '```\n'; cat $(find . -path '*/build/reports/cucumber/pretty.txt' | sort); printf '```\n'; } >> "$GITHUB_STEP_SUMMARY"
       - name: the Cucumber reports as an artifact, one folder per project with features
         if: ${{ !cancelled() && steps.bdd.outcome != 'skipped' }}
         uses: actions/upload-artifact@v7
         with:
-          name: cucumber-report
+          name: cucumber-report-${{ matrix.transport }}
           path: '**/build/reports/cucumber'
+
+  cd:
+    needs: [ci, bdd]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 25
+      - uses: gradle/actions/setup-gradle@v6
+        with:
+          add-job-summary: never
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: the tags of the tested candidate, pr-<number> on a pull request, latest on main
+        id: tags
+        run: echo "tags=${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.number) || 'latest' }}" >> "$GITHUB_OUTPUT"
+      - name: publish the tested candidate under its tags, the same bytes
+        run: make docker-tag TAG=${{ needs.ci.outputs.tag }} TAGS="${{ steps.tags.outputs.tags }}"
+      - name: the published image into the job summary
+        run: printf '### Deployed\n\n| Image | From |\n|---|---|\n| `%s:%s` | `%s` |\n' "$(make docker-repo)" "${{ steps.tags.outputs.tags }}" "${{ needs.ci.outputs.tag }}" >> "$GITHUB_STEP_SUMMARY"
 
   tag:
     needs: [ci, cd]

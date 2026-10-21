@@ -21,13 +21,13 @@ import java.util.concurrent.ThreadLocalRandom;
 /// salt, so they are the scenario's own on the wire.
 public class StreamSteps {
 
-    private final Cluster cluster;
+    private final Transport transport;
     private final Published published;
     private final Region region;
     private int placed;
 
-    public StreamSteps(Cluster cluster, Published published, Region region) {
-        this.cluster = cluster;
+    public StreamSteps(Transport transport, Published published, Region region) {
+        this.transport = transport;
         this.published = published;
         this.region = region;
     }
@@ -49,7 +49,7 @@ public class StreamSteps {
 
     private void place(Payload payload) {
         var where = region.current();
-        var receipt = cluster.publish(Envelope.of(ThreadLocalRandom.current(), where, APP, Instant.now(), payload));
+        var receipt = transport.publish(Envelope.of(ThreadLocalRandom.current(), where, APP, Instant.now(), payload));
         published.add(where, List.of(receipt), List.of(payload));
     }
 

@@ -1,7 +1,7 @@
-# Verification · 0.0.6
+# Verification
 
-The release gate, **In production**: every rule of the [catalog](release-spec-0.0.6.md) Spec green, the release checks
-passed, and Wonderland playing in each of its environments.
+The release gate, **In production**: every feature the [catalog](release-spec-0.0.6.md) ships Spec green, the release
+checks passed, and Wonderland playing in each of its environments.
 
 ## Release checks
 
@@ -16,8 +16,9 @@ passed, and Wonderland playing in each of its environments.
 
 | ADR | Checked by | Evidence |
 |---|---|---|
-| The transport is a profile beside the environment | the architecture rule of Formulation | |
-| CI plays the spec on a local broker | review of `cicd.yaml` and `cicd-client-example.yaml` | |
+| The board writes a feature's phase to the catalog through the issue field Phase | the `@manual` scenarios of the_catalog_follows_the_board.feature | |
+| A release ships the features that are Spec green | the `@manual` scenarios of a_release_ships_what_is_ready.feature | |
+| CI plays each transport in a matrix | review of `cicd.yaml` and `cicd-client-example.yaml` | |
 
 ## In production
 

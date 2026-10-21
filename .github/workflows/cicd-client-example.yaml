@@ -18,7 +18,7 @@ permissions:
 jobs:
   cicd-client-example:
     runs-on: ubuntu-latest
-    environment: confluent-test
+    environment: cli-test
     defaults:
       run:
         working-directory: examples/purse
@@ -55,7 +55,7 @@ jobs:
       - name: container image, the platform and the purse
         if: steps.changes.outputs.purse == 'true'
         run: make docker-image
-      - name: the purse's features against the image
+      - name: the purse's features against the image on cli
         if: steps.changes.outputs.purse == 'true'
         run: make bdd
       - uses: docker/login-action@v4

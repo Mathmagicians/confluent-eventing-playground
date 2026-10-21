@@ -1,3 +1,4 @@
+@confluent
 Feature: The cluster has my topics and schemas
   One topic per payload type, its dead-letter twin, and the Protobuf schema registered for each topic. Terraform
   creates them from iac/, so a generator never does.

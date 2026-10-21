@@ -5,6 +5,7 @@ import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixture
 import static dk.mathmagicians.playground.confluent.eventing.domain.EventFixtures.order;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import dk.mathmagicians.playground.confluent.eventing.adapter.protobuf.Converter;
 import dk.mathmagicians.playground.confluent.eventing.domain.Receipt;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
@@ -23,6 +24,16 @@ class LoggingPublisherTest {
         new LoggingPublisher().publish(envelope);
 
         assertThat(output.getOut()).contains("INFO").contains(envelope.id());
+    }
+
+    @Test
+    void logsTheReceiptTheKeyTheRegionAndThePayloadAsTheConsoleReadsIt(CapturedOutput output) {
+        var envelope = envelope(offer());
+
+        new LoggingPublisher().publish(envelope);
+
+        assertThat(output.getOut()).contains("Published " + envelope.id() + " to log-0 at offset 0, key "
+                + envelope.key() + ", region " + envelope.region() + ": " + Converter.text(envelope.payload()));
     }
 
     @Test

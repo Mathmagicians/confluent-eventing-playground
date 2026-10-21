@@ -18,13 +18,13 @@ DISCOVERY := architecture-discovery/gradlew -p architecture-discovery
 WITH_GH := GITHUB_ACTOR=$${GITHUB_ACTOR:-$$(gh api user -q .login)} GITHUB_TOKEN=$${GITHUB_TOKEN:-$$(gh auth token)}
 TF := terraform -chdir=iac
 CONFLUENT_API := https://api.confluent.cloud
-# the transports the load plays on, each with the GitHub environments <transport>-test and <transport>-prod
-TRANSPORTS := confluent kafka cloudflare
+# the branch the release plans are read from
+BRANCH ?= $(shell git branch --show-current)
 # the talk has its own make in slides/; compose reads the whole of compose.yaml, the flock's environment included,
 # so the talk runs with it from here
 SLIDES := $(MAKE) --no-print-directory -C slides COMPOSE='cd $(CURDIR) && $(COMPOSE)'
 
-.PHONY: generated-check proto-gen proto-check run-tiny docker-smoke up-product up-offer up-order up-tea-party tf-init tf-check tf-format tf-plan tf-output confluent-lookup flink-statements flink-verify discovery-build discovery-install discovery-publish platform-install platform-publish slides-present slides-pdf git-tag git-release gh-main-protection
+.PHONY: generated-check proto-gen proto-check run-tiny docker-smoke up-product up-offer up-order up-tea-party tf-init tf-check tf-format tf-plan tf-output confluent-lookup flink-statements flink-verify discovery-build discovery-install discovery-publish platform-install platform-publish slides-present slides-pdf git-tag git-release gh-main-protection project-sync
 
 ##@ Generated code and documents
 generated-check: proto-check arch-check   ## fail when generated code or documents are stale
@@ -36,13 +36,13 @@ proto-check: proto-gen   ## fail when platform/src/generated is not regenerated 
 	@git status --porcelain -- platform/src/generated | grep "^.[^ ]" && { echo "platform/src/generated is out of date: make proto-gen, then git add platform/src/generated"; exit 1; } || true
 
 ##@ Smoke, the load story at its smallest
-run-tiny:  ## from source with the local profile, to the log
-	@$(MAKE) run ENV=local ARGS="$(MINIMUM)"
+run-tiny:  ## from source on TRANSPORT and ENV
+	@$(MAKE) run ARGS="$(MINIMUM)"
 
-docker-smoke:   ## from the registry image TAG against ENV
+docker-smoke:   ## from the registry image TAG on TRANSPORT and ENV
 	@$(MAKE) docker-run ARGS="$(MINIMUM)"
 
-##@ Flock, one player at a time: a generator or the tea party, against ENV; settings are environment variables, e.g. OFFER_CONCURRENT=50 TTL=300 make up-offer
+##@ Flock, one player at a time: a generator or the tea party, on TRANSPORT and ENV; settings are environment variables, e.g. OFFER_CONCURRENT=50 TTL=300 make up-offer
 up-product: docker-image   ## one generator
 	@$(COMPOSE) up product-generator
 
@@ -143,3 +143,6 @@ gh-main-protection:   ## apply .github/branch-protection.json to main, and .gith
 	  gh api repos/$(GITHUB_REPO)/environments/$$t-prod/deployment-branch-policies --jq '.branch_policies[].name' | grep -qx main \
 	    || gh api --method POST repos/$(GITHUB_REPO)/environments/$$t-prod/deployment-branch-policies -f name=main -f type=branch --silent; \
 	done
+
+project-sync:   ## the board follows the release plans on BRANCH, see .github/project-sync.sh
+	@.github/project-sync.sh $(GITHUB_REPO) $(BRANCH)

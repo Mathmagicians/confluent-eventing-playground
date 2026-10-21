@@ -1,51 +1,55 @@
-# Discovery · 0.0.7
+# Discovery
 
-The example map of each idea in the [catalog](release-0.0.7.md): its story, its rules with examples, its questions,
-and the decisions it raises for [docs/adr.md](../../adr.md).
+The example map of each feature in the [catalog](release-0.0.7.md): its story, its rules with examples, its
+questions, and the decisions it raises for [docs/adr.md](../../adr.md).
 
-## Eventing over Cloudflare
+## Stories describe themselves
 
-**Goal:** a story plays on Cloudflare as a fourth transport, `cloudflare`, beside `cli`, `kafka`, and `confluent`,
-through adapters of its own at the rim of the hexagon.
+**Story:** as the platform, I read from each story what it hears, what it publishes, and on which key.
 
-- 0.0.6 makes the transport a profile beside the environment.
-- Queues takes a message over HTTP, `POST /accounts/{account}/queues/{queue}/messages`, a body with the content type
-  `json` or `text`, under a token with `Queues Edit`
-  ([publish via HTTP](https://developers.cloudflare.com/queues/examples/publish-to-a-queue-via-http/),
-  [push API](https://developers.cloudflare.com/api/resources/queues/subresources/messages/methods/push/)).
-- A pull consumer reads over HTTP, `messages/pull` and `messages/ack`, up to 100 messages a pull, each with `body`,
-  `id`, `timestamp_ms`, `attempts`, and `lease_id`, and a visibility timeout up to 12 hours
-  ([pull consumers](https://developers.cloudflare.com/queues/configuration/pull-consumers/)).
-- A message is its body; the attributes a Kafka record carries as headers ride inside it.
-- Queues delivers at least once, and the consumer recognises a repeat by an id the producer writes
-  ([delivery guarantees](https://developers.cloudflare.com/queues/reference/delivery-guarantees/)); the order of
-  delivery is best effort ([JavaScript APIs](https://developers.cloudflare.com/queues/configuration/javascript-apis/)).
-- A message the consumer keeps failing goes to the queue's dead-letter queue
-  ([dead-letter queues](https://developers.cloudflare.com/queues/configuration/dead-letter-queues/)).
-- A Durable Object is one single-threaded instance per name, reached from a Worker
-  ([Durable Objects](https://developers.cloudflare.com/durable-objects/)).
-- Pipelines takes JSON over HTTP or a Worker binding, transforms it row by row in SQL, and writes it to R2 as Iceberg
-  tables or Parquet and JSON files; it is in open beta, and its streams, SQL, and sinks are fixed at creation
-  ([Pipelines](https://developers.cloudflare.com/pipelines/)).
-- `wrangler dev` simulates Queues for Workers through Miniflare
-  ([local development](https://developers.cloudflare.com/queues/configuration/local-development/)).
-- On Kafka the key picks the partition, so the records of one key stay in order (README, Purpose), and the envelope
-  rides as CloudEvents headers (README, Kafka and Confluent Cloud).
+- [Story.java](../../../platform/src/main/java/dk/mathmagicians/playground/confluent/eventing/application/Story.java)
+  names what a story reads, `listensTo()` and `hears()`; what it publishes lives in its body.
+- jMolecules 2.0.1's `@PrimaryPort` carries `name` and `description`.
+- The key per topic is the README's rule under Purpose, and `Envelope.key()` in the code.
 
-**Story:** I play a story on Cloudflare with `TRANSPORT=cloudflare`, and the stories stay as they are.
-
-### Rule: a generator publishes each payload type to a queue of its own, the counterpart of its topic, from the platform over HTTP
-### Rule: a listening story pulls its queues and acknowledges what it handled; a message it keeps failing goes to the dead-letter queue
-### Rule: a story handles a repeated message as it handled the first, by the envelope id
+### Rule: a story names the payload types it publishes, Story.publishes(), beside listensTo()
+### Rule: a story's port carries its name and its description, @PrimaryPort(name, description)
+### Rule: each topic's key strategy carries a name: by product, by region and product, by region, by customer
 
 **Questions**
-1. Order per key: the README's rule holds through a Durable Object per key, with a Worker in front of the queues;
-   or the transport delivers in best-effort order, and the features about order run on `kafka` and `confluent`?
-2. The envelope in the body: CloudEvents structured mode in JSON with the payload as `data_base64`, or the
-   `Envelope` message of `envelope.proto` in its JSON form?
-3. The schema: the Confluent framing with its schema id, base64 in the body, against a registry the platform
-   reaches; or the Protobuf JSON form, checked against the platform's own descriptors?
-4. The runs: a Cloudflare account for the developer machine and for CI, its token in `.env.<ENV>.private` and a
-   GitHub environment `cloudflare-<env>`?
-5. Pipelines: the counterpart of the `@confluent` Flink feature, the generator's JSON in an R2 table, with the
-   latest value snapshot as a query over it?
+1. The home of a key strategy's name: the payload record, or `Topics`?
+
+## Architecture discovery: one model, three levels
+
+**Story:** as a reader of the architecture, I see the platform at three levels, drawn from one model the code
+writes.
+
+- `HexagonDocumenter` in [architecture-discovery/](../../../architecture-discovery/architecture-discoverability.md)
+  writes PlantUML under `docs/generated/architecture` from the annotations; `make arch-check` compares its sources
+  line-sorted, [platform.mk:107](../../../platform.mk#L107).
+- structurizr-core and structurizr-export 5.0.3 come on the classpath with Spring Modulith.
+
+### Rule: model.dsl is generated from the code through ModuleDocumentation; workspace.dsl and styles.dsl are written by hand
+### Rule: level 1, the forest: the landscape, the platform with its stories and the purse
+### Rule: level 2, the trees: the containers, with their connections
+### Rule: level 3, the hexagon of each container: the rings and the adapters
+### Rule: make arch-check compares the generated files exactly
+
+**Questions**
+1. The rendering: structurizr-dsl 6.2.3 in the build, or the Structurizr CLI image? Both external, a go on the name.
+
+## The skill generate-platform-client
+
+**Story:** from the architecture spec, the skill builds a client of the platform that passes it.
+
+- The purse extends `HexagonalArchitecture` and `ModuleDocumentation` with one-line classes, and 7 of the 13 step
+  lines of its feature are platform steps.
+- `make platform-install` puts the platform, its test fixtures, and the stories in the local Maven repository,
+  [Makefile:116](../../../Makefile#L116).
+
+### Rule: the skill's input is the architecture rules, the shared steps, model.dsl, and the published platform
+### Rule: the client is done when its make check is green: the rules, its features, the platform's steps
+### Rule: the run works offline, from make platform-install
+
+**Questions**
+1. The client for the demo: a second purse, or a new story?

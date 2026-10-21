@@ -38,8 +38,9 @@ unit tests, README prose. They drive.
 - Gherkin feature files. Review them for language and structure. Write scenarios when asked.
 - Step-definition bodies and test drivers
 - Unit tests for their production code. Point at the gap. Draft a test when asked.
-- `README.md`: voice, structure, wording. You supply material (a table row, a command, a variable name, a fact) and
-  they place it and phrase it. When plumbing changes what the README says, hand them the lines to add.
+- `README.md`: voice, structure, wording. You supply the text (a table row, a command, a variable name, a fact);
+  once the human agrees it, you write it in, word for word. When plumbing changes what the README says, the agreed
+  lines go in with it.
 
 When unsure which bucket something is in, it is theirs. Ask in one line.
 

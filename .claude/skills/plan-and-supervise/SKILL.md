@@ -1,6 +1,6 @@
 ---
 name: plan-and-supervise
-description: Use when writing or updating a release plan in docs/releases, when asked to "assess and plan the work left", when an idea enters a release's catalog or a rule moves between the phases Discovery, Formulation, Automation, and Verification, when a decision is settled with themathmagician round by round, or when supervising subagents that implement a release's tasks. Holds the spec-driven method, where plans live, how the plan stays current, how decisions and sign-offs run in chat, and how a subagent is briefed and checked.
+description: Use when writing or updating a release plan in docs/releases, when asked to "assess and plan the work left", when a feature enters a release's catalog or moves between the phases Discovery, Formulation, Automation, and Verification, when a decision is settled with themathmagician round by round, or when supervising subagents that implement a release's tasks. Holds the spec-driven method, where plans live, how the plan stays current, how decisions and sign-offs run in chat, and how a subagent is briefed and checked.
 ---
 
 # Plan and Supervise
@@ -14,25 +14,28 @@ this skill holds how a release is planned and supervised.
 
 The method is the README's, How we work: Cucumber's three BDD practices (cucumber.io, Rose and Nagy's *The BDD
 Books*) and a verification, over an executable spec, the Gherkin features and the architecture rules. A release
-holds as many ideas as themathmagician decides. Each phase has its skill and its file:
+groups the features it releases, as many as themathmagician decides. Each phase has its skill and its file:
 
 | Phase | Skill | File | Gate that closes it | Applies to |
 |---|---|---|---|---|
-| **Discovery** | `discovery` | `discovery.md` | **Examples agreed** | one rule |
-| **Formulation** | `formulation` | `formulation.md` | **Spec signed** | one rule |
-| **Automation** | `automation` | `automation.md` | **Spec green** | one rule |
-| **Verification** | `verification` | `verification.md` | **In production** | the release |
+| **Discovery** | `discovery` | `*discovery.md` | **Examples agreed** | one feature |
+| **Formulation** | `formulation` | `*formulation.md` | **Spec signed** | one feature |
+| **Automation** | `automation` | `*automation.md` | **Spec green** | one feature |
+| **Verification** | `verification` | `*verification.md` | **In production** | the release |
 
 - Each phase skill holds its quality checks. A gate runs in three steps: Claude runs the checks, presents the
   evidence in chat, and themathmagician signs off. A gate opens when every check passes; a failed check is presented
   as a finding.
-- A rule moves through the phases on its own, so a release holds ideas and rules in different phases.
+- A feature moves through the phases on its own, so a release holds features in different phases. It ships its
+  rows that are Spec green; the others move to the next release's catalog, and the sync moves their cards to that
+  release's milestone.
 - Every task carries its phase and its owner. Owners follow CLAUDE.md: themathmagician writes the features, step
   bodies, drivers, unit tests, and production code; Claude writes the plumbing and the step skeletons, and reviews.
   In the plan, Claude's tasks carry the owner `pair`.
 - A sign-off is themathmagician's yes in chat on the presented evidence. The dates in a plan are facts: the day a
   gate was signed, the day a file was written or updated.
-- Each gate's evidence lives in the phase file the gate closes; the overview records the gate's date and links to it.
+- Each gate's evidence lives in the phase file the gate closes; the feature's row in the overview records the
+  gate's date and links to it.
 - A task names the scenario or rule it turns green, linked to its file and line. The scenarios live in the feature
   files and the results in the reports, the branch's `cicd` badge, the `cucumber-report` artifact,
   `build/reports/cucumber/index.html` locally; the plan links to both.
@@ -48,15 +51,17 @@ holds as many ideas as themathmagician decides. Each phase has its skill and its
       this-pr/                        the current release
       archived/release-<version>/     a release in production, trimmed to pointers
 
-  Each folder holds the overview, `release-<version>.md`, and one file per phase: `discovery.md`, `formulation.md`,
-  `automation.md`, `verification.md`.
-- The overview is the catalog: each idea with its state, Discovery, Formulation, Automation, Verification, or
-  Parked; each rule with its phase and the date of each gate it passed; the branch's `cicd` badge. Its header:
-  **Version** | **Date** | **Updated** | **Branch**.
+  Each folder holds the overview, headed `# Release <version>`, and one file per phase, `*discovery.md`,
+  `*formulation.md`, `*automation.md`, `*verification.md`: `01_discovery.md` and on in `this-pr/`, `discovery.md`
+  and on in a planned folder.
+- The overview is the catalog, `| Feature | Issue | State | Examples agreed | Spec signed | Spec green | Map |`: each
+  feature with its state, Discovery, Formulation, Automation, Verification, or Parked, and the date of each gate it
+  passed, linked to its evidence; a feature's rules live in its map. Beside it the branch's `cicd` badge. Its
+  header: **Version** | **Date** | **Updated** | **Branch**.
 - A planned folder moves into `this-pr/` when its branch starts. Once the release is in production, `this-pr/` moves
   to `archived/release-<version>/`; `main` takes changes by pull request, so the move rides in the next release's
-  first one. Plain `mv`, themathmagician stages. An idea the release leaves parked moves to a later release's catalog
-  first.
+  first one. Plain `mv`, themathmagician stages. A feature the release does not ship moves to the next release's
+  catalog first.
 - A question in a map carries its facts and options, the drafted choice marked "as drawn"; its answer goes into the
   map with its date.
 - References to an accepted ADR are `ADR-NNN [Title]`. A new ADR is proposed in the map by its title only; it gets
@@ -65,20 +70,20 @@ holds as many ideas as themathmagician decides. Each phase has its skill and its
 
 ## Naming and placement
 
-- An idea, a rule, a task, and a brief are named by what they are: "Messaging capability: cli, kafka, confluent",
+- A feature, a rule, a task, and a brief are named by what they are: "Messaging capability: cli, kafka, confluent",
   "ConfluentKeys, checked at startup". The release version is the one number in a name.
-- Work goes where themathmagician puts it, in their words: an idea, its release, and its version come from them. A
-  split, a new release, or a new idea is theirs to name; a question in a map is the place to raise one.
+- Work goes where themathmagician puts it, in their words: a feature, its release, and its version come from them. A
+  split, a new release, or a new feature is theirs to name; a question in a map is the place to raise one.
 
 ## Keeping the plan current
 
 - A change updates every document it makes stale, in the same change: the plan, the skills, `make help`, and the
-  README lines, which themathmagician places unless they say "you do it".
+  README lines, written in word for word once themathmagician agrees them.
 - An implemented task shrinks to pointers: the files, classes, and tests that carry it, and its gate date. Snippets
   and run output leave the plan; git holds them.
 - Open work keeps its detail: the questions with their facts, the findings still standing, the notes a later task
   needs.
-- Detail that belongs to another idea moves to that idea's section in full, and the first place points there.
+- Detail that belongs to another feature moves to that feature's section in full, and the first place points there.
 
 ## Investigate before you claim
 
@@ -99,7 +104,7 @@ scenario or test that proves it, and a new class comes with its `<Class>Test`.
 
 ```
 Task: <name, as automation.md names it>
-Idea and rule: <links into discovery.md and the overview>
+Feature and rule: <links into its map and the overview>
 Goal: <one sentence>
 Files: create / modify / delete
 Red first: <the scenario or test that fails before and passes after>
@@ -123,7 +128,7 @@ Wait for the yes. Launch one agent per task with the brief, the phase skill, and
 
 1. The red run's output shown. 2. The green run's output shown. 3. `make build` green. 4. The diff reviewed against
 the brief and the README standards, CLAUDE.md, Review protocol. 5. The plan updated: the task to pointers, the
-evidence under its idea. 6. themathmagician stages and commits.
+evidence under its feature. 6. themathmagician stages and commits.
 
 A finding in themathmagician's review reopens the same task, and is fixed and reported there.
 

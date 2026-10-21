@@ -177,7 +177,7 @@ only, both reach the shared adapters, which reach the domain only, and nothing i
 ├── slides/                   the talk, Architecture Discoverability and Verification, played by compose: make slides-present
 └── docs/
     ├── generated/            the architecture from the code, make arch-gen; the slides as PDF, make slides-pdf
-    ├── releases/             a folder per release: the overview with the catalog of its ideas, and one file per phase
+    ├── releases/             a folder per release: the overview with the catalog of its features, and one file per phase
     └── adr.md                the architecture decisions
 ```
 
@@ -223,8 +223,8 @@ properties files. `.env.private.sample` lists them. They live in three places:
   `test`, into the command it runs.
 - The GitHub environments `confluent-test` and `confluent-prod`: the endpoints as variables, the API keys as
   secrets. One Confluent cluster serves both, one topic prefix each. `load-run.yaml` plays in `<transport>-prod`
-  from `main` and in `<transport>-test` from any other branch; the `kafka-*` and `cloudflare-*` environments start
-  empty.
+  from `main` and in `<transport>-test` from any other branch; the `cli-*`, `kafka-*`, and `cloudflare-*`
+  environments start empty.
 - The Terraform Cloud workspace, as Terraform variables.
 
 #### IaC
@@ -379,7 +379,10 @@ BDD with Cucumber:
 - The Flink feature's oracle is what the generator published in the scenario: the table must say what was sent.
 - Features run through the JUnit Platform Suite engine as part of `make check`. A red feature blocks the build.
   The report is `build/reports/cucumber/index.html`; the `cd` job prints the scenarios in its summary and uploads
-  the report as the artifact `cucumber-report`.
+  the report as the artifact `cucumber-report-<transport>`.
+- A feature we decide is not ready carries `@wip`, a check played by hand carries `@manual`. `make bdd` leaves both
+  out, `make bdd-snippets` leaves out `@manual`, and `SCENARIOS=<tag expression>` picks others.
+- `TRANSPORT` picks the transport the features play on, and a transport plays the scenarios it carries.
 
 ### Naming and structure
 
@@ -420,8 +423,8 @@ BDD with Cucumber:
   `ghcr.io/mathmagicians/wonderland-eventing-playground` as a candidate tagged `sha-<short sha>`. A pull request
   adds `pr-<number>`, a push to `main` adds `latest`. Only `main` moves `latest`.
 - `cicd.yaml`, job `cd`, follows `ci`: it deploys to test by running the integration tests, `make bdd-published`,
-  against the candidate, with the credentials of the `confluent-test` environment. A green `cd` on a pull request
-  is what says the build can be promoted.
+  against the candidate, once per transport `make ci-transports` lists, with the credentials of its
+  `<transport>-test` environment. A green `cd` on a pull request is what says the build can be promoted.
 - `cicd.yaml`, job `tag`, follows `cd` on `main`: `make git-release` puts a git tag `v<version>` on the tested
   commit and the same version on the candidate image in the registry, and the platform's jars go to GitHub
   Packages under it, the same bytes `ci` built. `make git-tag` is the git part alone. The version is Gradle's next,
@@ -453,8 +456,8 @@ BDD with Cucumber:
 ## How we work
 
 Spec driven, in Cucumber's BDD vocabulary. A release is a rotation from idea to Wonderland in production, and holds
-the ideas we put in it. Its plan lives in `docs/releases/`: the overview, the catalog of the release's ideas and the
-state of their rules, and one file per phase.
+the features we put in it. Its plan lives in `docs/releases/`: the overview, the catalog of the release's features
+and their gates, and one file per phase.
 
 | Phase | What happens | Gate that closes it |
 |---|---|---|
@@ -463,8 +466,10 @@ state of their rules, and one file per phase.
 | Automation | step bodies, drivers, unit tests, code, and plumbing turn the spec green | Spec green, the ADRs complied with |
 | Verification | the release checks on the pull request, then Wonderland in each of its environments | In production |
 
-A rule moves through the phases on its own. Each gate is signed with its date and its evidence. Architecture
-decisions are recorded in `docs/adr.md`, each with the rule or test that enforces it.
+A release groups the features it releases, one row of its catalog each. A feature moves through the phases on its
+own, and each gate is signed with its date and its evidence; Spec green is its passing BDD tests, or a manual
+verification where they are not feasible. Architecture decisions are recorded in `docs/adr.md`, each with the rule
+or test that enforces it.
 
 ## Definition of done
 

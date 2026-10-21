@@ -1,19 +1,19 @@
 # The flock: one generator per event type, and the tea party that settles their orders. `make up` starts them all,
-# `make up-<type>` one generator, `make up-tea-party` the tea party, against ENV. Defaults live here; override with
-# environment variables, e.g. OFFER_CONCURRENT=50 TTL=300 make up-offer. Beside the flock, the talk.
+# `make up-<type>` one generator, `make up-tea-party` the tea party, on TRANSPORT and ENV. Defaults live here;
+# override with environment variables, e.g. OFFER_CONCURRENT=50 TTL=300 make up-offer. Beside the flock, the talk.
 name: wonderland-eventing-playground
 
 x-generator: &generator
   image: wonderland-eventing-playground:${VERSION:?set by make, the version is Gradle's}   # make docker-image
-  # the profile is the environment; make sources what the image reads from .env.<ENV>.private
+  # the profiles are the transport and the environment; make sources what the image reads from .env.<ENV>.private
   environment:
-    SPRING_PROFILES_ACTIVE: ${ENV:?set by make, test or prod}
-    KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:?from .env.<ENV>.private}
-    KAFKA_API_KEY: ${KAFKA_API_KEY:?from .env.<ENV>.private}
-    KAFKA_API_SECRET: ${KAFKA_API_SECRET:?from .env.<ENV>.private}
-    SCHEMA_REGISTRY_REST_ENDPOINT: ${SCHEMA_REGISTRY_REST_ENDPOINT:?from .env.<ENV>.private}
-    SCHEMA_REGISTRY_API_KEY: ${SCHEMA_REGISTRY_API_KEY:?from .env.<ENV>.private}
-    SCHEMA_REGISTRY_API_SECRET: ${SCHEMA_REGISTRY_API_SECRET:?from .env.<ENV>.private}
+    SPRING_PROFILES_ACTIVE: ${PROFILES:?set by make, <transport>,<env>}
+    KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-}
+    KAFKA_API_KEY: ${KAFKA_API_KEY:-}
+    KAFKA_API_SECRET: ${KAFKA_API_SECRET:-}
+    SCHEMA_REGISTRY_REST_ENDPOINT: ${SCHEMA_REGISTRY_REST_ENDPOINT:-}
+    SCHEMA_REGISTRY_API_KEY: ${SCHEMA_REGISTRY_API_KEY:-}
+    SCHEMA_REGISTRY_API_SECRET: ${SCHEMA_REGISTRY_API_SECRET:-}
 
 services:
   product-generator:

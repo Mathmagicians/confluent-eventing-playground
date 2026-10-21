@@ -1,22 +1,23 @@
 ---
 name: discovery
-description: The Discovery phase of the spec-driven method. Example mapping turns an idea into a story, rules, examples, and questions in a release's discovery.md, and the gate Examples agreed moves a rule on to Formulation. Use when an idea enters a release's catalog, when writing or updating discovery.md, and before presenting a rule for Examples agreed.
+description: The Discovery phase of the spec-driven method. Example mapping turns a feature into a story, rules, examples, and questions in a release's discovery.md, and the gate Examples agreed moves the feature on to Formulation. Use when a feature enters a release's catalog, when writing or updating discovery.md, and before presenting a feature for Examples agreed.
 ---
 
 # Discovery
 
-Discovery turns an idea into a story, rules, an example per rule, and the questions still open, by example mapping
-(Matt Wynne, cucumber.io). Its file is `discovery.md` in the release folder. The gate that closes it is
-**Examples agreed**, one rule at a time. The method, the folders, and the other phases are in `plan-and-supervise`.
+Discovery turns a feature into a story, rules, an example per rule, and the questions still open, by example
+mapping (Matt Wynne, cucumber.io). Its file is the release folder's `*discovery.md`. The gate that closes it is
+**Examples agreed**, one feature at a time. The method, the folders, and the other phases are in
+`plan-and-supervise`.
 
 ## The example map
 
 ```markdown
-## <the idea, as the catalog names it>
+## <the feature, as the catalog names it>
 
-**Goal:** <themathmagician's words for what the idea delivers>
+**Goal:** <themathmagician's words for what the feature delivers>
 
-- <a fact behind the idea, with its link: file:line or the docs>
+- <a fact behind the feature, with its link: file:line or the docs>
 
 **Story:** I <do what>, <so that>.
 
@@ -30,7 +31,7 @@ Discovery turns an idea into a story, rules, an example per rule, and the questi
 - <title>
 ```
 
-- The idea, its goal, and its place in a release are themathmagician's words. Claude drafts the map from the
+- The feature, its goal, and its place in a release are themathmagician's words. Claude drafts the map from the
   conversation and the code; each rule and each answer is themathmagician's.
 - A story is what someone wants, in their words: a developer, the platform, a reader of the architecture.
 - A rule is one behaviour. Its examples are concrete and observable: a make target with its variables, what a
@@ -47,17 +48,17 @@ Discovery turns an idea into a story, rules, an example per rule, and the questi
 
 ## Gate: Examples agreed
 
-The gate closes Discovery for one rule, in three steps: Claude runs the checks, presents the evidence in chat,
+The gate closes Discovery for one feature, in three steps: Claude runs the checks, presents the evidence in chat,
 and themathmagician signs off.
 
 | Check | How |
 |---|---|
-| The rule has an example | the map lists one or more |
+| Each rule has an example | the map lists one or more per rule |
 | Each example is observable | it names a command, a message, a log line, or a topic |
-| Each question the rule raised is answered | the answer is in the map, with its date |
-| Each architectural decision the rule raised is accepted | `docs/adr.md` lists it as `ADR-NNN`, Status Accepted |
-| The words are the team's | the rule reads true against the voice skill and the README's domain words |
+| Each question the map raised is answered | the answer is in the map, with its date |
+| Each architectural decision the map raised is accepted | `docs/adr.md` lists it as `ADR-NNN`, Status Accepted |
+| The words are the team's | the map reads true against the voice skill and the README's domain words |
 
-Evidence presented: the rule with its examples, its answered questions, and its ADRs by number. On the yes, the
-overview's Rules table records the date, linked to the rule in `discovery.md`, and the rule's phase becomes
+Evidence presented: the feature's rules with their examples, its answered questions, and its ADRs by number. On the
+yes, the feature's row records the date in its Examples agreed cell, linked to its map, and its State becomes
 Formulation.

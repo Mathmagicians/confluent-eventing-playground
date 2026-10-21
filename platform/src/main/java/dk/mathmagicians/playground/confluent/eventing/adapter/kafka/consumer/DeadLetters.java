@@ -20,7 +20,7 @@ import org.springframework.util.backoff.FixedBackOff;
 /// Where a record goes when the story throws: the dead-letter topic as `iac/topics.tf` names it, `<topic>.DLT`,
 /// the same partition. The listener container factory picks the handler up by its type.
 @Configuration
-@Profile("!local")
+@Profile("confluent")
 class DeadLetters {
 
     /// No retry: what a story throws is a decision, not a hiccup.

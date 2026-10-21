@@ -16,14 +16,14 @@ import org.springframework.kafka.listener.MessageListener;
 import org.springframework.kafka.listener.MessageListenerContainer;
 import org.springframework.stereotype.Component;
 
-/// Driving adapter for `test` and `prod`: the consumer. When the context starts it subscribes to the topics of
+/// Driving adapter for `confluent`: the consumer. When the context starts it subscribes to the topics of
 /// what the selected story listens to, under the story's group, `spring.kafka.consumer.group-id` when a
 /// deployment names one, and hands every record the story hears to it as an envelope: a story from a region
 /// hears its region only. A story that listens to nothing gets no consumer. What the story throws propagates
 /// to the container's error handler, `DeadLetters`, which sets the record aside on the dead-letter topic.
 @PrimaryAdapter
 @Component
-@Profile("!local")
+@Profile("confluent")
 public final class StoryListener implements SmartLifecycle {
 
     private static final Logger log = LoggerFactory.getLogger(StoryListener.class);

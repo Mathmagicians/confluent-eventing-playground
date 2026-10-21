@@ -11,7 +11,7 @@ import org.springframework.context.annotation.Profile;
 /// The topic per payload type. One set per environment, named in the profile's properties as `iac/topics.tf`
 /// creates them.
 @ConfigurationProperties("topics")
-@Profile("!local")
+@Profile("confluent")
 public record Topics(String products, String offers, String orders, String transactions) {
 
     public Topics {
