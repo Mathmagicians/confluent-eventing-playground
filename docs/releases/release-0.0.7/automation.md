@@ -158,7 +158,7 @@ with [CI plays each transport](../this-pr/03_automation.md#ci-plays-each-transpo
 ```make
 # where a story plays: cli, the console and the log; kafka, the broker of make kafka-up; confluent, Confluent Cloud
 # with the keys from .env.<ENV>.private
-TRANSPORT ?= kafka
+TRANSPORT ?= cli
 PROFILES = $(TRANSPORT),$(ENV)
 # the addresses of the local broker and registry on the flock's network
 FLOCK_KAFKA := KAFKA_BOOTSTRAP_SERVERS=kafka:19092 SCHEMA_REGISTRY_REST_ENDPOINT=http://registry:8081
@@ -166,7 +166,7 @@ FLOCK_KAFKA := KAFKA_BOOTSTRAP_SERVERS=kafka:19092 SCHEMA_REGISTRY_REST_ENDPOINT
 NEEDS = $(if $(filter kafka,$(TRANSPORT)),kafka-up)
 COMPOSE := $(WITH_ENV) $(if $(filter kafka,$(TRANSPORT)),$(FLOCK_KAFKA)) PROFILES=$(PROFILES) VERSION=$(VERSION) docker compose
 
-run: $(NEEDS)   ## from source on TRANSPORT, default kafka, with the topics of ENV, default test; ARGS pick the story and its settings
+run: $(NEEDS)   ## from source on TRANSPORT, default cli, with the topics of ENV, default test; ARGS pick the story and its settings
 	@$(WITH_ENV) SPRING_PROFILES_ACTIVE=$(PROFILES) $(GRADLE) $(BOOT):bootRun $(if $(ARGS),--args="$(ARGS)")
 
 ##@ Kafka, the local broker and registry the kafka transport plays on
@@ -229,6 +229,25 @@ passes the flock's addresses on `kafka` and the six variables on `confluent`.
 
 - On `kafka`, the matrix of [CI plays each transport](../this-pr/03_automation.md#ci-plays-each-transport) takes
   `kafka` in, its broker on the runner, for `cd` and the purse, per question 5.
+
+## The catalog follows the board
+
+`project.yaml` plays [Project sync](../this-pr/03_automation.md#project-sync-the-board-follows-the-catalog) on every
+push, and the board's moves back into the catalog.
+
+| Task | Owner | Turns green |
+|---|---|---|
+| `make project-links`: the catalogs committed and pushed when the sync changed them | pair | the links on the branch |
+| `.github/workflows/project.yaml`: on `docs/releases/**` but `archived/**`, with `GITHUB_TOKEN`, issues and contents write | pair | the run green |
+
+## A release ships what is ready
+
+Owner: pair.
+
+- `@wip` and `@manual` stay out of the run, 2026-10-21: the `bdd` task at
+  [platform.gradle:126](../../../platform.gradle#L126), `SCENARIOS` in [platform.mk](../../../platform.mk), and the
+  README's Testing. `make bdd-snippets` played the 17 scenarios, `SCENARIOS=@nothing` none.
+- Open: the root `bdd`, which parses `src/test/resources/features/` and plays none of its `@manual` scenarios.
 
 ## Stories describe themselves
 

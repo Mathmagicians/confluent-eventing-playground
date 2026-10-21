@@ -17,6 +17,8 @@ checks passed, and Wonderland playing in each of its environments.
 | ADR | Checked by | Evidence |
 |---|---|---|
 | The transport is a profile beside the environment | the architecture rule of Formulation | |
+| The board writes a feature's phase to the catalog through the issue field Phase | the `@manual` scenarios of the_catalog_follows_the_board.feature | |
+| A release ships the features that are Spec green | the `@manual` scenarios of a_release_ships_what_is_ready.feature | |
 
 ## In production
 

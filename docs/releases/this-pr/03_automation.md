@@ -12,9 +12,10 @@ Owner: pair. Turns green: the dispatches of the map.
   pick `<transport>-<test|prod>`, prod from `main`, 2026-10-20.
 - The environments: `TRANSPORTS` in the [Makefile](../../../Makefile), `.github/environment-test.json` and
   `environment-prod.json`, applied by `make gh-main-protection`, 2026-10-20.
-- Open: the `FIXME` in `load-run.yaml`, `TRANSPORT` into make once `platform.mk` takes it, with
-  [Messaging capability](../release-0.0.7/automation.md#messaging-capability-cli-kafka-confluent); the `kafka-*` and
-  `cloudflare-*` environments filled.
+- `TRANSPORT` reaches make, [load-run.yaml:28](../../../.github/workflows/load-run.yaml#L28), and `platform.mk`
+  plays it, 2026-10-22.
+- Open: Spec green after the merge, when `main` builds `latest`; the `kafka-*` and `cloudflare-*` environments
+  filled.
 
 ## Slides spike: the talk plays from compose
 
@@ -48,29 +49,20 @@ Owner: pair; the repository renamed by themathmagician. Turns green: the rule of
 
 | Task | Owner | Turns green |
 |---|---|---|
-| The Issue column in each catalog, after Feature | pair | the rows parse |
-| `make project-sync`: the missing issues and milestones, each body from the phase files, the issue's milestone from the overview's file name, the issue's Phase | pair | the first run |
-| `make project-links`: the catalogs committed and pushed when the sync changed them | pair | the links on the branch |
-| `.github/workflows/project.yaml`: on `docs/releases/**` but `archived/**`, with `GITHUB_TOKEN`, issues and contents write | pair | the run green |
-| The issue field `phase`, 2026-10-21; the board's columns by phase, its swimlanes by milestone, and its auto-add workflow on `is:issue` | themathmagician | the board shows a column per phase and a swimlane per release |
-| `plan-and-supervise`: the overview's Issue column and the board | pair | the skill says what the overview holds |
+| The Issue column in each catalog, after Feature | pair | done 2026-10-21: every row of 0.0.6, 0.0.7, and 0.0.8 linked |
+| `make gh-project-sync`: the missing issues and milestones, each body from the phase files, the issue's milestone from the overview's file name, the issue's Phase | pair | done 2026-10-21: the first run created issues #7 to #19 and the milestones 0.0.6, 0.0.7, and 0.0.8 |
+| The issue field `phase`, 2026-10-21; the board's columns by phase, its swimlanes by milestone, and its auto-add workflow on `is:issue` | themathmagician | done 2026-10-21: the board shows a column per phase and a swimlane per release |
+| `plan-and-supervise`: the overview's Issue column and the board | pair | the skill says what the overview holds and when the board is synced |
 
-## A release ships what is ready
-
-Owner: pair.
-
-- `@wip` and `@manual` stay out of the run, 2026-10-21: the `bdd` task at
-  [platform.gradle:111](../../../platform.gradle#L111), `SCENARIOS` in [platform.mk](../../../platform.mk), and the
-  README's Testing. `make bdd-snippets` played the 17 scenarios, `SCENARIOS=@nothing` none.
-- Open: the root `bdd`, which parses `src/test/resources/features/` and plays none of its `@manual` scenarios.
+Spec green, signed 2026-10-22: themathmagician ran `make gh-project-sync`, "it is confirmed to work".
 
 ## CI plays each transport
 
 | Task | Owner | Turns green |
 |---|---|---|
-| `TRANSPORT` in `platform.mk`, `cli`, `kafka`, or `confluent`, passed to the `bdd` task, which leaves out what the transport does not carry | pair | `make bdd-snippets TRANSPORT=cli` lists the cli scenarios alone |
-| The drivers on cli: the image under `local`, its log read, its console fed; the keys on `confluent` alone | themathmagician | `make bdd TRANSPORT=cli` green |
-| `TRANSPORTS` and `CI_TRANSPORTS` in `platform.mk`, the reasons beside them, and `make ci-transports` | pair | `make ci-transports` prints `["cli"]` |
-| `cli` in `load-run.yaml`'s choice, and its environments by `make gh-main-protection` | pair | `cli-test` and `cli-prod` listed |
-| The matrix of `cicd.yaml`, job `cd`, and of `cicd-client-example.yaml`, from `make ci-transports` | pair | `cd (cli)` and `cicd-client-example (cli)` green on the pull request |
-| The required checks per entry of `CI_TRANSPORTS`, added by `make gh-main-protection` to `.github/branch-protection.json` | pair, applied by themathmagician | the protection lists `cd (cli)` and `cicd-client-example (cli)` |
+| `TRANSPORT` in `platform.mk`, default `cli`, passed to the `bdd` task with the profiles `<transport>,<env>`; the task leaves out what the transport does not carry | pair | done 2026-10-22: `make bdd-snippets` plays 3 + 7 scenarios, `TRANSPORT=confluent` 10 + 7 |
+| `TRANSPORTS` and `CI_TRANSPORTS` in `platform.mk`, the reasons beside them, and `make ci-transports` | pair | done 2026-10-21: `make ci-transports` prints `["cli"]` |
+| The drivers' port [Transport](../../../platform/src/testFixtures/java/dk/mathmagicians/playground/confluent/eventing/bdd/Transport.java), one bean per transport: `ClusterTransport` on `confluent`, the cluster and registry calls the drivers made before; `ConsoleTransport` on `cli`, the story's console typed into, the image's log read | pair | `make bdd` green; `make bdd TRANSPORT=confluent` green once the cluster answers |
+| `LoggingPublisher` logs the receipt, the key, the region, and the payload as the console reads it, `Converter.text` | pair | done 2026-10-22: `LoggingPublisherTest`, `ConverterTest`; `make run-tiny` logs `Published ENVL-… to log-0 at offset 0, key EMEA/P-DRIN, region EMEA: Offer offer_id: "OFF-…" product_id: "P-DRIN" …` |
+| `cli` in `load-run.yaml`'s choice, and its environments `cli-test` and `cli-prod` | pair | GitHub creates them on first use; `make gh-main-protection` deploys `cli-prod` from `main` alone |
+| The `bdd` job of `cicd.yaml`, a matrix over `make ci-transports`, before `cd`, which publishes the image; `cicd-client-example.yaml` plays the purse in `cli-test` | pair | `bdd (cli)`, `cd`, and `cicd-client-example` green on the pull request |

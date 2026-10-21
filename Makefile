@@ -24,7 +24,7 @@ BRANCH ?= $(shell git branch --show-current)
 # so the talk runs with it from here
 SLIDES := $(MAKE) --no-print-directory -C slides COMPOSE='cd $(CURDIR) && $(COMPOSE)'
 
-.PHONY: generated-check proto-gen proto-check run-tiny docker-smoke up-product up-offer up-order up-tea-party tf-init tf-check tf-format tf-plan tf-output confluent-lookup flink-statements flink-verify discovery-build discovery-install discovery-publish platform-install platform-publish slides-present slides-pdf git-tag git-release gh-main-protection project-sync
+.PHONY: generated-check proto-gen proto-check run-tiny docker-smoke up-product up-offer up-order up-tea-party tf-init tf-check tf-format tf-plan tf-output confluent-lookup flink-statements flink-verify discovery-build discovery-install discovery-publish platform-install platform-publish slides-present slides-pdf git-tag git-release gh-main-protection gh-project-sync
 
 ##@ Generated code and documents
 generated-check: proto-check arch-check   ## fail when generated code or documents are stale
@@ -144,5 +144,5 @@ gh-main-protection:   ## apply .github/branch-protection.json to main, and .gith
 	    || gh api --method POST repos/$(GITHUB_REPO)/environments/$$t-prod/deployment-branch-policies -f name=main -f type=branch --silent; \
 	done
 
-project-sync:   ## the board follows the release plans on BRANCH, see .github/project-sync.sh
+gh-project-sync:   ## the board follows the release plans on BRANCH, see .github/project-sync.sh
 	@.github/project-sync.sh $(GITHUB_REPO) $(BRANCH)
