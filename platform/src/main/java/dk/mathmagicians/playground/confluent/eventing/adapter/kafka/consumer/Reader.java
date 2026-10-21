@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
 /// through the registry and answers a message; `Converter` makes the record, `EnvelopeHeaders` the envelope. The
 /// publisher is the other direction.
 @Component
-@Profile("!local")
+@Profile("confluent")
 public final class Reader {
 
     private final KafkaProtobufDeserializer<Message> deserializer;

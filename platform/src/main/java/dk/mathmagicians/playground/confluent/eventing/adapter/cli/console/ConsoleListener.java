@@ -27,7 +27,7 @@ import org.springframework.context.SmartLifecycle;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
-/// Driving adapter for `local`: the console stands in for the topics. When the context starts and the selected
+/// Driving adapter for `cli`: the console stands in for the topics. When the context starts and the selected
 /// story listens, a thread reads the input line by line, a session of five kinds of line, and hands every
 /// message to the story as an envelope stamped with the session's region. A story that listens to nothing gets no
 /// console. The thread keeps the process alive while the input is open: EOF ends it, `q` or `quit` does, and so
@@ -41,11 +41,14 @@ import org.springframework.stereotype.Component;
 /// and the help, and the story never sees it; what the story throws is printed, and the console goes on.
 @PrimaryAdapter
 @Component
-@Profile("local")
+@Profile("cli")
 public final class ConsoleListener implements SmartLifecycle {
 
     private static final Logger log = LoggerFactory.getLogger(ConsoleListener.class);
     private static final String THREAD = ConsoleListener.class.getSimpleName() + "-Thread";
+
+    /// the line once the story has a message: the payload's id, its type, the region it was stamped with
+    public static final String HEARD = ">>> Published {} to {} in region {}";
 
     private final Story story;
     private final Publishing publishing;
@@ -207,7 +210,7 @@ public final class ConsoleListener implements SmartLifecycle {
                 try {
                     payload = Converter.from(typeClass.get(), body);
                     session.publish(payload);
-                    log.info(">>> Published {} to {} in region {}", payload.id(), typeClass.get().getSimpleName(), session.region());
+                    log.info(HEARD, payload.id(), typeClass.get().getSimpleName(), session.region());
                 } catch (IllegalArgumentException e) {
                     session.say(">>> Failed to read the message: " + e.getMessage());
                     new Help().act(session);

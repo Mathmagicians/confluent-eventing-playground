@@ -1,8 +1,8 @@
-# confluent-eventing-playground: the eventing platform, the stories it plays, and the distribution that puts them
+# wonderland-eventing-playground: the eventing platform, the stories it plays, and the distribution that puts them
 # in one image against Confluent Cloud. `make` builds, `make help` lists the targets. What every build on the
 # platform shares is in platform.mk; this file adds what only this repository has.
 
-IMAGE := confluent-eventing-playground
+IMAGE := wonderland-eventing-playground
 BOOT := :app
 # the load story at its smallest: one producer, about one event, then exit
 MINIMUM := --load.concurrent=1 --load.interval=1000 --load.ttl=2
@@ -18,8 +18,13 @@ DISCOVERY := architecture-discovery/gradlew -p architecture-discovery
 WITH_GH := GITHUB_ACTOR=$${GITHUB_ACTOR:-$$(gh api user -q .login)} GITHUB_TOKEN=$${GITHUB_TOKEN:-$$(gh auth token)}
 TF := terraform -chdir=iac
 CONFLUENT_API := https://api.confluent.cloud
+# the branch the release plans are read from
+BRANCH ?= $(shell git branch --show-current)
+# the talk has its own make in slides/; compose reads the whole of compose.yaml, the flock's environment included,
+# so the talk runs with it from here
+SLIDES := $(MAKE) --no-print-directory -C slides COMPOSE='cd $(CURDIR) && $(COMPOSE)'
 
-.PHONY: generated-check proto-gen proto-check run-tiny docker-smoke up-product up-offer up-order up-tea-party tf-init tf-check tf-format tf-plan tf-output confluent-lookup flink-statements flink-verify discovery-build discovery-install discovery-publish platform-install platform-publish git-tag git-release gh-main-protection
+.PHONY: generated-check proto-gen proto-check run-tiny docker-smoke up-product up-offer up-order up-tea-party tf-init tf-check tf-format tf-plan tf-output confluent-lookup flink-statements flink-verify discovery-build discovery-install discovery-publish platform-install platform-publish slides-present slides-pdf git-tag git-release gh-main-protection gh-project-sync
 
 ##@ Generated code and documents
 generated-check: proto-check arch-check   ## fail when generated code or documents are stale
@@ -31,13 +36,13 @@ proto-check: proto-gen   ## fail when platform/src/generated is not regenerated 
 	@git status --porcelain -- platform/src/generated | grep "^.[^ ]" && { echo "platform/src/generated is out of date: make proto-gen, then git add platform/src/generated"; exit 1; } || true
 
 ##@ Smoke, the load story at its smallest
-run-tiny:  ## from source with the local profile, to the log
-	@$(MAKE) run ENV=local ARGS="$(MINIMUM)"
+run-tiny:  ## from source on TRANSPORT and ENV
+	@$(MAKE) run ARGS="$(MINIMUM)"
 
-docker-smoke:   ## from the registry image TAG against ENV
+docker-smoke:   ## from the registry image TAG on TRANSPORT and ENV
 	@$(MAKE) docker-run ARGS="$(MINIMUM)"
 
-##@ Flock, one player at a time: a generator or the tea party, against ENV; settings are environment variables, e.g. OFFER_CONCURRENT=50 TTL=300 make up-offer
+##@ Flock, one player at a time: a generator or the tea party, on TRANSPORT and ENV; settings are environment variables, e.g. OFFER_CONCURRENT=50 TTL=300 make up-offer
 up-product: docker-image   ## one generator
 	@$(COMPOSE) up product-generator
 
@@ -117,6 +122,13 @@ platform-install:  ## the platform, its test fixtures, and the stories into the 
 platform-publish:  ## the platform, its test fixtures, and the stories to GitHub Packages, where a story's build takes them from
 	@$(WITH_GH) $(GRADLE) publish --no-configuration-cache
 
+##@ Slides, the talk in slides/, played by the slides service of compose.yaml
+slides-present:   ## the talk on localhost:3030, opened in the browser, live reload and presenter notes
+	@$(SLIDES) present
+
+slides-pdf:   ## write the talk to docs/generated/slides/architecture-discoverability.pdf
+	@$(SLIDES) pdf
+
 ##@ Repository, git tags and GitHub settings
 git-tag:   ## tag v<RELEASE> on HEAD and push it; RELEASE defaults to the next version
 	@git tag -a v$(RELEASE) -m "release $(RELEASE)" && git push origin v$(RELEASE)
@@ -124,5 +136,13 @@ git-tag:   ## tag v<RELEASE> on HEAD and push it; RELEASE defaults to the next v
 git-release: git-tag   ## the tag, plus <RELEASE> on the candidate image TAG in the registry
 	@docker buildx imagetools create -t $(REPO):$(RELEASE) $(REPO):$(TAG)
 
-gh-main-protection:   ## apply .github/branch-protection.json to main
+gh-main-protection:   ## apply .github/branch-protection.json to main, and .github/environment-<test|prod>.json to each transport's environments, prod from main only
 	@gh api --method PUT repos/$(GITHUB_REPO)/branches/main/protection --input .github/branch-protection.json
+	@set -e; for t in $(TRANSPORTS); do \
+	  for e in test prod; do gh api --method PUT repos/$(GITHUB_REPO)/environments/$$t-$$e --input .github/environment-$$e.json --silent; done; \
+	  gh api repos/$(GITHUB_REPO)/environments/$$t-prod/deployment-branch-policies --jq '.branch_policies[].name' | grep -qx main \
+	    || gh api --method POST repos/$(GITHUB_REPO)/environments/$$t-prod/deployment-branch-policies -f name=main -f type=branch --silent; \
+	done
+
+gh-project-sync:   ## the board follows the release plans on BRANCH, see .github/project-sync.sh
+	@.github/project-sync.sh $(GITHUB_REPO) $(BRANCH)

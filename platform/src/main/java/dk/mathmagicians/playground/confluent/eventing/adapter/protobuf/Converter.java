@@ -178,6 +178,14 @@ public final class Converter {
         return descriptor.getName() + " " + fields(descriptor);
     }
 
+    /// The payload as a line the console reads: its type's name, then its message as Protobuf text on one line,
+    /// `Offer offer_id: "OFF-1" product_id: "P-TOPH" price: 12.5 seller_id: "MAD_HATTER" created_at { ... }`.
+    public static String text(Payload payload) {
+        var message = to(payload);
+        return message.getDescriptorForType().getName() + " "
+                + TextFormat.printer().emittingSingleLine(true).printToString(message).strip();
+    }
+
     private static Message.Builder builder(Class<? extends Payload> type) {
         var builder = BUILDERS.get(type);
         if (builder == null) {

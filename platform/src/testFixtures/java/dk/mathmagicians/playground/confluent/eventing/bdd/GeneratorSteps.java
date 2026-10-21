@@ -11,13 +11,13 @@ import java.util.List;
 public class GeneratorSteps {
 
     private final GeneratorContainer generator;
-    private final Cluster cluster;
+    private final Transport transport;
     private final Published published;
     private final Region region;
 
-    public GeneratorSteps(GeneratorContainer generator, Cluster cluster, Published published, Region region) {
+    public GeneratorSteps(GeneratorContainer generator, Transport transport, Published published, Region region) {
         this.generator = generator;
-        this.cluster = cluster;
+        this.transport = transport;
         this.published = published;
         this.region = region;
     }
@@ -39,6 +39,6 @@ public class GeneratorSteps {
 
     private void place(String region, List<String> payloads) {
         var receipts = generator.publish(payloads, region);
-        published.add(region, receipts, cluster.payloads(receipts));
+        published.add(region, receipts, transport.payloads(receipts));
     }
 }

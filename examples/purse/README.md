@@ -1,6 +1,6 @@
 # The purse, a story of its own
 
-[![cicd-client-example](https://github.com/Mathmagicians/confluent-eventing-playground/actions/workflows/cicd-client-example.yaml/badge.svg?branch=main)](https://github.com/Mathmagicians/confluent-eventing-playground/actions/workflows/cicd-client-example.yaml)
+[![cicd-client-example](https://github.com/Mathmagicians/wonderland-eventing-playground/actions/workflows/cicd-client-example.yaml/badge.svg?branch=main)](https://github.com/Mathmagicians/wonderland-eventing-playground/actions/workflows/cicd-client-example.yaml)
 
 A story is a business process the eventing platform runs: it says what it listens to, the platform hands it every
 message of those kinds, and what it wants to publish, it publishes through the platform. This folder is one story,
@@ -15,7 +15,7 @@ feature, its own CI. Copy it, rename it, and you have your own.
 | `dk.mathmagicians.playground:platform`, test fixtures       | the BDD drivers and steps, the parameter types, the architecture tests and the hexagon writer |
 | `platform.gradle`                                           | the Gradle conventions: version from git tags, repositories, the Boot BOM, the tasks |
 | `platform.mk`                                               | the make targets: build, test, image, features, architecture                        |
-| `ghcr.io/mathmagicians/confluent-eventing-playground`       | the platform's own distribution, the generators and the tea party your story trades with |
+| `ghcr.io/mathmagicians/wonderland-eventing-playground`      | the platform's own distribution, the generators and the tea party your story trades with |
 
 The jars are on GitHub Packages, published by the platform's CI: a release under its version, `0.1.0`, and the
 snapshot of the next one between releases. GitHub Packages needs a token even to read, so `GITHUB_ACTOR` and
@@ -58,16 +58,17 @@ snapshot of the next one between releases. GitHub Packages needs a token even to
 make build         # compile, unit tests, the architecture verified, the jar
 make arch-gen      # the hexagon and the module canvases under docs/generated/architecture
 make docker-image  # one image: the platform and your story, purse:<version>
-make bdd           # your features against that image and the Confluent test cluster
-make run ARGS="--purse.owners=Alice:1000"     # from source, against the test cluster
-make run ENV=local ARGS="--purse.ttl="        # from source, the console standing in for the topics: type help
+make bdd           # your features against that image, on TRANSPORT, default cli
+make run ARGS="--purse.ttl="                  # from source, the console standing in for the topics: type help
+make run TRANSPORT=confluent ARGS="--purse.owners=Alice:1000"   # from source, against the test cluster
 make docker-run ARGS="--purse.owners=Alice:1000"   # the published image
 make up            # the image from compose.yaml, OWNERS and TTL as environment variables; make down stops it
 make help          # every target
 ```
 
-The credentials of the test cluster come from `.env.test.private`, the platform's `.env.private.sample` lists them;
-`ENV_DIR` in the Makefile says where the file is. In CI they are in the environment.
+On `TRANSPORT=confluent` the credentials of the test cluster come from `.env.test.private`, the platform's
+`.env.private.sample` lists them; `ENV_DIR` in the Makefile says where the file is. In CI they are in the
+environment.
 
 ## The feature
 

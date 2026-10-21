@@ -12,8 +12,8 @@ runs, and keeps what this stack taught us in `references/`.
 ## Off limits
 
 `.env.*.private` is never read, opened, or sourced by an agent. Git is read-only for an agent: no `add`, `commit`,
-`push`, `pull`, `checkout`, `rebase`, `tag`, `stash`, `config`, no branch changes. When something needs staging,
-name the paths in one line and stop.
+`push`, `pull`, `checkout`, `rebase`, `tag`, `stash`, `config`, no branch changes. Staging is the human's; a report
+names what changed, never paths to stage.
 
 ## A step
 
@@ -71,10 +71,15 @@ date, and state it in the message that adds it.
 - One Terraform resource per concept, `for_each` over a map before a second copy of a block; the rest is `/iac`.
 - What a tool declared is verified by name, one lookup each, never by listing what else lives there.
 - A race between two workflows on one push is fixed by a rerun, not by coupling them.
+- `make build` runs `generated-check` before Gradle and stops there while `docs/generated` holds untracked files; a
+  `BUILD SUCCESSFUL` above that stop is the generator's, not the build's.
+- Gradle stops at the first project whose features are red, so one project's features run alone:
+  `make bdd GRADLE="./gradlew -x :platform:bdd"`.
 
 ## References
 
 - `references/github-actions.md`: secrets and variables, summaries, artifacts, required checks, triage.
 - Terraform with Confluent Cloud, topics, schemas, Flink: the `/iac` skill.
-- `references/cucumber-junit-platform.md`: the runner, the reports, the Spring context, drivers, containers.
+- `references/cucumber-junit-platform.md`: the runner, the reports, the Spring context, drivers, containers, a
+  story under test.
 - `references/gradle-make.md`: the image build record, floating versions, the make conventions.

@@ -18,11 +18,14 @@ is the trigger to extract, and the question before writing anything is: where do
 | Topic per payload | `topics.*` in the profile | `Topics`, features by the plain word, `ParameterTypes` resolves it |
 | The schema | the proto file under `src/main/proto` | protoc, Terraform, the BDD comparison |
 | Stream processing | the SQL under `src/main/flink` | Terraform submits it, `${env}` the one template variable |
-| The header names | the constants in `Converter` | the consumer, the drivers, and the SQL that writes a topic, by the same names |
+| The header names | the constants in `EnvelopeHeaders` | the publisher, the consumer, the drivers, and the SQL that writes a topic, by the same names |
+| The dead-letter name | `Topics.DEAD_LETTER`, `<topic>.DLT` | `DeadLetters` resolves the destination, `ParameterTypes` the feature's word; `iac/` carries the unavoidable copy |
 | The version | the git tag | Gradle, `make version`, the image tag, the release |
 | How anything runs | the Makefile | humans, every workflow step, compose, the README's commands |
 | Environments and names | `locals` in `iac/` | every `for_each`, never a second list |
 | What we do and how | README | `CLAUDE.md` and the skills point at it and never restate it |
+| A release's features, their states, and gate dates | the overview's catalog in `docs/releases/<folder>/`, headed `# Release <version>` | the folder's phase files, by link; a feature's rules are its map's |
+| Architecture decisions | `docs/adr.md` | plans by `ADR-NNN [Title]`, the enforcing rules by name |
 | Generated code and documents | their generator | committed output; `proto-check`, `arch-check`, `generated-check` catch drift |
 | History | git, written by the human | agents read: `status`, `diff`, `log`, `show` |
 
@@ -31,7 +34,7 @@ is the trigger to extract, and the question before writing anything is: where do
 - `.env.*.private`: never read, never opened, never sourced. `make` carries the values into the one command that
   needs them, and that is the whole contact.
 - Git writes: no `add`, `commit`, `push`, `pull`, `checkout`, `rebase`, `tag`, `stash`, `config`, no branch
-  changes. An agent names the paths to stage and stops there.
+  changes. Staging is the human's.
 - `.claude/settings.json`: the human's guard. A rule that blocks a task is a finding, never an edit.
 
 ## Unavoidable copies
@@ -45,6 +48,8 @@ silently.
 
 - `grep` for the pattern before declaring it new.
 - Search for an existing step before writing one, and for a parameter type before a second step text.
+- The constant that logs a line before a test retypes it: the pattern is built from the message, and read by the
+  first and the last group, so a placeholder added in the middle changes nothing.
 - A `for_each` over a map before a second resource with the same body.
 - A rule in the README before a rule in a comment, a comment before a rule in the chat.
 

@@ -152,6 +152,7 @@ m_Load_Story_GenerateLoad --> m_Application_PublishMessage
 m_Load_Story_GenerateLoad ..|> m_Application_Story
 m_Load_Story_GenerateLoad ..> m_Domain_Payload
 m_Log_LoggingPublisher .left.|> m_Application_Publisher
+m_Log_LoggingPublisher .[norank].> m_Protobuf_Converter
 m_Tea_Party_Story_SettleAtTheTeaParty --> m_Application_PublishMessage
 m_Tea_Party_Story_SettleAtTheTeaParty ..|> m_Application_Story
 m_Tea_Party_Story_SettleAtTheTeaParty ..> m_Domain_Envelope

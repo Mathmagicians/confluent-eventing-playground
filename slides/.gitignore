@@ -1,0 +1,4 @@
+node_modules/
+dist/
+# where the slides service mounts docs/generated/architecture/svg
+public/generated/

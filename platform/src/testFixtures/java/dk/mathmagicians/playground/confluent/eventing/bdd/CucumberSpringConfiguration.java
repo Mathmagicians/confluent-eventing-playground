@@ -7,16 +7,19 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.context.annotation.Import;
 
-/// The Spring context of the BDD suite: the `test` profile's Kafka client and topics, and the drivers as beans.
-/// The generators run as containers, not in this JVM. Lazy initialization keeps a dry run free of credentials:
-/// a missing variable fails at the first step that needs it, with the variable's name.
+/// The Spring context of the BDD suite: the profiles the `bdd` task names, `<transport>,<env>`, with the Kafka
+/// client and topics they give, and the drivers as beans, the `Transport` the one of the profile. The generators
+/// run as containers, not in this JVM.
+/// Lazy initialization keeps a dry run free of credentials: a missing variable fails at the first step that needs
+/// it, with the variable's name.
 @CucumberContextConfiguration
 @SpringBootTest(
         classes = CucumberSpringConfiguration.class,
         webEnvironment = WebEnvironment.NONE,
-        properties = {"spring.profiles.active=test", "spring.main.lazy-initialization=true"})
+        properties = "spring.main.lazy-initialization=true")
 @ImportAutoConfiguration(KafkaAutoConfiguration.class)
 @Import({
-    Cluster.class, SchemaRegistry.class, GeneratorContainer.class, StoryContainer.class, Published.class, Region.class
+    Cluster.class, SchemaRegistry.class, ClusterTransport.class, ConsoleTransport.class, GeneratorContainer.class,
+    StoryContainer.class, Published.class, Region.class
 })
 class CucumberSpringConfiguration {}

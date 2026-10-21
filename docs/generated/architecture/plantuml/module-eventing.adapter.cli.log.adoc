@@ -2,4 +2,8 @@
 |===
 |Base package
 |`dk.mathmagicians.playground.confluent.eventing.adapter.cli.log`
+|Spring components
+|_Secondary adapters_
+
+* `d.m.p.c.e.a.c.l.LoggingPublisher`
 |===

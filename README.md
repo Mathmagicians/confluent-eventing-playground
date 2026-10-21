@@ -1,10 +1,10 @@
 # Event Streaming Refresher
 
-[![cicd](https://github.com/Mathmagicians/confluent-eventing-playground/actions/workflows/cicd.yaml/badge.svg?branch=main)](https://github.com/Mathmagicians/confluent-eventing-playground/actions/workflows/cicd.yaml)
-[![iac](https://github.com/Mathmagicians/confluent-eventing-playground/actions/workflows/iac.yaml/badge.svg?branch=main)](https://github.com/Mathmagicians/confluent-eventing-playground/actions/workflows/iac.yaml)
-[![load-run](https://github.com/Mathmagicians/confluent-eventing-playground/actions/workflows/load-run.yaml/badge.svg)](https://github.com/Mathmagicians/confluent-eventing-playground/actions/workflows/load-run.yaml)
-[![architecture-discovery](https://github.com/Mathmagicians/confluent-eventing-playground/actions/workflows/architecture-discovery.yaml/badge.svg?branch=main)](https://github.com/Mathmagicians/confluent-eventing-playground/actions/workflows/architecture-discovery.yaml)
-[![cicd-client-example](https://github.com/Mathmagicians/confluent-eventing-playground/actions/workflows/cicd-client-example.yaml/badge.svg?branch=main)](https://github.com/Mathmagicians/confluent-eventing-playground/actions/workflows/cicd-client-example.yaml)
+[![cicd](https://github.com/Mathmagicians/wonderland-eventing-playground/actions/workflows/cicd.yaml/badge.svg?branch=main)](https://github.com/Mathmagicians/wonderland-eventing-playground/actions/workflows/cicd.yaml)
+[![iac](https://github.com/Mathmagicians/wonderland-eventing-playground/actions/workflows/iac.yaml/badge.svg?branch=main)](https://github.com/Mathmagicians/wonderland-eventing-playground/actions/workflows/iac.yaml)
+[![load-run](https://github.com/Mathmagicians/wonderland-eventing-playground/actions/workflows/load-run.yaml/badge.svg)](https://github.com/Mathmagicians/wonderland-eventing-playground/actions/workflows/load-run.yaml)
+[![architecture-discovery](https://github.com/Mathmagicians/wonderland-eventing-playground/actions/workflows/architecture-discovery.yaml/badge.svg?branch=main)](https://github.com/Mathmagicians/wonderland-eventing-playground/actions/workflows/architecture-discovery.yaml)
+[![cicd-client-example](https://github.com/Mathmagicians/wonderland-eventing-playground/actions/workflows/cicd-client-example.yaml/badge.svg?branch=main)](https://github.com/Mathmagicians/wonderland-eventing-playground/actions/workflows/cicd-client-example.yaml)
 
 Reference implementation of an **eventing platform**, a proof of concept, that plays **stories**, a Kafka load
 generator and stream consumers, against **Confluent Cloud**.
@@ -19,8 +19,8 @@ generator and stream consumers, against **Confluent Cloud**.
 - jMolecules + ArchUnit - hexagonal stereotypes on ports, adapters, and application services, and the rule that
   enforces them
 - Testcontainers - runs the image under test in the BDD suite
-- Docker + Compose - starts the flock: the load generators and the stories that read them
-- GitHub Actions - CICD + publish to GH registry, and hourly load runs
+- Docker + Compose - starts the flock: the load generators and the stories that read them; and plays the talk
+- GitHub Actions - CICD + publish to GH registry, and load runs on demand
 - Terraform + Terraform Cloud - topics, schemas, and Flink tables on Confluent Cloud, provider `confluentinc/confluent`
 - Container image - deployment unit, built with `./gradlew bootBuildImage`
 
@@ -38,7 +38,7 @@ generator and stream consumers, against **Confluent Cloud**.
 ## Purpose
 
 - Playground for refreshing event-streaming fundamentals against a managed Confluent cluster: keys, partitions, ordering, idempotence, schemas.
-- Generate repeatable load from GitHub Actions (hourly cron) and from a developer machine.
+- Generate repeatable load from GitHub Actions (on demand) and from a developer machine.
 - Use stream processing capabilities from Confluent to consume over several topics
 
 One topic per payload type, each keyed for a different ordering guarantee. Kafka keeps the records of one partition
@@ -77,7 +77,7 @@ in order, and the key picks the partition, so records with the same key stay in 
 
 | Service           | Role                                                                                                                                  | Runs where                              |
 |-------------------|---------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------|
-| `load`            | The generator: produces one payload type to its topic. One image, many instances distinguished by type and region (`EMEA`, `AMER`, `APAC`, ...). | Compose flock, GitHub Actions cron |
+| `load`            | The generator: produces one payload type to its topic. One image, many instances distinguished by type and region (`EMEA`, `AMER`, `APAC`, ...). | Compose flock, GitHub Actions on demand |
 | `tea-party`       | Reads a region's offers and orders, settles an order at the latest offer, publishes the transaction.                                | Compose flock                           |
 | `purse`           | Reads the transactions, keeps what its owner has left. The example of a story built outside, `examples/purse/`.                     | Its own image                           |
 
@@ -123,8 +123,8 @@ nothing outside itself.
 | Domain           | `Payload` and its records, `Envelope`, `Receipt`, `Wonderland`: the data, the key rules, the random recipes.  | `domain`              | none                |
 | Use cases        | The driving ports, named in the features' words: `Story`, the contract every story implements, and `PublishMessage`; the stories `GenerateLoad`, `SettleAtTheTeaParty`, `KnowWhatIsLeft`, one jar each. Records, plain Java and SLF4J. | `application`, `stories/*` | `@PrimaryPort` |
 | Driven ports     | What the use cases need from the outside: `Publisher`. Interfaces.                                            | `application`         | `@SecondaryPort`    |
-| Driving adapters | What calls a use case: `StoryRunner`, the command line starting the story `--story` names; `StoryListener`, the consumer feeding it the topics it listens to; `ConsoleListener`, the console feeding it what is typed under `local`. | `adapter/cli/boot`, `adapter/cli/console`, `adapter/kafka/consumer` | `@PrimaryAdapter` |
-| Driven adapters  | What implements a driven port: `LoggingPublisher` for `local`, `KafkaPublisher` with `Topics` for `test` and `prod`. | `adapter/cli/log`, `adapter/kafka/publisher` | `@SecondaryAdapter` |
+| Driving adapters | What calls a use case: `StoryRunner`, the command line starting the story `--story` names; `StoryListener`, the consumer feeding it the topics it listens to; `ConsoleListener`, the console feeding it what is typed under `cli`. | `adapter/cli/boot`, `adapter/cli/console`, `adapter/kafka/consumer` | `@PrimaryAdapter` |
+| Driven adapters  | What implements a driven port: `LoggingPublisher` for `cli`, `KafkaPublisher` with `Topics` for `confluent`. | `adapter/cli/log`, `adapter/kafka/publisher` | `@SecondaryAdapter` |
 | Shared adapters  | What both sides of the rim use: `Converter`, the payload records and their Protobuf messages each way; `Topics` and `EnvelopeHeaders`, the wire the Kafka adapters share. | `adapter/protobuf`, `adapter/kafka` | `@Adapter` |
 | Composition root | `UseCases`, a `@Configuration` that wires the clock and picks the story; each story's auto-configuration builds the story from its settings, its ports, the clock, and the random source. | root, `stories/*` | none |
 
@@ -139,7 +139,7 @@ only, both reach the shared adapters, which reach the domain only, and nothing i
 ### Data flow
 
 ```
- GitHub Actions cron (hourly)          developer machine
+ GitHub Actions on demand              developer machine
           |                                   |
           v                                   v
    load story (EMEA)   ...   load story (region N)
@@ -163,7 +163,7 @@ only, both reach the shared adapters, which reach the domain only, and nothing i
 ├── Makefile                  the entry point for humans and CI: what only this repository has
 ├── platform.mk               the make targets every build on the platform shares, included by the Makefile and a story's own
 ├── platform.gradle           the Gradle conventions every build on the platform shares, applied by build.gradle and a story's own
-├── compose.yaml              the flock: generators per region, the tea party
+├── compose.yaml              the flock: generators per region, the tea party; beside it the talk
 ├── build.gradle / settings.gradle
 ├── platform/                 the eventing platform: domain, the Story contract, the adapters; its test fixtures are the shared BDD
 ├── stories/                  the stories of this repository, one jar each: load, tea-party
@@ -174,7 +174,11 @@ only, both reach the shared adapters, which reach the domain only, and nothing i
 ├── iac/                      Terraform: topics, schemas, and Flink tables on the Confluent cluster, applied by Terraform Cloud
 ├── .github/workflows/        cicd.yaml, load-run.yaml, iac.yaml, architecture-discovery.yaml, cicd-client-example.yaml
 ├── architecture-discovery/   the library behind the hexagon diagram, and architecture-discoverability.md: its own build, its own workflow, published to GitHub Packages
-└── docs/                     generated/architecture from the code, make arch-gen
+├── slides/                   the talk, Architecture Discoverability and Verification, played by compose: make slides-present
+└── docs/
+    ├── generated/            the architecture from the code, make arch-gen; the slides as PDF, make slides-pdf
+    ├── releases/             a folder per release: the overview with the catalog of its features, and one file per phase
+    └── adr.md                the architecture decisions
 ```
 
 Root package: `dk.mathmagicians.playground.confluent`. Packages by ring inside the platform: `domain` in the
@@ -202,13 +206,20 @@ CI gate.
 
 #### Environments
 
-| Profile | Publishes to    | Runs from                                                      |
-|---------|-----------------|----------------------------------------------------------------|
-| `local` | the log         | Developer machine, no credentials                              |
-| `test`  | `test.<topic>`  | Developer machine, the `cd` job on every pull request          |
-| `prod`  | `prod.<topic>`  | `load-run.yaml` hourly cron, developer machine with `ENV=prod` |
+A process plays two profiles, `<transport>,<env>`: the transport is where it publishes, the environment names the
+topics. `make` takes them from `TRANSPORT`, default `cli`, and `ENV`, default `test`.
 
-`test` and `prod` run against Confluent Cloud.
+| Transport   | Publishes to    | Runs from                                                                  |
+|-------------|-----------------|----------------------------------------------------------------------------|
+| `cli`       | the log         | Developer machine, no credentials; the `bdd` job on every pull request     |
+| `confluent` | Confluent Cloud | Developer machine with `.env.<ENV>.private`, `load-run.yaml`               |
+
+| Environment | Topics          | Runs from                                                                             |
+|-------------|-----------------|---------------------------------------------------------------------------------------|
+| `test`      | `test.<topic>`  | Developer machine, the `bdd` job on every pull request, `load-run.yaml` from a branch |
+| `prod`      | `prod.<topic>`  | `load-run.yaml` from `main`, developer machine with `ENV=prod`                        |
+
+`kafka` and `cloudflare` are in `TRANSPORTS` of `platform.mk`, with their GitHub environments, and play nothing yet.
 
 #### Variables and secrets
 
@@ -218,7 +229,9 @@ properties files. `.env.private.sample` lists them. They live in three places:
 - `.env.<ENV>.private`, `ENV` being `test` or `prod`, git-ignored. `make` sources the file for `ENV`, default
   `test`, into the command it runs.
 - The GitHub environments `confluent-test` and `confluent-prod`: the endpoints as variables, the API keys as
-  secrets. One Confluent cluster serves both, one topic prefix each.
+  secrets. One Confluent cluster serves both, one topic prefix each. `load-run.yaml` plays in `<transport>-prod`
+  from `main` and in `<transport>-test` from any other branch; the `cli-*`, `kafka-*`, and `cloudflare-*`
+  environments start empty.
 - The Terraform Cloud workspace, as Terraform variables.
 
 #### IaC
@@ -236,10 +249,10 @@ The application is a container image that plays one story per process, `--story=
 the flock with compose, see `compose.yaml` and the Flock section of `make help`, or start the image on its own:
 
 ```bash
-docker run --rm confluent-eventing-playground:$(make version)
-docker run --rm confluent-eventing-playground:$(make version) --load.type=order --load.concurrent=20 --load.interval=100 --load.region=APAC --load.ttl=120
-docker run --rm ghcr.io/mathmagicians/confluent-eventing-playground:latest --load.type=product
-docker run --rm ghcr.io/mathmagicians/confluent-eventing-playground:latest --story=tea-party --tea-party.region=EMEA
+docker run --rm wonderland-eventing-playground:$(make version)
+docker run --rm wonderland-eventing-playground:$(make version) --load.type=order --load.concurrent=20 --load.interval=100 --load.region=APAC --load.ttl=120
+docker run --rm ghcr.io/mathmagicians/wonderland-eventing-playground:latest --load.type=product
+docker run --rm ghcr.io/mathmagicians/wonderland-eventing-playground:latest --story=tea-party --tea-party.region=EMEA
 ```
 A story's settings are the bundle of its name, and every story takes `--<name>.ttl`, the seconds it plays before
 the process ends; left empty, `--tea-party.ttl=`, a consumer reads until stopped. The tea party takes
@@ -256,12 +269,12 @@ the process ends; left empty, `--tea-party.ttl=`, a consumer reads until stopped
 
 A wrong value fails startup with the reason.
 
-Under the `local` profile the console stands in for the topics: the log is where a story publishes, and what a
-story listens to is typed, one message per line, the type and its fields as Protobuf text. `help` prints a
+On `cli`, the default transport, the console stands in for the topics: the log is where a story publishes, and what
+a story listens to is typed, one message per line, the type and its fields as Protobuf text. `help` prints a
 template per type, `region: APAC` sets the region of what follows, EOF ends the process.
 
 ```bash
-make run ENV=local ARGS="--story=tea-party --tea-party.ttl="
+make run ARGS="--story=tea-party --tea-party.ttl="
 Offer offer_id: "OFF-1" product_id: "P-TOPH" price: 12.5 seller_id: "MAD_HATTER"
 Order id: "ORD-1" customer_id: "ALICE" product_id: "P-TOPH"
 ```
@@ -303,8 +316,9 @@ A review finding cites the rule it breaks.
   carries the value, injected where needed.
 - Auto-configuration first. A `@Bean` method covers what auto-configuration cannot express and carries a one-line
   comment saying so.
-- Profiles are `local`, `test`, and `prod`. `local` publishes every envelope to the log at INFO and needs no
-  credentials, the other two publish to Kafka and differ in properties: the topic names.
+- Profiles are a transport, `cli` or `confluent`, and an environment, `test` or `prod`, played as
+  `<transport>,<env>`. `cli` publishes every envelope to the log at INFO and needs no credentials, `confluent`
+  publishes to Confluent Cloud. The environments differ in properties: the topic names.
 - `application.properties` holds defaults, `application-<profile>.properties` holds the profile. Secrets are
   `${ENV_VAR}` placeholders that fail fast when unset. Everything else has a default.
 - `@SpringBootTest` serves one wiring test per service and the BDD suite.
@@ -347,7 +361,7 @@ Test layers:
 |-------|---------------------------------------------------|------------------------------------------------|---------|
 | Unit  | JUnit 5, AssertJ, Mockito                         | One class in isolation                         | ms      |
 | BDD   | Cucumber, Testcontainers running the image        | One feature end to end: the image against the Confluent test cluster | seconds |
-| Load  | GitHub Actions against Confluent Cloud            | the latest image, hourly, measured             | minutes |
+| Load  | GitHub Actions on the transport picked            | the latest image, on demand, measured          | minutes |
 
 Unit tests:
 
@@ -372,8 +386,11 @@ BDD with Cucumber:
 - Steps are shared across features. Search for an existing step before writing one.
 - The Flink feature's oracle is what the generator published in the scenario: the table must say what was sent.
 - Features run through the JUnit Platform Suite engine as part of `make check`. A red feature blocks the build.
-  The report is `build/reports/cucumber/index.html`; the `cd` job prints the scenarios in its summary and uploads
-  the report as the artifact `cucumber-report`.
+  The report is `build/reports/cucumber/index.html`; the `bdd` job prints the scenarios in its summary and uploads
+  the report as the artifact `cucumber-report-<transport>`.
+- A feature we decide is not ready carries `@wip`, a check played by hand carries `@manual`. `make bdd` leaves both
+  out, `make bdd-snippets` leaves out `@manual`, and `SCENARIOS=<tag expression>` picks others.
+- `TRANSPORT` picks the transport the features play on, and a transport plays the scenarios it carries.
 
 ### Naming and structure
 
@@ -388,7 +405,7 @@ BDD with Cucumber:
 - SLF4J with parameterised messages: `log.info("Produced {} orders for {}", count, region)`.
 - `ERROR` means a human should look. `WARN` means degraded but running. `INFO` is lifecycle and counts. `DEBUG` is
   per-message detail, off by default.
-- Log lines carry identifiers and counts. Payloads appear at `DEBUG`, stack traces at `ERROR`. The `local` profile
+- Log lines carry identifiers and counts. Payloads appear at `DEBUG`, stack traces at `ERROR`. The `cli` transport
   is the exception: the log is its publisher, so every envelope appears at `INFO`.
 - Micrometer counters and timers for produced and consumed records.
 
@@ -411,11 +428,13 @@ BDD with Cucumber:
 - `cicd.yaml`, job `ci`, runs on pull requests to `main`, on pushes to `main`, and on `workflow_dispatch`:
   generated-check, arch-verify, build with unit tests, the platform, its test fixtures, and the stories as a
   snapshot to GitHub Packages, container image, then publishes the build to
-  `ghcr.io/mathmagicians/confluent-eventing-playground` as a candidate tagged `sha-<short sha>`. A pull request
-  adds `pr-<number>`, a push to `main` adds `latest`. Only `main` moves `latest`.
-- `cicd.yaml`, job `cd`, follows `ci`: it deploys to test by running the integration tests, `make bdd-published`,
-  against the candidate, with the credentials of the `confluent-test` environment. A green `cd` on a pull request
-  is what says the build can be promoted.
+  `ghcr.io/mathmagicians/wonderland-eventing-playground` as a candidate tagged `sha-<short sha>`.
+- `cicd.yaml`, job `bdd`, follows `ci`: it deploys to test by running the integration tests, `make bdd-published`,
+  against the candidate, once per transport `make ci-transports` lists, with the credentials of its
+  `<transport>-test` environment.
+- `cicd.yaml`, job `cd`, follows `ci` and `bdd`: it publishes the tested candidate under its tags, the same bytes. A
+  pull request adds `pr-<number>`, a push to `main` adds `latest`. Only `main` moves `latest`. A green `cd` on a
+  pull request is what says the build can be promoted.
 - `cicd.yaml`, job `tag`, follows `cd` on `main`: `make git-release` puts a git tag `v<version>` on the tested
   commit and the same version on the candidate image in the registry, and the platform's jars go to GitHub
   Packages under it, the same bytes `ci` built. `make git-tag` is the git part alone. The version is Gradle's next,
@@ -423,9 +442,10 @@ BDD with Cucumber:
 - A minor or major version is a `workflow_dispatch` of `cicd.yaml` on `main` with the version. The merge before
   it would tag the next patch by itself, so pause the workflow around the merge: `gh workflow disable cicd.yaml`,
   merge, `gh workflow enable cicd.yaml`, then `gh workflow run cicd.yaml --ref main -f version=<version>`.
-- `load-run.yaml` runs hourly (`0 * * * *`) and on `workflow_dispatch` with one input, the load arguments. It
-  generates load in production: the `latest` image with the `prod` profile, `make docker-smoke` when the arguments
-  are empty and `make docker-run` otherwise, with the credentials of the `confluent-prod` environment. No `latest`
+- `load-run.yaml` runs on `workflow_dispatch` with two inputs, the transport, `cli`, `kafka`, `confluent`, or
+  `cloudflare`, default `cli`, and the load arguments. It generates load with the `latest` image, `make docker-smoke` when the
+  arguments are empty and `make docker-run` otherwise: from `main` with the `prod` profile and the credentials of
+  the GitHub environment `<transport>-prod`, from any other branch with `test` and `<transport>-test`. No `latest`
   image, no run.
 - `iac.yaml` runs on the same events as `cicd.yaml` and does its work when `iac/` changed, so it can be a required
   check while a run with nothing to do is green in seconds: `make tf-check`, then `make tf-plan`, the speculative plan
@@ -433,13 +453,33 @@ BDD with Cucumber:
   `iac/` on `main` through its GitHub connection.
 - `architecture-discovery.yaml` runs on the same events as `cicd.yaml` and does its work when
   `architecture-discovery/` changed, the same way: `make discovery-build`, then `make discovery-publish`, the
-  library's snapshot to GitHub Packages, where `ci` and `cd` resolve it.
+  library's snapshot to GitHub Packages, where `ci`, `bdd`, and `cd` resolve it.
 - `cicd-client-example.yaml` runs on the same events as `cicd.yaml` and does its work when `examples/purse/` or the
-  shared build files changed, the same way: the example's build, its image, its features against the test cluster,
+  shared build files changed, the same way: the example's build, its image, its features on `cli` in `cli-test`,
   and its image to the registry, as a client's own cicd would.
 - `main` is protected: changes arrive by pull request with a green `ci`, `cd`, `iac`, `architecture-discovery`,
   and `cicd-client-example`, no force pushes, linear history.
-  `.github/branch-protection.json` is the setting, `make gh-main-protection` applies it.
+  `.github/branch-protection.json` is the setting, and `.github/environment-test.json` and
+  `.github/environment-prod.json` set each transport's environments, `<transport>-prod` deployed from `main` only.
+  `make gh-main-protection` applies them.
+
+## How we work
+
+Spec driven, in Cucumber's BDD vocabulary. A release is a rotation from idea to Wonderland in production, and holds
+the features we put in it. Its plan lives in `docs/releases/`: the overview, the catalog of the release's features
+and their gates, and one file per phase.
+
+| Phase | What happens | Gate that closes it |
+|---|---|---|
+| Discovery | example mapping: the story, its rules, an example per rule, the questions | Examples agreed |
+| Formulation | the examples become Gherkin scenarios and architecture rules, the steps pending | Spec signed |
+| Automation | step bodies, drivers, unit tests, code, and plumbing turn the spec green | Spec green, the ADRs complied with |
+| Verification | the release checks on the pull request, then Wonderland in each of its environments | In production |
+
+A release groups the features it releases, one row of its catalog each. A feature moves through the phases on its
+own, and each gate is signed with its date and its evidence; Spec green is its passing BDD tests, or a manual
+verification where they are not feasible. Architecture decisions are recorded in `docs/adr.md`, each with the rule
+or test that enforces it.
 
 ## Definition of done
 
@@ -473,7 +513,7 @@ BDD with Cucumber:
 - [x] Split into modules
 - [x] Convert to hexagonal
 - [x] GitHub Actions `cicd.yaml`
-- [x] GitHub Actions `load-run.yaml`, hourly cron
+- [x] GitHub Actions `load-run.yaml`, load on demand
 - [x] Auto discover architecture, verify architecture rules, generate diagrams, and check for drift
 
 ## License

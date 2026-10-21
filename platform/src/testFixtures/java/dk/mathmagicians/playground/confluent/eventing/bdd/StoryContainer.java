@@ -10,7 +10,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
-import org.apache.kafka.common.TopicPartition;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,18 +19,15 @@ import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.wait.strategy.Wait;
 
 /// Test driver running the image under test as a story that listens: one container per scenario, started with
-/// the story's settings under a group of the scenario's own, `<story>-testrun-<salt>`, reading its topics from
-/// their end, so what the scenario publishes after the start is what the story sees. The container's log is the
+/// the story's settings under a group of the scenario's own, `<story>-testrun-<salt>`, listening on the suite's
+/// `Transport`, so what the scenario publishes after the start is what the story sees. The container's log is the
 /// story's voice; the scenario reads it. When the scenario ends the story is stopped the way a deployment stops
-/// it, and its group is forgotten.
+/// it, and it leaves the transport.
 @Component
 @ScenarioScope
 public class StoryContainer {
 
     private static final Logger log = LoggerFactory.getLogger(StoryContainer.class);
-
-    /// Spring Kafka's line once the consumer has its partitions: from here on the story sees what is published
-    private static final String LISTENING = ".*partitions assigned.*\\n";
 
     /// image start, the context, the group join
     private static final Duration STARTUP = Duration.ofMinutes(3);
@@ -42,15 +38,14 @@ public class StoryContainer {
     /// what Spring gets to close the context on SIGTERM, so the consumer leaves its group, before the kill
     private static final int GRACEFUL_SECONDS = 20;
 
-    private final Cluster cluster;
+    private final Transport transport;
     private final Region region;
     private @Nullable GenericContainer<?> container;
     private String name = "";
     private String group = "";
-    private Map<TopicPartition, Long> endAtStart = Map.of();
 
-    StoryContainer(Cluster cluster, Region region) {
-        this.cluster = cluster;
+    StoryContainer(Transport transport, Region region) {
+        this.transport = transport;
         this.region = region;
     }
 
@@ -58,20 +53,17 @@ public class StoryContainer {
     public void start(String story, Map<String, String> settings) {
         name = story;
         group = story + "-testrun-" + region.salt();
-        endAtStart = cluster.endOffsets(cluster.topics());
         var command = Stream.concat(
-                        Stream.of(
-                                "--story=" + story,
-                                "--spring.kafka.consumer.group-id=" + group,
-                                "--spring.kafka.consumer.auto-offset-reset=latest"),
+                        Stream.of("--story=" + story),
                         settings.entrySet().stream().map(setting -> "--" + setting.getKey() + "=" + setting.getValue()))
                 .toArray(String[]::new);
         var started = new GenericContainer<>(GeneratorContainer.IMAGE)
                 .withEnv(GeneratorContainer.credentials())
-                .withEnv("SPRING_PROFILES_ACTIVE", "test")
+                .withEnv("SPRING_PROFILES_ACTIVE", GeneratorContainer.PROFILES)
                 .withCommand(command)
                 .withLogConsumer(new Slf4jLogConsumer(log))
-                .waitingFor(Wait.forLogMessage(LISTENING, 1).withStartupTimeout(STARTUP));
+                .waitingFor(Wait.forLogMessage(transport.listening(), 1).withStartupTimeout(STARTUP));
+        transport.listen(started, group);
         started.start();
         container = started;
     }
@@ -82,14 +74,12 @@ public class StoryContainer {
         assertThat(name).as("the story at the table").isEqualTo(story);
     }
 
-    /// Waits until the story has read the streams named to their end: its group's committed offsets have reached
-    /// the end of every partition that got records since the story started.
+    /// Waits until the story has read the streams named to their end, as the transport tells it.
     public void awaitCaughtUp(List<String> payloads) {
-        var topics = payloads.stream().map(cluster::topic).toList();
         await().atMost(CATCHING_UP)
                 .pollInterval(Duration.ofSeconds(3))
                 .pollInSameThread()
-                .until(() -> cluster.caughtUp(group, topics, endAtStart));
+                .until(() -> transport.caughtUp(group, payloads));
     }
 
     /// Everything the story has logged so far.
@@ -107,7 +97,7 @@ public class StoryContainer {
     }
 
     /// Stops the story the way a deployment does, SIGTERM first, so the context closes and the consumer leaves
-    /// its group; then the container goes, and the group with it.
+    /// its group; then the container goes, and the story leaves the transport.
     @PreDestroy
     public void stop() {
         if (container != null) {
@@ -117,7 +107,7 @@ public class StoryContainer {
                     .exec();
             container.stop();
             container = null;
-            cluster.forget(group);
+            transport.left(group);
         }
     }
 

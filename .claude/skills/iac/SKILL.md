@@ -52,8 +52,9 @@ The plan is the review, the human approves it, and nothing in the code second-gu
 
 - `locals` hold the names and the environments once; `main` is the set of service topics, `topics` adds a `.DLT`
   twin to each. One `confluent_kafka_topic` with `for_each`.
-- The dead-letter twin keeps the partition count of its source: Spring's recoverer publishes to the same partition
-  number. `.DLT` is Spring's default suffix.
+- The dead-letter twin keeps the partition count of its source: the recoverer publishes to the same partition
+  number. `.DLT` is the name `iac/` gives it; Spring's default is `-dlt`, so the platform's `DeadLetters` resolves
+  the destination to `Topics.deadLetterOf(topic)`.
 - Confluent Cloud never auto-creates topics, so the dead-letter topics exist before the first failure.
 - A topic is replaced on a new name, a new cluster, or a partition decrease; everything else, a partition increase
   included, updates in place.
@@ -67,6 +68,11 @@ The plan is the review, the human approves it, and nothing in the code second-gu
   `version` come from the referenced resource. The referencing resource sets `skip_validation_during_plan = true`,
   because the referenced versions are unknown while the plan creates them in the same run; the registry validates on
   apply. A resource cannot reference its own `for_each` instances, so the referencing schema is its own resource.
+- A producer with `auto.register.schemas=false` finds a schema's imports through `reference.subject.name.strategy`;
+  the default asks the registry for a subject named after the import's file, `order.proto`. The platform's
+  `ReferenceSubjects` answers the imported payload's subject with the topic's environment, `test.orders-value`, so
+  the subjects `iac/` registers stay environment-prefixed and test evolves before prod. A JVM producer outside the
+  platform sets the same strategy.
 - Removing a message from a subject's schema is not backward compatible, `MESSAGE_REMOVED`. Splitting one file into
   several means deleting the subjects and registering afresh, fine while no data used them.
 - `confluent_schema_registry_cluster_config` pins `BACKWARD` once, the registry's default made explicit.
@@ -124,3 +130,4 @@ An `ALTER` run by hand in the lab is in the way of the apply: drop it, or tear d
 | `Value for undeclared variable` | a Terraform variable that should be an environment variable |
 | `MESSAGE_REMOVED` | a subject's schema lost a message; delete the subject |
 | `InvalidVersionException: 0` | a reference to a version created in the same plan; skip validation during plan |
+| `Subject 'order.proto' not found`, 40401, on serialize | the default reference subject strategy; set `reference.subject.name.strategy` to `ReferenceSubjects` |

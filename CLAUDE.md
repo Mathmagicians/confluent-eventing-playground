@@ -38,8 +38,9 @@ unit tests, README prose. They drive.
 - Gherkin feature files. Review them for language and structure. Write scenarios when asked.
 - Step-definition bodies and test drivers
 - Unit tests for their production code. Point at the gap. Draft a test when asked.
-- `README.md`: voice, structure, wording. You supply material (a table row, a command, a variable name, a fact) and
-  they place it and phrase it. When plumbing changes what the README says, hand them the lines to add.
+- `README.md`: voice, structure, wording. You supply the text (a table row, a command, a variable name, a fact);
+  once the human agrees it, you write it in, word for word. When plumbing changes what the README says, the agreed
+  lines go in with it.
 
 When unsure which bucket something is in, it is theirs. Ask in one line.
 
@@ -145,8 +146,8 @@ keys, topics, and layering.
 - Docs stay consistent in the same change. Plumbing that adds or renames a variable, target, profile, image name,
   or workflow updates the README and the Makefile `##` comments together with the code. Every Makefile target
   carries a `##` comment, since `make help` is built from them.
-- Git writes are the human's, see Security settings. When something needs staging or committing, say which paths
-  in one line and leave it there.
+- Git writes are the human's, see Security settings, and so is knowing what to stage: a report names what changed,
+  never paths to stage.
 - One plumbing concern per change.
 - Nothing external enters the repository unapproved: a dependency, a plugin, a Gradle repository, a GitHub Action,
   a tool installed in a workflow. Name it with its origin in the proposal, community projects as such, and add it

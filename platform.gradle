@@ -42,7 +42,7 @@ tasks.register('nextVersion') {
 // the environment, CI's or gh's; the same repository resolves them and receives them
 def githubPackages = {
     name = 'GitHubPackages'
-    url = 'https://maven.pkg.github.com/mathmagicians/confluent-eventing-playground'
+    url = 'https://maven.pkg.github.com/mathmagicians/wonderland-eventing-playground'
     credentials {
         username = System.getenv('GITHUB_ACTOR')
         password = System.getenv('GITHUB_TOKEN')
@@ -108,9 +108,25 @@ if (project != rootProject || subprojects.isEmpty()) {
         useJUnitPlatform()
         include cucumberRunner
         failOnNoDiscoveredTests = false
-        if (providers.gradleProperty('dryRun').isPresent()) {
+        def dryRun = providers.gradleProperty('dryRun').isPresent()
+        if (dryRun) {
             systemProperty 'cucumber.execution.dry-run', 'true'
         }
+        // the transport and the profiles the suite plays, -Ptransport=<transport> -Pprofiles=<transport>,<env>, from
+        // make; the drivers hand the profiles to the containers they start
+        def transport = providers.gradleProperty('transport').getOrElse('')
+        def profiles = providers.gradleProperty('profiles').getOrElse('')
+        // the tags of the scenarios a transport does not carry; the transports are TRANSPORTS of platform.mk
+        def uncarried = [cli: ['@kafka', '@confluent'], kafka: ['@confluent'], confluent: []]
+        doFirst {
+            if (!uncarried.containsKey(transport) || !profiles) {
+                throw new GradleException("-Ptransport=${transport} -Pprofiles=${profiles}: make passes both, the transport one of ${uncarried.keySet()}")
+            }
+        }
+        systemProperty 'spring.profiles.active', profiles
+        def scenarios = providers.gradleProperty('scenarios').getOrElse(dryRun ? 'not @manual' : 'not @wip and not @manual')
+        systemProperty 'cucumber.filter.tags',
+                (["(${scenarios})"] + uncarried.getOrDefault(transport, []).collect { "not ${it}" }).join(' and ')
         // the image under test, -Pimage=<repo>:<tag>; default is the local build from bootBuildImage
         systemProperty 'bdd.image',
                 providers.gradleProperty('image').getOrElse("${rootProject.name}:${project.version}")

@@ -131,4 +131,16 @@ class ConverterTest {
 
         assertThat(Converter.from(type, shape.substring(type.getSimpleName().length()))).isInstanceOf(type);
     }
+
+    /// The text of a payload is a line the console reads back: its fields, after the type's name, make the payload.
+    @ParameterizedTest
+    @MethodSource("payloads")
+    void writesAPayloadAsALineTheConsoleReadsBack(Payload payload) {
+        var type = payload.getClass();
+
+        var line = Converter.text(payload);
+
+        assertThat(line).startsWith(type.getSimpleName() + " ").doesNotContain("\n");
+        assertThat(Converter.from(type, line.substring(type.getSimpleName().length()))).isEqualTo(payload);
+    }
 }

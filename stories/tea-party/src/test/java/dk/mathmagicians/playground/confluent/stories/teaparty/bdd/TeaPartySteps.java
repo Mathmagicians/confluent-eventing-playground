@@ -1,21 +1,21 @@
 package dk.mathmagicians.playground.confluent.stories.teaparty.bdd;
 
-import dk.mathmagicians.playground.confluent.eventing.bdd.Cluster;
 import dk.mathmagicians.playground.confluent.eventing.bdd.Published;
 import dk.mathmagicians.playground.confluent.eventing.bdd.Region;
 import dk.mathmagicians.playground.confluent.eventing.bdd.StoryContainer;
+import dk.mathmagicians.playground.confluent.eventing.bdd.Transport;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import java.math.BigDecimal;
 
 /// Steps of "At the tea party an order meets an offer", glue to `TeaPartyTable`: how the party sits down, and
-/// what it settled. The offers and orders on the streams, the reading, and the cluster are the platform's steps.
+/// what it settled. The offers and orders on the streams, the reading, and the transport are the platform's steps.
 public class TeaPartySteps {
 
     private final TeaPartyTable table;
 
-    public TeaPartySteps(StoryContainer story, Cluster cluster, Published published, Region region) {
-        this.table = new TeaPartyTable(story, cluster, published, region);
+    public TeaPartySteps(StoryContainer story, Transport transport, Published published, Region region) {
+        this.table = new TeaPartyTable(story, transport, published, region);
     }
 
     @Given("a tea party in region {word}")

@@ -30,11 +30,25 @@ ENV ?= test
 ENV_DIR ?= .
 ENV_FILE := $(ENV_DIR)/.env.$(ENV).private
 WITH_ENV := test ! -f $(ENV_FILE) || { set -a; . $(ENV_FILE); set +a; };
-# the flock's environment: the profile and the credentials from .env.<ENV>.private
-COMPOSE := $(WITH_ENV) ENV=$(ENV) VERSION=$(VERSION) docker compose
+# the transports, each with the GitHub environments <transport>-test and <transport>-prod
+TRANSPORTS := cli kafka confluent cloudflare
+# the transports CI plays: confluent sits out for Confluent Cloud's pricing, kafka until its broker and schema
+# registry run on the runner, cloudflare until it plays
+CI_TRANSPORTS := cli
+# the transport a story plays on, one of TRANSPORTS
+TRANSPORT ?= cli
+# the profiles a process plays: its transport and its environment
+PROFILES = $(TRANSPORT),$(ENV)
+# the flock's environment: the profiles and the credentials from .env.<ENV>.private
+COMPOSE := $(WITH_ENV) PROFILES=$(PROFILES) VERSION=$(VERSION) docker compose
+# the scenarios bdd plays, a Cucumber tag expression; left empty, the bdd task's default
+SCENARIOS ?=
+SCENARIOS_ARG = $(if $(SCENARIOS),-Pscenarios='$(SCENARIOS)')
+# what the bdd task plays on
+ON_TRANSPORT = -Ptransport=$(TRANSPORT) -Pprofiles=$(PROFILES)
 
 .DEFAULT_GOAL := build
-.PHONY: help check build test run clean version next-version docker-image docker-repo docker-publish docker-image-exists docker-run bdd bdd-published bdd-snippets up down arch-verify arch-gen arch-check changed
+.PHONY: help check build test run clean version next-version docker-image docker-repo docker-publish docker-tag docker-image-exists docker-run bdd bdd-published bdd-snippets ci-transports up down arch-verify arch-gen arch-check changed
 
 # sections are the ##@ lines, targets the ## comments, this file's first
 HELP_FILES := $(lastword $(MAKEFILE_LIST)) $(filter-out $(lastword $(MAKEFILE_LIST)),$(MAKEFILE_LIST))
@@ -52,8 +66,8 @@ build:     ## compile, unit tests, jars
 test:      ## unit tests
 	@$(GRADLE) test
 
-run:       ## from source with profile ENV, default test; ARGS pick the story and its settings, e.g. ARGS="--story=tea-party --tea-party.region=APAC"
-	@$(WITH_ENV) SPRING_PROFILES_ACTIVE=$(ENV) $(GRADLE) $(BOOT):bootRun $(if $(ARGS),--args="$(ARGS)")
+run:       ## from source on TRANSPORT and ENV; ARGS pick the story and its settings, e.g. ARGS="--story=tea-party --tea-party.region=APAC"
+	@$(WITH_ENV) SPRING_PROFILES_ACTIVE=$(PROFILES) $(GRADLE) $(BOOT):bootRun $(if $(ARGS),--args="$(ARGS)")
 
 clean:     ## remove build output
 	@$(GRADLE) clean
@@ -74,28 +88,34 @@ docker-repo:   ## the registry path, REGISTRY/IMAGE
 docker-publish: docker-image   ## push to the registry under each tag in TAGS
 	@for tag in $(TAGS); do docker tag $(IMAGE):$(VERSION) $(REPO):$$tag && docker push $(REPO):$$tag; done
 
+docker-tag:   ## put each tag in TAGS on the registry image TAG, the same bytes
+	@for tag in $(TAGS); do docker buildx imagetools create -t $(REPO):$$tag $(REPO):$(TAG); done
+
 docker-image-exists:   ## exit 0 when the registry has a latest image
 	@docker manifest inspect $(REPO):latest > /dev/null
 
-docker-run:   ## the registry image TAG with profile ENV, default test, its console on stdin; ARGS pick the story and its settings, e.g. ARGS="--story=tea-party --tea-party.region=APAC"
-	@$(WITH_ENV) docker run --rm -i --pull always -e SPRING_PROFILES_ACTIVE=$(ENV) $(addprefix -e ,$(CREDENTIALS)) $(REPO):$(TAG) $(ARGS)
+docker-run:   ## the registry image TAG on TRANSPORT and ENV, its console on stdin; ARGS pick the story and its settings, e.g. ARGS="--story=tea-party --tea-party.region=APAC"
+	@$(WITH_ENV) docker run --rm -i --pull always -e SPRING_PROFILES_ACTIVE=$(PROFILES) $(addprefix -e ,$(CREDENTIALS)) $(REPO):$(TAG) $(ARGS)
 
-##@ Flock, docker compose plays the image from compose.yaml against ENV, default test; settings are environment variables, e.g. TTL=300 make up
+##@ Flock, docker compose plays the image from compose.yaml on TRANSPORT and ENV; settings are environment variables, e.g. TTL=300 make up
 up: docker-image   ## every player in compose.yaml, for TTL seconds, default 60, up to 300
 	@$(COMPOSE) up
 
 down:      ## stop the flock
 	@$(COMPOSE) down
 
-##@ Features, Cucumber runs the image against the Confluent test cluster: the platform's features and every story's
-bdd: docker-image   ## against the local image, built first when stale
-	@$(WITH_ENV) $(GRADLE) bdd -Pimage=$(IMAGE):$(VERSION)
+##@ Features, Cucumber runs the image on TRANSPORT: the platform's features and every story's
+bdd: docker-image   ## play the features against the local image, built first when stale; SCENARIOS=<tag expression> and TRANSPORT pick the scenarios
+	@$(WITH_ENV) $(GRADLE) bdd -Pimage=$(IMAGE):$(VERSION) $(SCENARIOS_ARG) $(ON_TRANSPORT)
 
-bdd-published:   ## against the registry image TAG
-	@$(WITH_ENV) $(GRADLE) bdd -Pimage=$(REPO):$(TAG)
+bdd-published:   ## play the features against the registry image TAG, as bdd does
+	@$(WITH_ENV) $(GRADLE) bdd -Pimage=$(REPO):$(TAG) $(SCENARIOS_ARG) $(ON_TRANSPORT)
 
-bdd-snippets:  ## snippets for undefined steps, no execution
-	@$(GRADLE) bdd -PdryRun || true
+bdd-snippets:  ## print a snippet for each undefined step, playing none
+	@$(GRADLE) bdd -PdryRun $(SCENARIOS_ARG) $(ON_TRANSPORT) || true
+
+ci-transports:   ## print CI_TRANSPORTS as a JSON list, the matrix of the bdd job
+	@printf '%s\n' $(CI_TRANSPORTS) | jq -Rnc '[inputs]'
 
 ##@ Architecture, the hexagon from the annotations in the code, verified by tests and drawn under docs/generated/architecture
 arch-verify:   ## the hexagonal rule and the module boundaries

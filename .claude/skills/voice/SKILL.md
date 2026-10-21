@@ -16,9 +16,8 @@ Every file outside `.claude/` reads as written by the team, once, in the present
   a version comes from, no tool names in the team's files, no restated rules in comments.
 - Agents, Claude, and `CLAUDE.md` are mentioned in `.claude/` and `CLAUDE.md` only.
 - A legend explains a diagram's arrows. Prose points at the legend in one line and never restates it.
-- The README is the human's: voice, structure, wording. Plumbing that changes what it says hands over the lines
-  to add, a table row, a command, a variable name, and the human places them. Written into the README only on
-  "you do it".
+- The README is the human's: voice, structure, wording. Plumbing that changes what it says supplies the lines to
+  add, a table row, a command, a variable name; once the human agrees them, Claude writes them in, word for word.
 - A `##` comment on every Makefile target, since `make help` is built from them; a `##@` line per section says
   what the section is.
 - A feature file describes one capability in domain language. Topics, ordering, and schemas are domain concepts

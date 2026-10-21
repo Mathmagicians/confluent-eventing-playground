@@ -17,13 +17,13 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
-/// Driven adapter for `test` and `prod`: the envelope as record headers, the payload as its Protobuf message, on
+/// Driven adapter for `confluent`: the envelope as record headers, the payload as its Protobuf message, on
 /// the topic of its payload type, keyed by `Envelope.key()`. The serializer configured in the properties writes
 /// the message with the schema id from the registry. The receipt carries the partition and offset the broker
 /// acknowledged; a failed send is logged at ERROR with the envelope id and fails the receipt.
 @SecondaryAdapter
 @Component
-@Profile("!local")
+@Profile("confluent")
 final class KafkaPublisher implements Publisher {
 
     private static final Logger log = LoggerFactory.getLogger(KafkaPublisher.class);

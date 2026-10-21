@@ -1,4 +1,4 @@
-/// Driven adapter: the log, for the local profile.
+/// Driven adapter: the log, for the cli profile.
 @SecondaryAdapter
 @Module(name = "Log")
 package dk.mathmagicians.playground.confluent.eventing.adapter.cli.log;
