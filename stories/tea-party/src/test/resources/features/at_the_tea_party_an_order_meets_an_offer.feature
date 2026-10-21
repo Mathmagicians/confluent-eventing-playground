@@ -6,7 +6,7 @@ Feature: At the tea party an order meets an offer
   came.
 
   Background:
-    Given I have the API keys to the cluster
+    Given I can connect to the eventing system
 
   Scenario Outline: An order is settled with an offer for its thing
     Given a tea party in region <Region>

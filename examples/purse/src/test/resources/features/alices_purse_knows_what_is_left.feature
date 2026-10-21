@@ -4,7 +4,7 @@ Feature: Alice's purse knows what is left
   empty and the owner shops on, it says what she owes.
 
   Background:
-    Given I have the API keys to the cluster
+    Given I can connect to the eventing system
 
   Scenario Outline: The purse follows its owner's trades and nobody else's
     Given <Owner>'s purse holds <Coins> coins

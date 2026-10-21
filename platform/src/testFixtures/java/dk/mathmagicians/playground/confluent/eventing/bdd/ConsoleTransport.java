@@ -31,14 +31,13 @@ import org.jspecify.annotations.Nullable;
 import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.env.Environment;
-import org.springframework.stereotype.Component;
+import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.GenericContainer;
 
 /// The transport on `cli`: the console a story reads and the log the image writes. What the scenario publishes
 /// is typed into the story's console, the region first, then the payload as a line; what the image publishes is a
 /// line in its log, the generator's or the story's. A story has read the streams when its console has handed it
 /// every message typed. The topic of a payload is the profile's `topics.*`, as on the cluster.
-@Component
 @ScenarioScope
 @Profile("cli")
 class ConsoleTransport implements Transport {
@@ -64,9 +63,11 @@ class ConsoleTransport implements Transport {
         this.topics = Binder.get(environment).bind("topics", Topics.class).get();
     }
 
-    /// The console and the log need no keys.
+    /// The console and the log need no keys: the Docker host that runs the image answers.
     @Override
-    public void assertOpen() {}
+    public void assertOpen() {
+        assertThat(DockerClientFactory.instance().isDockerAvailable()).as("the Docker host answers").isTrue();
+    }
 
     @Override
     public void listen(GenericContainer<?> story, String group) {

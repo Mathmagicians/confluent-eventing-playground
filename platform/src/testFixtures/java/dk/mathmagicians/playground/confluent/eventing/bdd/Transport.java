@@ -13,7 +13,7 @@ import org.testcontainers.containers.GenericContainer;
 /// log the image writes.
 public interface Transport {
 
-    /// The transport opens for the scenario.
+    /// The scenario can connect to the transport.
     void assertOpen();
 
     /// Readies a story's container, before it starts, to listen under the group: what the scenario publishes from

@@ -4,7 +4,7 @@ Feature: The cluster has my topics and schemas
   creates them from iac/, so a generator never does.
 
   Background:
-    Given I have the API keys to the cluster
+    Given I can connect to the eventing system
 
   Scenario Outline: A topic exists with its schema
     Then the topic <Topic> exists

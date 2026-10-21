@@ -12,14 +12,12 @@ import java.util.stream.Stream;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.TopicPartition;
 import org.springframework.context.annotation.Profile;
-import org.springframework.stereotype.Component;
 import org.testcontainers.containers.GenericContainer;
 
 /// The transport on `confluent`: the Confluent test cluster and its registry, through `Cluster` and
 /// `SchemaRegistry`. A story listens under its group, reading its topics from their end, and has read them when
 /// the group's committed offsets reach the end of every partition that got records since it started. A record
 /// a receipt points at is read once, for the steps that go on looking at it.
-@Component
 @ScenarioScope
 @Profile("confluent")
 class ClusterTransport implements Transport {
@@ -37,6 +35,7 @@ class ClusterTransport implements Transport {
         this.registry = registry;
     }
 
+    /// The API keys open the cluster.
     @Override
     public void assertOpen() {
         cluster.assertReachable();

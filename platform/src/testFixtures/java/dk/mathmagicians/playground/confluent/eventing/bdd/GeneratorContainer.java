@@ -12,7 +12,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.startupcheck.OneShotStartupCheckStrategy;
@@ -21,7 +20,6 @@ import org.testcontainers.utility.DockerImageName;
 /// Test driver running the image under test as a container: one generator on the suite's transport, the minimum
 /// load or a handful, and the receipts it logs. The image is the `bdd.image` system property, set by the Gradle
 /// `bdd` task, and it plays the profiles the suite plays. One per scenario, keeping what its generators logged.
-@Component
 @ScenarioScope
 public class GeneratorContainer {
 

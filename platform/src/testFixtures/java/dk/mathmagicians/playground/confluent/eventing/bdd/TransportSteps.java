@@ -11,8 +11,8 @@ public class TransportSteps {
         this.transport = transport;
     }
 
-    @Given("I have the API keys to the cluster")
-    public void iHaveTheApiKeysToTheCluster() {
+    @Given("I can connect to the eventing system")
+    public void iCanConnectToTheEventingSystem() {
         transport.assertOpen();
     }
 }
