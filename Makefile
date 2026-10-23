@@ -144,5 +144,5 @@ gh-main-protection:   ## apply .github/branch-protection.json to main, and .gith
 	    || gh api --method POST repos/$(GITHUB_REPO)/environments/$$t-prod/deployment-branch-policies -f name=main -f type=branch --silent; \
 	done
 
-gh-project-sync:   ## the board follows the release plans on BRANCH, see .github/project-sync.sh
+gh-project-sync:   ## the board follows the release plans on BRANCH, the archived ones on main, see .github/project-sync.sh
 	@.github/project-sync.sh $(GITHUB_REPO) $(BRANCH)

@@ -46,9 +46,9 @@ When unsure which bucket something is in, it is theirs. Ask in one line.
 
 ## Security settings
 
-`.claude/settings.json` is the human's guard on you. Only the human edits it; the file denies you `Edit` and
-`Write` on itself, `tee` into `.claude/`, and in-place `sed` and `perl`. A rule that blocks a task is a finding to
-report.
+`.claude/settings.json` is the human's guard on you. Only the human edits it; the file denies you `Edit` on itself,
+a rule that covers `Write` too, `tee` into `.claude/`, and in-place `sed` and `perl`. A rule that blocks a task is a
+finding to report.
 
 - **Git is read-only.** Allowed: `status`, `diff`, `log`, `show`, `ls-files`, listing branches. Denied: `add`,
   `commit`, `push`, `pull`, `fetch`, `merge`, `rebase`, `reset`, `restore`, `rm`, `mv`, `checkout`, `switch`,
@@ -56,7 +56,7 @@ report.
 - **GitHub through `gh`.** Allowed: viewing PRs, issues, workflows, and runs, and `workflow run`, `run watch`,
   `run rerun`. Denied: `pr create`, `pr merge`, `release`, `repo`.
 - **Credentials.** `.env.test.private` and `.env.prod.private` hold the human's Confluent credentials. Denied:
-  `Read`, `Edit`, `Write` on `.env*`, and `cat`, `head`, `tail`, `less`, `more`, `source`, `.` on them. `make`
+  `Read` and `Edit` on `.env*`, `Edit` covering `Write`, and `cat`, `head`, `tail`, `less`, `more`, `source`, `.` on them. `make`
   sources the file for `ENV` into the command it runs, so the values are never in your environment either.
 - **File changes** go through the `Edit` and `Write` tools, one diff at a time, for the human to approve.
 

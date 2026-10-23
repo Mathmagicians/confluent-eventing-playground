@@ -24,7 +24,6 @@
     ],
     "deny": [
       "Edit(./.claude/settings*.json)",
-      "Write(./.claude/settings*.json)",
       "Bash(tee .claude:*)",
       "Bash(tee ./.claude:*)",
       "Bash(sed -i:*)",
@@ -33,8 +32,7 @@
       "Bash(perl -0pi:*)",
       "Read(./.env*)",
       "Read(./**/.env*)",
-      "Edit(./.env*)",
-      "Write(./.env*)",
+      "Edit(./**/.env*)",
       "Bash(cat .env:*)",
       "Bash(cat ./.env:*)",
       "Bash(head .env:*)",

@@ -51,21 +51,25 @@ groups the features it releases, as many as themathmagician decides. Each phase 
       this-pr/                        the current release
       archived/release-<version>/     a release in production, trimmed to pointers
 
-  Each folder holds the overview, headed `# Release <version>`, and one file per phase, `*discovery.md`,
-  `*formulation.md`, `*automation.md`, `*verification.md`: `01_discovery.md` and on in `this-pr/`, `discovery.md`
-  and on in a planned folder.
+  Each folder holds the overview, `release-<version>.md`, headed `# Release <version>`, and one file per phase,
+  `discovery.md`, `formulation.md`, `automation.md`, `verification.md`; `archived/release-0.0.6/` keeps the numbered
+  names it was written with.
 - The overview is the catalog, `| Feature | Issue | State | Examples agreed | Spec signed | Spec green | Map |`: each
   feature with its state, Discovery, Formulation, Automation, Verification, or Parked, and the date of each gate it
   passed, linked to its evidence; a feature's rules live in its map. Beside it the branch's `cicd` badge. Its
   header: **Version** | **Date** | **Updated** | **Branch**.
 - The board, Mathmagicians project 5, follows the catalogs: `make gh-project-sync` gives each row its issue, linked
-  in the Issue cell, its milestone the overview's version, its body the feature's sections of the phase files, and
-  its issue field `phase` the row's state. themathmagician runs it after a gate is signed or a row moves to another
-  release.
-- A planned folder moves into `this-pr/` when its branch starts. Once the release is in production, `this-pr/` moves
-  to `archived/release-<version>/`; `main` takes changes by pull request, so the move rides in the next release's
-  first one. Plain `mv`, themathmagician stages. A feature the release does not ship moves to the next release's
-  catalog first.
+  in the Issue cell, its milestone the overview's version, its body the feature's sections of the phase files with
+  the links absolute into the branch, and its issue field `phase` the row's state. An archived release is synced
+  too: its links into `main`, its rows reading Archive, its milestone closed. themathmagician runs it after a gate
+  is signed or a row moves to another release.
+- A planned folder moves into `this-pr/` when its branch starts, and its overview names the branch. Once the release
+  is in production, `this-pr/` moves to `archived/release-<version>/` and the next release's folder into `this-pr/`,
+  plain `mv`, themathmagician stages; `main` takes changes by pull request, so the move rides in the next release's
+  first one. The order of that bookkeeping is the `verification` skill's. A feature the release does not ship moves
+  to the next release's catalog first.
+- A link into another release's folder is a link only when that folder is `archived/`, which never moves. A live
+  release is named, `0.0.7, Messaging capability`.
 - A question in a map carries its facts and options, the drafted choice marked "as drawn"; its answer goes into the
   map with its date.
 - References to an accepted ADR are `ADR-NNN [Title]`. A new ADR is proposed in the map by its title only; it gets
