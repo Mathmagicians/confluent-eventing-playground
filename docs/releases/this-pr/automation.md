@@ -151,7 +151,7 @@ The `x-generator` anchor takes the profiles from make, and the variables as make
 
 Owner: pair. Turns green: the make examples of the map. `TRANSPORT`, `PROFILES`, and the scenarios each transport
 carries are [platform.mk:39](../../../platform.mk#L39), from
-[CI plays each transport](../this-pr/03_automation.md#ci-plays-each-transport); this feature adds `kafka-up` and the
+[CI plays each transport](../archived/release-0.0.6/03_automation.md#ci-plays-each-transport); this feature adds `kafka-up` and the
 flock's addresses.
 
 ```make
@@ -220,7 +220,7 @@ and
 [GeneratorContainer.java:103](../../../platform/src/testFixtures/java/dk/mathmagicians/playground/confluent/eventing/bdd/GeneratorContainer.java#L103),
 passes the flock's addresses on `kafka`, beside the six variables `confluent` takes.
 
-- On `kafka`, `CI_TRANSPORTS` of [CI plays each transport](../this-pr/03_automation.md#ci-plays-each-transport)
+- On `kafka`, `CI_TRANSPORTS` of [CI plays each transport](../archived/release-0.0.6/03_automation.md#ci-plays-each-transport)
   takes `kafka` in, its broker on the runner, for the `bdd` job and the purse, per question 5.
 
 ### The console hears its story's region
@@ -228,10 +228,11 @@ passes the flock's addresses on `kafka`, beside the six variables `confluent` ta
 | Task | Owner | Turns green |
 |---|---|---|
 | [ConsoleListener.java:258](../../../platform/src/main/java/dk/mathmagicians/playground/confluent/eventing/adapter/cli/console/ConsoleListener.java#L258) hands the story what `story.hears`, as [StoryListener.java:64](../../../platform/src/main/java/dk/mathmagicians/playground/confluent/eventing/adapter/kafka/consumer/StoryListener.java#L64) does | themathmagician | `ConsoleListenerTest`: an envelope of another region is not heard |
+| [ConsoleListener.java:186](../../../platform/src/main/java/dk/mathmagicians/playground/confluent/eventing/adapter/cli/console/ConsoleListener.java#L186) keeps the region a `region:` line names as typed, without `toUpperCase` | themathmagician | `ConsoleListenerTest`: `region: Apac` stamps `Apac` |
 
 ## The catalog follows the board
 
-`project.yaml` plays [Project sync](../this-pr/03_automation.md#project-sync-the-board-follows-the-catalog) on every
+`project.yaml` plays [Project sync](../archived/release-0.0.6/03_automation.md#project-sync-the-board-follows-the-catalog) on every
 push, and the board's moves back into the catalog.
 
 | Task | Owner | Turns green |
@@ -276,7 +277,7 @@ Owner: pair.
 
 Owner: pair. The deck in [slides/](../../../slides/slides.md), with `make slides-present` and `make slides-pdf`. Each
 feature fills its section of the deck as it lands. The talk plays from compose,
-[Slides spike](../this-pr/03_automation.md#slides-spike-the-talk-plays-from-compose).
+[Slides spike](../archived/release-0.0.6/03_automation.md#slides-spike-the-talk-plays-from-compose).
 
 - The PDF in `docs/generated/slides` is the export of 2026-10-20.
 
@@ -289,3 +290,4 @@ Owner: themathmagician, pair secretary.
 - Play: `make run TRANSPORT=kafka`, `make kafka-up`, and `make kafka-down`.
 - Tech Stack: Apache Kafka and the schema registry for the local and the CI runs.
 - Git and CI: `bdd (kafka)` and `cicd-client-example` on the local broker.
+- Dependencies and build: `./gradlew spotlessApply`, a task the build does not have.

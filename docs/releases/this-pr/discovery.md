@@ -14,7 +14,7 @@ questions, and the decisions it raises for [docs/adr.md](../../adr.md).
   [application-confluent.properties:2](../../../platform/src/main/resources/application-confluent.properties#L2);
   the Kafka adapters carry `@Profile("confluent")`, and `kafka` has no profile yet.
 - 0.0.6 ships the transports `cli` and `confluent`, with
-  [CI plays each transport](../this-pr/01_discovery.md#ci-plays-each-transport), its matrix played on `cli`; 0.0.7
+  [CI plays each transport](../archived/release-0.0.6/01_discovery.md#ci-plays-each-transport), its matrix played on `cli`; 0.0.7
   adds `kafka`. Decided 2026-10-22.
 - A transport is a profile, `cli`, `kafka`, `confluent`; an environment is the GitHub environment a run plays
   against or deploys to, `test` or `prod`, and a profile of its own naming the topics. A process runs
@@ -132,7 +132,7 @@ says so.
   [junit-platform.properties](../../../platform/src/testFixtures/resources/junit-platform.properties) set no tag
   filter. A pending step is a red run, the evidence of Spec signed, and a red feature blocks the build.
 - A card's milestone is its overview's version, see
-  [Project sync](../this-pr/01_discovery.md#project-sync-the-board-follows-the-catalog).
+  [Project sync](../archived/release-0.0.6/01_discovery.md#project-sync-the-board-follows-the-catalog).
 - A feature we decide is not ready carries `@wip`, and a check played by hand, written as a scenario, carries
   `@manual`: `make bdd` leaves both out, and `make bdd-snippets` leaves out `@manual` alone. Decided 2026-10-21.
 - The repository's own features, the tooling's, live in `src/test/resources/features/` at the root, played by a

@@ -1,8 +1,12 @@
-# Release
+# Release 0.0.7
 
-**Date:** 2026-10-21 | **Updated:** 2026-10-22 | **Branch:** to be named when it starts
+**Date:** 2026-10-21 | **Updated:** 2026-10-23 | **Branch:** `eventing-without-confluent`
 
-The platform's work. The release ends In production, [verification.md](verification.md).
+[![cicd](https://github.com/Mathmagicians/wonderland-eventing-playground/actions/workflows/cicd.yaml/badge.svg?branch=eventing-without-confluent)](https://github.com/Mathmagicians/wonderland-eventing-playground/actions/workflows/cicd.yaml?query=branch%3Aeventing-without-confluent)
+
+The platform's work. The spec's results: the badge's latest run, its job summary with the scenarios, and its
+`cucumber-report-<transport>` artifact; locally `build/reports/cucumber/index.html` in each project with features,
+after `make bdd`. The release ends In production, [verification.md](verification.md).
 
 ## Catalog
 

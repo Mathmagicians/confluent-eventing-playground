@@ -81,7 +81,7 @@ Examples agreed 2026-10-21.
 **Goal:** a matrix build for each of the transports, confluent excluded for now, with a comment about pricing.
 
 - `cd` and `cicd-client-example` play the features against Confluent Cloud, which answers the keys with
-  `SaslAuthenticationException` since 2026-09-29, see [Messaging capability](../release-0.0.7/discovery.md#messaging-capability-cli-kafka-confluent).
+  `SaslAuthenticationException` since 2026-09-29, see 0.0.7, Messaging capability.
   `main` takes a merge with both green, admins included, [branch-protection.json](../../../.github/branch-protection.json).
 - The suite's drivers start the image with the suite's profiles, `<transport>,<env>`, and the keys the environment
   has, [GeneratorContainer.java:78](../../../platform/src/testFixtures/java/dk/mathmagicians/playground/confluent/eventing/bdd/GeneratorContainer.java#L78)
@@ -115,7 +115,7 @@ Examples agreed 2026-10-22.
 ### Rule: on cli the console feeds the story and the log receives what it publishes
 - the generator's feature on cli: the envelope's id and region in the image's log.
 - the tea party and the purse on cli: the offers and the orders typed on the console, the transactions in the log.
-- cli plays the image's `cli` profile, see [Messaging capability](../release-0.0.7/discovery.md#messaging-capability-cli-kafka-confluent).
+- cli plays the image's `cli` profile, see 0.0.7, Messaging capability.
 
 **Questions**
 1. The default of `TRANSPORT`: `cli`, which plays without a broker and without keys. Decided 2026-10-21.

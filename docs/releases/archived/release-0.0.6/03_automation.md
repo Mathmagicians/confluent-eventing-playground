@@ -14,8 +14,13 @@ Owner: pair. Turns green: the dispatches of the map.
   `environment-prod.json`, applied by `make gh-main-protection`, 2026-10-20.
 - `TRANSPORT` reaches make, [load-run.yaml:28](../../../.github/workflows/load-run.yaml#L28), and `platform.mk`
   plays it, 2026-10-22.
-- Open: Spec green after the merge, when `main` builds `latest`; the `kafka-*` and `cloudflare-*` environments
-  filled.
+- Spec green, signed 2026-10-23: the dispatch
+  [39694484209](https://github.com/Mathmagicians/wonderland-eventing-playground/actions/runs/39694484209) from `main`
+  on 2026-10-21, `make docker-smoke` with `latest` in `cli-prod`, green; from the branch,
+  [39508585975](https://github.com/Mathmagicians/wonderland-eventing-playground/actions/runs/39508585975) deployed to
+  `kafka-test` with `ENV=test` and skipped the load, the registry holding no `latest` yet. The `kafka-*` and
+  `cloudflare-*` environments fill when their transports play: 0.0.7, Messaging capability; 0.0.8, Eventing over
+  Cloudflare.
 
 ## Slides spike: the talk plays from compose
 
@@ -42,8 +47,9 @@ Owner: pair; the repository renamed by themathmagician. Turns green: the rule of
   `EventFixtures.APP`.
 - Spec green, signed 2026-10-21: `grep -rIi confluent-eventing-playground` finds no file outside the build output,
   and `make build` is green.
-- Open: `origin` at the new name, the Terraform Cloud workspace's VCS connection, and the visibility of the new
-  ghcr package after the first push.
+- Open on 2026-10-23, themathmagician's: `origin` at the new name, and the Terraform Cloud workspace's VCS
+  connection. The ghcr package is private after the first push, 3 versions, where the README's `docker run` of
+  `ghcr.io/mathmagicians/wonderland-eventing-playground:latest` needs it public.
 
 ## Project sync: the board follows the catalog
 
@@ -62,7 +68,11 @@ Spec green 2026-10-22: `make gh-project-sync`.
 |---|---|---|
 | `TRANSPORT` in `platform.mk`, default `cli`, passed to the `bdd` task with the profiles `<transport>,<env>`; the task leaves out what the transport does not carry | pair | done 2026-10-22: `make bdd-snippets` plays 3 + 7 scenarios, `TRANSPORT=confluent` 10 + 7 |
 | `TRANSPORTS` and `CI_TRANSPORTS` in `platform.mk`, the reasons beside them, and `make ci-transports` | pair | done 2026-10-21: `make ci-transports` prints `["cli"]` |
-| The drivers' port [Transport](../../../platform/src/testFixtures/java/dk/mathmagicians/playground/confluent/eventing/bdd/Transport.java), one bean per transport: `ClusterTransport` on `confluent`, the cluster and registry calls the drivers made before; `ConsoleTransport` on `cli`, the story's console typed into, the image's log read | pair | `make bdd` green; `make bdd TRANSPORT=confluent` green once the cluster answers |
+| The drivers' port [Transport](../../../platform/src/testFixtures/java/dk/mathmagicians/playground/confluent/eventing/bdd/Transport.java), one bean per transport: `ClusterTransport` on `confluent`, the cluster and registry calls the drivers made before; `ConsoleTransport` on `cli`, the story's console typed into, the image's log read | pair | done 2026-10-22: `bdd (cli)` green on the pull request; `make bdd TRANSPORT=confluent` plays when the cluster answers, 0.0.7, Messaging capability |
 | `LoggingPublisher` logs the receipt, the key, the region, and the payload as the console reads it, `Converter.text` | pair | done 2026-10-22: `LoggingPublisherTest`, `ConverterTest`; `make run-tiny` logs `Published ENVL-… to log-0 at offset 0, key EMEA/P-DRIN, region EMEA: Offer offer_id: "OFF-…" product_id: "P-DRIN" …` |
-| `cli` in `load-run.yaml`'s choice, and its environments `cli-test` and `cli-prod` | pair | GitHub creates them on first use; `make gh-main-protection` deploys `cli-prod` from `main` alone |
-| The `bdd` job of `cicd.yaml`, a matrix over `make ci-transports`, before `cd`, which publishes the image; `cicd-client-example.yaml` plays the purse in `cli-test` | pair | `bdd (cli)`, `cd`, and `cicd-client-example` green on the pull request |
+| `cli` in `load-run.yaml`'s choice, and its environments `cli-test` and `cli-prod` | pair | done 2026-10-21: the deployments to `cli-test` and `cli-prod` of 2026-10-21; `make gh-main-protection` deploys `cli-prod` from `main` alone |
+| The `bdd` job of `cicd.yaml`, a matrix over `make ci-transports`, before `cd`, which publishes the image; `cicd-client-example.yaml` plays the purse in `cli-test` | pair | done 2026-10-21: [39691461043](https://github.com/Mathmagicians/wonderland-eventing-playground/actions/runs/39691461043) with `bdd (cli)` and `cd`, and `cicd-client-example` [39691460970](https://github.com/Mathmagicians/wonderland-eventing-playground/actions/runs/39691460970), green on the pull request |
+
+Spec green, signed 2026-10-23: the merge's run
+[39692749878](https://github.com/Mathmagicians/wonderland-eventing-playground/actions/runs/39692749878) on `main`,
+`ci`, `bdd (cli)` in `cli-test`, `cd`, and `tag` green, and `make ci-transports` printing `["cli"]`.
