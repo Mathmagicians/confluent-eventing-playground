@@ -7,11 +7,11 @@ layout: cover
 
 # Architecture Discoverability and Verification
 
-Agata Przybyszewska
-
-Architect, coder and DevOps engineer · MathMagicians
+Agata Przybyszewska, PhD
 
 Senior Enterprise Architect · DSV
+
+Architect, DevOps engineer, Coder · MathMagicians
 
 Faglig Fredag · 30 October 2026
 
@@ -24,30 +24,50 @@ layout: section
 ---
 
 # Big enterprise, stale docs
+What problem are we trying to solve?
 
+Compliance, audit, governance.
+
+Stop gates - you want it deployed? 
+
+Then ... it goes stale.
+
+The thing worse than no documentation is stale documentation.
 ---
+
 
 # Tech stack
+Why Java? Enterprise
 
-- Why Java? Enterprise.
-- Eventing
-  - Confluent, expensive
-  - Strimzi, a Kafka distribution
-  - Cloudflare
-- Docker + Docker Compose to run it
-- Cucumber for BDD
+*$\mu$-services*: Java 25, Spring Boot, etc ...
 
-*... and the slides you see run from a cosy Docker container with Slidev*
+*Eventing:* Kafka, Confluent[^1] , Cloudflare, CLI
 
----
+*Runtime:* Java 25, Docker + Docker Compose to run it
 
-# Platform engineering is a skill
+*Testing:* TDD, BDD with Cucumber
+
+*Architecture discovery:* JMolecules, PlantUML +  our PlantUML plugin
+
+*IaC:* Terraform, Terraform Cloud
+
+*SDLC:* GitHub Actions, Makefile, Gradle[^2] 
+
+[^1]: expensive
+
+[^2]: ... and the slides you see run from a cosy Docker container with Slidev
 
 ---
 
 # Meet Wonderland, a toy platform
 
 Built to explore the core ideas
+
+Platform Engineering is a skill
+
+DX, make it easy - red carpet to do the right thing
+
+Keep it simple, hide aways complexity and deep tech stacks
 
 ---
 
@@ -66,6 +86,12 @@ layout: statement
 ---
 
 # Three questions
+
+How do we discover it?
+
+How do we keep it in sync as life goes on?
+
+How do we specify it?
 
 ---
 

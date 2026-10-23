@@ -52,9 +52,8 @@ carries it all.
    it, named `<version>, <feature>`. A link into another release's folder is a link only when that folder is
    `archived/`; a live release is named.
 3. The folders: `this-pr/` moves to `archived/release-<version>/`, the next release's folder into `this-pr/`, plain
-   `mv`; its overview names its branch and carries the branch's `cicd` badge. The branch starts from `origin/main`,
-   since the merge is a squash and the old branch holds nothing `main` lacks:
-   `git fetch origin && git switch -c <branch> origin/main`.
+   `mv`; its overview names its branch and carries the branch's `cicd` badge. The branch starts from `main` after
+   the merge.
 4. The links from the new `this-pr/` into the archive follow the move, `../archived/release-<version>/`.
 5. The board: `make gh-project-sync` on the new branch moves the archived rows' cards to `archive`, closes their
    milestone, and writes their bodies with links into `main`, alive once this pull request merges; the live rows'
